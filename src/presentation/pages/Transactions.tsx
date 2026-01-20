@@ -23,13 +23,16 @@ import {
   CardContent,
   Tabs,
   Tab,
+  Tooltip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { Edit as EditIcon } from '@mui/icons-material';
 import { db } from '@infrastructure/storage/database';
 import { TransactionType } from '@domain/models/Transaction';
 import { plService } from '../../application/services/PLService';
 import { useStore } from '@application/store/useStore';
 import Decimal from 'decimal.js';
+import { TransactionNoteDialog } from '../components/TransactionNoteDialog';
 
 interface TransactionRow {
   id: string;
@@ -45,6 +48,7 @@ interface TransactionRow {
   realizedPL?: number; // Calculated P/L for SELL transactions
   realizedCostBasis?: number; // Cost basis for percentage calculation
   originalAction?: string; // Extracted original action from CSV
+  notes?: string;
 }
 
 interface SymbolSummary {
@@ -78,6 +82,10 @@ export function Transactions() {
   const [tabIndex, setTabIndex] = useState(0);
   const [symbolSummaries, setSymbolSummaries] = useState<SymbolSummary[]>([]);
 
+  // Note editing state
+  const [editingTxId, setEditingTxId] = useState<string | null>(null);
+  const [editingNote, setEditingNote] = useState('');
+
   const costBasisMethod = useStore(state => state.costBasisMethod);
   const lastRefresh = useStore(state => state.lastRefresh);
 
@@ -95,7 +103,7 @@ export function Transactions() {
     try {
       const results = await db.query<TransactionRow>(`
         SELECT id, symbol, transaction_type, transaction_date, 
-               quantity, price, fees, total_amount, broker, raw_data
+               quantity, price, fees, total_amount, broker, raw_data, notes
         FROM transactions 
         ORDER BY transaction_date ASC, id ASC
       `);
@@ -281,7 +289,8 @@ export function Transactions() {
 
   // Get unique symbols for filter
   const uniqueSymbols = useMemo(() => {
-    const symbols = new Set(transactions.map(t => t.symbol).filter(s => s));
+    const transactionsSymbols = transactions.map(t => t.symbol).filter(s => s);
+    const symbols = new Set(transactionsSymbols);
     return Array.from(symbols).sort();
   }, [transactions]);
 
@@ -328,6 +337,20 @@ export function Transactions() {
     } catch (error) {
       setDeleteError('Failed to delete transaction');
       setTimeout(() => setDeleteError(null), 3000);
+    }
+  };
+
+  const handleEditNote = (txId: string, currentNote: string) => {
+    setEditingTxId(txId);
+    setEditingNote(currentNote || '');
+  };
+
+  const handleSaveNote = async (note: string) => {
+    if (editingTxId) {
+      await plService.updateTransactionNotes(editingTxId, note);
+      // Refresh transactions to show new note
+      await loadTransactions();
+      setEditingTxId(null);
     }
   };
 
@@ -506,6 +529,7 @@ export function Transactions() {
                     <TableCell align="right">Total</TableCell>
                     <TableCell align="right">Realized P/L</TableCell>
                     <TableCell>Broker</TableCell>
+                    <TableCell>Notes</TableCell>
                     <TableCell></TableCell>
                   </TableRow>
                 </TableHead>
@@ -545,7 +569,8 @@ export function Transactions() {
                         </TableCell>
                         <TableCell align="right">
                           {tx.transaction_type === 'SELL' &&
-                          tx.realizedPL !== undefined ? (
+                          tx.realizedPL !== undefined &&
+                          tx.realizedPL !== 0 ? (
                             <Box
                               sx={{
                                 display: 'flex',
@@ -587,6 +612,44 @@ export function Transactions() {
                           )}
                         </TableCell>
                         <TableCell>{tx.broker}</TableCell>
+                        <TableCell sx={{ minWidth: 200 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              '&:hover .edit-btn': { opacity: 1 },
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              color={
+                                tx.notes ? 'text.primary' : 'text.secondary'
+                              }
+                              sx={{
+                                maxWidth: 250,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontStyle: tx.notes ? 'normal' : 'italic',
+                              }}
+                            >
+                              {tx.notes || 'No notes'}
+                            </Typography>
+                            <Tooltip title="Edit Note">
+                              <IconButton
+                                size="small"
+                                className="edit-btn"
+                                sx={{ opacity: 0, transition: 'opacity 0.2s' }}
+                                onClick={() =>
+                                  handleEditNote(tx.id, tx.notes || '')
+                                }
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
                         <TableCell>
                           <IconButton
                             size="small"
@@ -601,7 +664,7 @@ export function Transactions() {
                     ))}
                   {filteredTransactions.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={9} align="center">
+                      <TableCell colSpan={11} align="center">
                         <Typography
                           variant="body2"
                           color="text.secondary"
@@ -631,6 +694,13 @@ export function Transactions() {
           </Paper>
         </>
       )}
+
+      <TransactionNoteDialog
+        open={!!editingTxId}
+        initialNote={editingNote}
+        onClose={() => setEditingTxId(null)}
+        onSave={handleSaveNote}
+      />
 
       {tabIndex === 1 && (
         <Box>

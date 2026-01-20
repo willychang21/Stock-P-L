@@ -62,16 +62,20 @@ function HoldingRow({
   const isPositive = returnPct.gte(0);
 
   // Load transactions when row is expanded
+  const fetchTransactions = () => {
+    setIsLoading(true);
+    plService
+      .getTransactionsWithPL(holding.symbol, costBasisMethod)
+      .then(summary => {
+        setTransactions(summary.transactions);
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  };
+
   useEffect(() => {
     if (open && transactions.length === 0) {
-      setIsLoading(true);
-      plService
-        .getTransactionsWithPL(holding.symbol, costBasisMethod)
-        .then(summary => {
-          setTransactions(summary.transactions);
-        })
-        .catch(console.error)
-        .finally(() => setIsLoading(false));
+      fetchTransactions();
     }
   }, [open, holding.symbol, costBasisMethod]);
 
@@ -148,6 +152,7 @@ function HoldingRow({
               <SymbolTransactionHistory
                 transactions={transactions}
                 isLoading={isLoading}
+                onNotesUpdated={fetchTransactions}
               />
             </Box>
           </Collapse>

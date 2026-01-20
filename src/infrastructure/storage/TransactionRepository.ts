@@ -205,6 +205,13 @@ export class TransactionRepository {
     }
     return hash.toString(36);
   }
+  /**
+   * Update transaction notes
+   */
+  async updateNotes(id: string, notes: string): Promise<void> {
+    await db.run('UPDATE transactions SET notes = ? WHERE id = ?', [notes, id]);
+    await db.checkpoint(true);
+  }
 }
 
 export interface ImportBatch {

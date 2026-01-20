@@ -391,6 +391,13 @@ export class PLService {
   }
 
   /**
+   * Update transaction notes
+   */
+  async updateTransactionNotes(id: string, notes: string): Promise<void> {
+    await transactionRepo.updateNotes(id, notes);
+  }
+
+  /**
    * Get period key from date based on time period type
    */
   private getPeriodKey(dateStr: string, timePeriod: TimePeriod): string {
