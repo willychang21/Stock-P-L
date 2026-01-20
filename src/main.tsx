@@ -1,11 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline, Box, CircularProgress, Typography } from '@mui/material';
+import {
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  Box,
+  CircularProgress,
+  Typography,
+} from '@mui/material';
 import { Layout } from './presentation/components/Layout';
 import { Dashboard } from './presentation/pages/Dashboard';
 import { Transactions } from './presentation/pages/Transactions';
 import { PerformanceAnalysis } from './presentation/pages/PerformanceAnalysis';
+import { BenchmarkComparison } from './presentation/pages/BenchmarkComparison';
 import { Settings } from './presentation/pages/Settings';
 import { db } from './infrastructure/storage/database';
 import './index.css';
@@ -25,12 +33,15 @@ const darkTheme = createTheme({
 
 function App() {
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <BrowserRouter
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="analysis" element={<PerformanceAnalysis />} />
+          <Route path="benchmark" element={<BenchmarkComparison />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
@@ -46,16 +57,18 @@ async function initApp() {
 
   // 1. Render Loading State
   root.render(
-    <Box sx={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      height: '100vh', 
-      flexDirection: 'column', 
-      gap: 2, 
-      bgcolor: '#121212', 
-      color: 'white' 
-    }}>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        flexDirection: 'column',
+        gap: 2,
+        bgcolor: '#121212',
+        color: 'white',
+      }}
+    >
       <CircularProgress />
       <Typography>Initializing Database...</Typography>
     </Box>
@@ -64,7 +77,7 @@ async function initApp() {
   try {
     // 2. Initialize Database
     await db.initialize();
-    
+
     // 3. Render App
     root.render(
       <React.StrictMode>
@@ -78,7 +91,9 @@ async function initApp() {
     console.error('Failed to initialize app:', error);
     root.render(
       <Box sx={{ p: 4, bgcolor: '#121212', height: '100vh', color: 'white' }}>
-        <Typography variant="h5" color="error" gutterBottom>Initialization Error</Typography>
+        <Typography variant="h5" color="error" gutterBottom>
+          Initialization Error
+        </Typography>
         <Typography>{String(error)}</Typography>
       </Box>
     );

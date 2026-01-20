@@ -1,5 +1,26 @@
-import { Box, AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton, useTheme, useMediaQuery } from '@mui/material';
-import { Dashboard as DashboardIcon, Receipt, Settings, Menu as MenuIcon, Assessment } from '@mui/icons-material';
+import {
+  Box,
+  AppBar,
+  Toolbar,
+  Typography,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  useTheme,
+  useMediaQuery,
+} from '@mui/material';
+import {
+  Dashboard as DashboardIcon,
+  Receipt,
+  Settings,
+  Menu as MenuIcon,
+  Assessment,
+  CompareArrows,
+} from '@mui/icons-material';
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
@@ -9,6 +30,7 @@ const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { text: 'Transactions', icon: <Receipt />, path: '/transactions' },
   { text: 'Analysis', icon: <Assessment />, path: '/analysis' },
+  { text: 'Benchmark', icon: <CompareArrows />, path: '/benchmark' },
   { text: 'Settings', icon: <Settings />, path: '/settings' },
 ];
 
@@ -41,7 +63,7 @@ export function Layout() {
         </Typography>
       </Toolbar>
       <List>
-        {menuItems.map((item) => (
+        {menuItems.map(item => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
               selected={location.pathname === item.path}

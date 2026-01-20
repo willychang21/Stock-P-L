@@ -32,6 +32,25 @@ export interface PerformanceReport {
   };
 }
 
+// Time-based performance types
+export type TimePeriod = 'yearly' | 'quarterly' | 'monthly';
+export type AssetFilter = 'ALL' | 'EQUITY' | 'ETF';
+
+export interface PeriodStats {
+  period: string; // e.g., "2024", "2024-Q1", "2024-01"
+  realizedPL: Decimal;
+  tradeCount: number;
+  winCount: number;
+  lossCount: number;
+  winRate: number;
+}
+
+export interface TimePerformanceReport {
+  periods: PeriodStats[];
+  assetFilter: AssetFilter;
+  timePeriod: TimePeriod;
+}
+
 function emptyStats(): TradeStats {
   return {
     winCount: 0,
@@ -292,6 +311,102 @@ export class PLService {
       },
       symbols: [],
     };
+  }
+
+  /**
+   * Get performance aggregated by time period (yearly/quarterly/monthly)
+   */
+  async getPerformanceByTimePeriod(
+    timePeriod: TimePeriod,
+    assetFilter: AssetFilter,
+    method: CostBasisMethod = 'FIFO'
+  ): Promise<TimePerformanceReport> {
+    const periodMap = new Map<
+      string,
+      {
+        realizedPL: Decimal;
+        tradeCount: number;
+        winCount: number;
+        lossCount: number;
+      }
+    >();
+
+    const symbols = await transactionRepo.getAllSymbols();
+
+    for (const symbol of symbols) {
+      // Apply asset filter
+      const typeStr = priceService.getAssetType(symbol);
+      if (assetFilter !== 'ALL') {
+        if (assetFilter === 'EQUITY' && typeStr !== 'EQUITY') continue;
+        if (assetFilter === 'ETF' && typeStr !== 'ETF') continue;
+      }
+
+      const allTxs = await transactionRepo.findBySymbol(symbol);
+      const calculator =
+        method === 'FIFO' ? new FIFOCalculator() : new AverageCostCalculator();
+
+      for (const tx of allTxs) {
+        const result = calculator.processTransaction(tx);
+
+        if (tx.transaction_type === 'SELL') {
+          const periodKey = this.getPeriodKey(tx.transaction_date, timePeriod);
+          const pl = result.realized_pl;
+
+          if (!periodMap.has(periodKey)) {
+            periodMap.set(periodKey, {
+              realizedPL: new Decimal(0),
+              tradeCount: 0,
+              winCount: 0,
+              lossCount: 0,
+            });
+          }
+
+          const stats = periodMap.get(periodKey)!;
+          stats.realizedPL = stats.realizedPL.plus(pl);
+          stats.tradeCount++;
+          if (pl.gt(0)) stats.winCount++;
+          else if (pl.lt(0)) stats.lossCount++;
+        }
+      }
+    }
+
+    // Convert map to sorted array
+    const periods: PeriodStats[] = Array.from(periodMap.entries())
+      .map(([period, stats]) => ({
+        period,
+        realizedPL: stats.realizedPL,
+        tradeCount: stats.tradeCount,
+        winCount: stats.winCount,
+        lossCount: stats.lossCount,
+        winRate:
+          stats.tradeCount > 0 ? (stats.winCount / stats.tradeCount) * 100 : 0,
+      }))
+      .sort((a, b) => a.period.localeCompare(b.period));
+
+    return {
+      periods,
+      assetFilter,
+      timePeriod,
+    };
+  }
+
+  /**
+   * Get period key from date based on time period type
+   */
+  private getPeriodKey(dateStr: string, timePeriod: TimePeriod): string {
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+
+    switch (timePeriod) {
+      case 'yearly':
+        return `${year}`;
+      case 'quarterly':
+        const quarter = Math.ceil(month / 3);
+        return `${year}-Q${quarter}`;
+      case 'monthly':
+        return `${year}-${month.toString().padStart(2, '0')}`;
+    }
   }
 }
 

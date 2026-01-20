@@ -181,6 +181,92 @@ app.get('/api/quotes', async (req, res) => {
   }
 });
 
+// Historical Cache (In-Memory)
+const historicalCache = new Map();
+
+/**
+ * GET /api/historical-prices
+ * Fetches historical price data for a symbol.
+ * Query: ?symbol=AAPL&startDate=2025-01-01&endDate=2026-01-19
+ * Returns: { symbol, prices: [{ date, open, high, low, close, volume }] }
+ */
+app.get('/api/historical-prices', async (req, res) => {
+  const { symbol, startDate, endDate } = req.query;
+
+  if (!symbol || typeof symbol !== 'string') {
+    return res
+      .status(400)
+      .json({ error: 'Missing or invalid "symbol" parameter' });
+  }
+
+  if (!startDate || !endDate) {
+    return res
+      .status(400)
+      .json({ error: 'Missing "startDate" or "endDate" parameters' });
+  }
+
+  // Create a cache key based on symbol and dates
+  const cacheKey = `${symbol.toUpperCase()}-${startDate}-${endDate}`;
+
+  // Check Cache
+  if (historicalCache.has(cacheKey)) {
+    // console.log(`📦 [Historical] Serving from cache: ${symbol}`);
+    return res.json(historicalCache.get(cacheKey));
+  }
+
+  console.log(
+    `📈 [Historical] Request: ${symbol} from ${startDate} to ${endDate}`
+  );
+
+  try {
+    const queryOptions = {
+      period1: new Date(startDate),
+      period2: new Date(endDate),
+      interval: '1d',
+    };
+
+    // Normalize symbol (e.g., BRKB -> BRK-B)
+    const normalizedSymbol = normalizeSymbol(symbol.toUpperCase());
+
+    // Add a small random delay to spread out requests (Rate Limiting mitigation)
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 200));
+
+    const result = await yahooFinance.chart(normalizedSymbol, queryOptions);
+
+    if (!result || !result.quotes || result.quotes.length === 0) {
+      return res.status(404).json({ error: 'No historical data found' });
+    }
+
+    const prices = result.quotes
+      .filter(q => q.close !== null && q.close !== undefined)
+      .map(q => ({
+        date: q.date.toISOString().split('T')[0],
+        open: q.open,
+        high: q.high,
+        low: q.low,
+        close: q.close,
+        volume: q.volume,
+      }));
+
+    console.log(
+      `📈 [Historical] Returned ${prices.length} data points for ${symbol}`
+    );
+
+    const responsePayload = {
+      symbol: symbol.toUpperCase(),
+      prices,
+    };
+
+    // Store in Cache (TTL could be added, but mostly harmless for daily data)
+    historicalCache.set(cacheKey, responsePayload);
+
+    res.json(responsePayload);
+  } catch (error) {
+    console.error(`❌ [Historical] Error fetching ${symbol}:`, error.message);
+    res.status(500).json({ error: 'Failed to fetch historical prices' });
+  }
+});
+
 // --- Routes: Legacy/Debug ---
 
 app.get('/api/cache/legacy', (req, res) => {
@@ -194,6 +280,15 @@ app.get('/api/cache/legacy', (req, res) => {
 });
 
 // --- Helper Functions ---
+
+function normalizeSymbol(symbol) {
+  // Yahoo Finance mapping overrides
+  const MAPPINGS = {
+    BRKB: 'BRK-B',
+    'BRK.B': 'BRK-B',
+  };
+  return MAPPINGS[symbol] || symbol;
+}
 
 async function fetchQuotesWithCache(symbols) {
   const results = [];
