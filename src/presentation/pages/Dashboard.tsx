@@ -138,7 +138,7 @@ export function Dashboard() {
         </Box>
 
         {/* Portfolio Summary Cards */}
-        <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid container spacing={3} sx={{ mb: 4 }}>
           {/* Total Value & Cost */}
           <Grid item xs={6} sm={4} md={2}>
             <Card>

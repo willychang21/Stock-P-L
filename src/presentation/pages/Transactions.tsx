@@ -717,9 +717,13 @@ export function Transactions() {
           <Card
             sx={{
               mb: 3,
-              backgroundColor: totalRealizedPL.gte(0)
-                ? 'success.light'
-                : 'error.light',
+              background: totalRealizedPL.gte(0)
+                ? 'linear-gradient(45deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05))'
+                : 'linear-gradient(45deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05))',
+              border: '1px solid',
+              borderColor: totalRealizedPL.gte(0)
+                ? 'rgba(16, 185, 129, 0.2)'
+                : 'rgba(239, 68, 68, 0.2)',
             }}
           >
             <CardContent>
