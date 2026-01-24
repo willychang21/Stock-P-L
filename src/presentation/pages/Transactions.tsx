@@ -239,47 +239,56 @@ export function Transactions() {
       }
     }
 
-    // Calculate realized P/L for each symbol that has sells
     const summaries: SymbolSummary[] = [];
 
-    for (const [symbol, group] of symbolMap) {
-      if (group.sells.length === 0 && group.buys.length === 0) continue;
+    // Create an array of promises for parallel execution
+    const summaryPromises = Array.from(symbolMap.entries()).map(
+      async ([symbol, group]) => {
+        if (group.sells.length === 0 && group.buys.length === 0) return null;
 
-      let realizedPL = new Decimal(0);
+        let realizedPL = new Decimal(0);
 
-      // Only calculate P/L if there are sells
-      if (group.sells.length > 0) {
-        try {
-          // Get just this symbol's realized P/L
-          const allSymbolPL = await plService.calculateRealizedPL(
-            symbol,
-            '2000-01-01',
-            new Date().toISOString().split('T')[0]!,
-            costBasisMethod
-          );
-          realizedPL = allSymbolPL;
-        } catch (err) {
-          console.error(`Failed to calculate P/L for ${symbol}:`, err);
+        // Only calculate P/L if there are sells
+        if (group.sells.length > 0) {
+          try {
+            // Get just this symbol's realized P/L
+            const allSymbolPL = await plService.calculateRealizedPL(
+              symbol,
+              '2000-01-01',
+              new Date().toISOString().split('T')[0]!,
+              costBasisMethod
+            );
+            realizedPL = allSymbolPL;
+          } catch (err) {
+            console.error(`Failed to calculate P/L for ${symbol}:`, err);
+          }
         }
+
+        const buyAmount = group.buys.reduce(
+          (sum, tx) => sum + Math.abs(parseFloat(tx.total_amount) || 0),
+          0
+        );
+        const sellAmount = group.sells.reduce(
+          (sum, tx) => sum + Math.abs(parseFloat(tx.total_amount) || 0),
+          0
+        );
+
+        return {
+          symbol,
+          buyCount: group.buys.length,
+          sellCount: group.sells.length,
+          buyAmount,
+          sellAmount,
+          realizedPL,
+        };
       }
+    );
 
-      const buyAmount = group.buys.reduce(
-        (sum, tx) => sum + Math.abs(parseFloat(tx.total_amount) || 0),
-        0
-      );
-      const sellAmount = group.sells.reduce(
-        (sum, tx) => sum + Math.abs(parseFloat(tx.total_amount) || 0),
-        0
-      );
+    const results = await Promise.all(summaryPromises);
 
-      summaries.push({
-        symbol,
-        buyCount: group.buys.length,
-        sellCount: group.sells.length,
-        buyAmount,
-        sellAmount,
-        realizedPL,
-      });
+    // Filter out nulls and push to summaries
+    for (const res of results) {
+      if (res) summaries.push(res);
     }
 
     // Sort by symbol

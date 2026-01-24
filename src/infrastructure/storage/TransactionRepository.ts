@@ -88,6 +88,16 @@ export class TransactionRepository {
   }
 
   /**
+   * Find all transactions ordered by date
+   */
+  async findAll(): Promise<Transaction[]> {
+    const results = await db.query<SerializedTransaction>(
+      `SELECT * FROM transactions ORDER BY transaction_date ASC, id ASC`
+    );
+    return results.map(deserializeTransaction);
+  }
+
+  /**
    * Find transactions within a date range
    */
   async findByDateRange(

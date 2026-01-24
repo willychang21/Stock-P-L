@@ -229,7 +229,7 @@ app.get('/api/historical-prices', async (req, res) => {
     const normalizedSymbol = normalizeSymbol(symbol.toUpperCase());
 
     // Add a small random delay to spread out requests (Rate Limiting mitigation)
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 200));
+    // await new Promise(resolve => setTimeout(resolve, Math.random() * 200));
 
     const result = await yahooFinance.chart(normalizedSymbol, queryOptions);
 

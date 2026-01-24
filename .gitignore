@@ -24,3 +24,7 @@ data/
 
 # Build artifacts
 .gemini
+
+# Agent
+.agent/*
+.agents/*

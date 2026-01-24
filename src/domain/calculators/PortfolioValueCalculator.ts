@@ -45,13 +45,8 @@ export class PortfolioValueCalculator {
    */
   async calculateDailyValues(endDate?: string): Promise<DailyPortfolioValue[]> {
     // Get all transactions
-    const allSymbols = await transactionRepo.getAllSymbols();
-    const allTransactions: Transaction[] = [];
-
-    for (const symbol of allSymbols) {
-      const txs = await transactionRepo.findBySymbol(symbol);
-      allTransactions.push(...txs);
-    }
+    // Get all transactions
+    const allTransactions = await transactionRepo.findAll();
 
     if (allTransactions.length === 0) return [];
 
