@@ -28,3 +28,4 @@ data/
 # Agent
 .agent/*
 .agents/*
+.specify/*
