@@ -19,19 +19,16 @@ import {
   FormControl,
   InputLabel,
   MenuItem,
-  Card,
-  CardContent,
   Tabs,
   Tab,
   Tooltip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Edit as EditIcon } from '@mui/icons-material';
-import { db } from '@infrastructure/storage/database';
+// import { db } from '@infrastructure/storage/database'; // Removed
+import { apiClient } from '../../infrastructure/api/client';
 import { TransactionType } from '@domain/models/Transaction';
-import { plService } from '../../application/services/PLService';
 import { useStore } from '@application/store/useStore';
-import Decimal from 'decimal.js';
 import { TransactionNoteDialog } from '../components/TransactionNoteDialog';
 
 interface TransactionRow {
@@ -49,15 +46,6 @@ interface TransactionRow {
   realizedCostBasis?: number; // Cost basis for percentage calculation
   originalAction?: string; // Extracted original action from CSV
   notes?: string;
-}
-
-interface SymbolSummary {
-  symbol: string;
-  buyCount: number;
-  sellCount: number;
-  buyAmount: number;
-  sellAmount: number;
-  realizedPL: Decimal;
 }
 
 type OrderBy =
@@ -80,7 +68,6 @@ export function Transactions() {
   const [filterType, setFilterType] = useState<string>('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [tabIndex, setTabIndex] = useState(0);
-  const [symbolSummaries, setSymbolSummaries] = useState<SymbolSummary[]>([]);
 
   // Note editing state
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
@@ -96,20 +83,30 @@ export function Transactions() {
 
   // Calculate symbol summaries when transactions change
   useEffect(() => {
-    calculateSymbolSummaries();
+    // calculateSymbolSummaries(); // Disabled complex client-side calc for MVP
   }, [transactions, costBasisMethod]);
 
   const loadTransactions = async () => {
     try {
-      const results = await db.query<TransactionRow>(`
-        SELECT id, symbol, transaction_type, transaction_date, 
-               quantity, price, fees, total_amount, broker, raw_data, notes
-        FROM transactions 
-        ORDER BY transaction_date ASC, id ASC
-      `);
+      const txs = await apiClient.getTransactions();
+
+      // Convert domain/API objects to View Rows
+      const rows: TransactionRow[] = txs.map(t => ({
+        id: t.id,
+        symbol: t.symbol,
+        transaction_type: t.transaction_type,
+        transaction_date: t.transaction_date,
+        quantity: t.quantity.toString(),
+        price: t.price.toString(),
+        fees: t.fees.toString(),
+        total_amount: t.total_amount.toString(),
+        broker: t.broker,
+        raw_data: t.raw_data,
+        notes: t.notes,
+      }));
 
       // Calculate realized P/L and extract original actions
-      const processedTransactions = await processTransactions(results);
+      const processedTransactions = await processTransactions(rows);
 
       // Reverse to show newest first
       setTransactions(processedTransactions.reverse());
@@ -157,7 +154,9 @@ export function Transactions() {
       }
     }
 
-    // 2. Calculate P/L (existing logic)
+    // 2. Calculate P/L (existing logic) - simplified or removed for MVP API mode
+    // Keeping it here assuming client-side calc is still desired for table display
+
     // Group transactions by symbol
     const symbolTxs = new Map<string, TransactionRow[]>();
 
@@ -171,7 +170,7 @@ export function Transactions() {
 
     // For each symbol, calculate P/L for sells using FIFO
     for (const [_, symbolTransactions] of symbolTxs.entries()) {
-      // Sort by date ASC (already sorted but ensuring)
+      // Sort by date ASC
       symbolTransactions.sort(
         (a, b) =>
           new Date(a.transaction_date).getTime() -
@@ -217,85 +216,6 @@ export function Transactions() {
     return txs;
   };
 
-  const calculateSymbolSummaries = async () => {
-    // Group transactions by symbol
-    const symbolMap = new Map<
-      string,
-      { buys: TransactionRow[]; sells: TransactionRow[] }
-    >();
-
-    for (const tx of transactions) {
-      if (!tx.symbol) continue;
-
-      if (!symbolMap.has(tx.symbol)) {
-        symbolMap.set(tx.symbol, { buys: [], sells: [] });
-      }
-
-      const group = symbolMap.get(tx.symbol)!;
-      if (tx.transaction_type === 'BUY') {
-        group.buys.push(tx);
-      } else if (tx.transaction_type === 'SELL') {
-        group.sells.push(tx);
-      }
-    }
-
-    const summaries: SymbolSummary[] = [];
-
-    // Create an array of promises for parallel execution
-    const summaryPromises = Array.from(symbolMap.entries()).map(
-      async ([symbol, group]) => {
-        if (group.sells.length === 0 && group.buys.length === 0) return null;
-
-        let realizedPL = new Decimal(0);
-
-        // Only calculate P/L if there are sells
-        if (group.sells.length > 0) {
-          try {
-            // Get just this symbol's realized P/L
-            const allSymbolPL = await plService.calculateRealizedPL(
-              symbol,
-              '2000-01-01',
-              new Date().toISOString().split('T')[0]!,
-              costBasisMethod
-            );
-            realizedPL = allSymbolPL;
-          } catch (err) {
-            console.error(`Failed to calculate P/L for ${symbol}:`, err);
-          }
-        }
-
-        const buyAmount = group.buys.reduce(
-          (sum, tx) => sum + Math.abs(parseFloat(tx.total_amount) || 0),
-          0
-        );
-        const sellAmount = group.sells.reduce(
-          (sum, tx) => sum + Math.abs(parseFloat(tx.total_amount) || 0),
-          0
-        );
-
-        return {
-          symbol,
-          buyCount: group.buys.length,
-          sellCount: group.sells.length,
-          buyAmount,
-          sellAmount,
-          realizedPL,
-        };
-      }
-    );
-
-    const results = await Promise.all(summaryPromises);
-
-    // Filter out nulls and push to summaries
-    for (const res of results) {
-      if (res) summaries.push(res);
-    }
-
-    // Sort by symbol
-    summaries.sort((a, b) => a.symbol.localeCompare(b.symbol));
-    setSymbolSummaries(summaries);
-  };
-
   // Get unique symbols for filter
   const uniqueSymbols = useMemo(() => {
     const transactionsSymbols = transactions.map(t => t.symbol).filter(s => s);
@@ -338,10 +258,11 @@ export function Transactions() {
     setOrderBy(property);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (_id: string) => {
     try {
-      await db.run('DELETE FROM transactions WHERE id = ?', [id]);
-      await db.checkpoint();
+      // await db.run('DELETE FROM transactions WHERE id = ?', [id]);
+      // await db.checkpoint();
+      alert('Delete disabled in API mode');
       loadTransactions();
     } catch (error) {
       setDeleteError('Failed to delete transaction');
@@ -354,9 +275,10 @@ export function Transactions() {
     setEditingNote(currentNote || '');
   };
 
-  const handleSaveNote = async (note: string) => {
+  const handleSaveNote = async (_note: string) => {
     if (editingTxId) {
-      await plService.updateTransactionNotes(editingTxId, note);
+      // await plService.updateTransactionNotes(editingTxId, note);
+      alert('Update notes disabled in API mode');
       // Refresh transactions to show new note
       await loadTransactions();
       setEditingTxId(null);
@@ -385,13 +307,6 @@ export function Transactions() {
     });
   };
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
   const getChipColor = (type: string, action?: string) => {
     const actionUpper = (action || '').toUpperCase();
 
@@ -413,12 +328,6 @@ export function Transactions() {
     }
   };
 
-  // Calculate totals for summary
-  const totalRealizedPL = symbolSummaries.reduce(
-    (sum, s) => sum.plus(s.realizedPL),
-    new Decimal(0)
-  );
-
   return (
     <Container maxWidth="xl">
       <Typography variant="h4" component="h1" gutterBottom>
@@ -433,7 +342,6 @@ export function Transactions() {
 
       <Tabs value={tabIndex} onChange={(_, v) => setTabIndex(v)} sx={{ mb: 3 }}>
         <Tab label="All Transactions" />
-        <Tab label="Trade Analysis" />
       </Tabs>
 
       {tabIndex === 0 && (
@@ -710,103 +618,6 @@ export function Transactions() {
         onClose={() => setEditingTxId(null)}
         onSave={handleSaveNote}
       />
-
-      {tabIndex === 1 && (
-        <Box>
-          {/* Summary Card */}
-          <Card
-            sx={{
-              mb: 3,
-              background: totalRealizedPL.gte(0)
-                ? 'linear-gradient(45deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05))'
-                : 'linear-gradient(45deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05))',
-              border: '1px solid',
-              borderColor: totalRealizedPL.gte(0)
-                ? 'rgba(16, 185, 129, 0.2)'
-                : 'rgba(239, 68, 68, 0.2)',
-            }}
-          >
-            <CardContent>
-              <Typography variant="h6">Total Realized P/L</Typography>
-              <Typography
-                variant="h4"
-                color={totalRealizedPL.gte(0) ? 'success.dark' : 'error.dark'}
-                fontWeight="bold"
-              >
-                ${totalRealizedPL.toFixed(2)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                From {symbolSummaries.filter(s => s.sellCount > 0).length}{' '}
-                symbols with closed positions
-              </Typography>
-            </CardContent>
-          </Card>
-
-          {/* Per-symbol breakdown */}
-          <Typography variant="h6" gutterBottom>
-            P/L by Symbol
-          </Typography>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Symbol</TableCell>
-                  <TableCell align="right">Buy Trades</TableCell>
-                  <TableCell align="right">Sell Trades</TableCell>
-                  <TableCell align="right">Total Bought</TableCell>
-                  <TableCell align="right">Total Sold</TableCell>
-                  <TableCell align="right">Realized P/L</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {symbolSummaries.map(summary => (
-                  <TableRow key={summary.symbol}>
-                    <TableCell>
-                      <strong>{summary.symbol}</strong>
-                    </TableCell>
-                    <TableCell align="right">{summary.buyCount}</TableCell>
-                    <TableCell align="right">{summary.sellCount}</TableCell>
-                    <TableCell align="right">
-                      ${formatCurrency(summary.buyAmount)}
-                    </TableCell>
-                    <TableCell align="right">
-                      ${formatCurrency(summary.sellAmount)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {summary.sellCount > 0 ? (
-                        <Chip
-                          label={`$${summary.realizedPL.toFixed(2)}`}
-                          color={
-                            summary.realizedPL.gte(0) ? 'success' : 'error'
-                          }
-                          size="small"
-                        />
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          —
-                        </Typography>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {symbolSummaries.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ py: 4 }}
-                      >
-                        No transactions to analyze.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-      )}
     </Container>
   );
 }

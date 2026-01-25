@@ -21,7 +21,6 @@ import {
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import StorageIcon from '@mui/icons-material/Storage';
 import { useStore } from '@application/store/useStore';
-import { db } from '@infrastructure/storage/database';
 import { priceService } from '@application/services/PriceService';
 
 /**
@@ -31,8 +30,10 @@ export function Settings() {
   const costBasisMethod = useStore(state => state.costBasisMethod);
   const setCostBasisMethod = useStore(state => state.setCostBasisMethod);
 
+  // Stats unused in API mode MVP
   const [transactionCount, setTransactionCount] = useState(0);
   const [batchCount, setBatchCount] = useState(0);
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [clearSuccess, setClearSuccess] = useState(false);
 
@@ -43,14 +44,12 @@ export function Settings() {
 
   const loadStats = async () => {
     try {
-      const txResult = await db.queryOne<{ count: number }>(
-        'SELECT COUNT(*) as count FROM transactions'
-      );
-      const batchResult = await db.queryOne<{ count: number }>(
-        'SELECT COUNT(*) as count FROM import_batches'
-      );
-      setTransactionCount(txResult?.count || 0);
-      setBatchCount(batchResult?.count || 0);
+      const response = await fetch('http://localhost:3001/api/system/stats');
+      if (response.ok) {
+        const data = await response.json();
+        setTransactionCount(data.transaction_count);
+        setBatchCount(data.batch_count);
+      }
     } catch (error) {
       console.error('Failed to load database stats:', error);
     }
@@ -58,12 +57,20 @@ export function Settings() {
 
   const handleClearDatabase = async () => {
     try {
-      await db.clear();
-      priceService.clearCache();
-      setConfirmOpen(false);
-      setClearSuccess(true);
-      await loadStats();
-      setTimeout(() => setClearSuccess(false), 3000);
+      const response = await fetch('http://localhost:3001/api/system/reset', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        priceService.clearCache();
+        setConfirmOpen(false);
+        setClearSuccess(true);
+        loadStats(); // Reload 0 stats
+        setTimeout(() => setClearSuccess(false), 3000);
+        alert('Database cleared successfully on server.');
+      } else {
+        alert('Failed to clear database on server');
+      }
     } catch (error) {
       console.error('Failed to clear database:', error);
     }
@@ -152,40 +159,6 @@ export function Settings() {
               disabled={transactionCount === 0}
             >
               Clear All Data
-            </Button>
-
-            <Divider sx={{ my: 2 }} />
-
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              One-time tool: Restore prices from old server cache (Fixes $0.00
-              prices).
-            </Typography>
-            <Button
-              variant="outlined"
-              onClick={async () => {
-                const res = await fetch(
-                  'http://localhost:3001/api/cache/legacy'
-                );
-                const updates = await res.json();
-                for (const u of updates) {
-                  await db.run(
-                    `INSERT OR REPLACE INTO prices (symbol, price, change, change_percent, updated_at, quote_type) VALUES (?, ?, ?, ?, ?, ?)`,
-                    [
-                      u.symbol,
-                      u.regularMarketPrice,
-                      0,
-                      0,
-                      u.updatedAt,
-                      u.quoteType,
-                    ]
-                  );
-                }
-                await db.checkpoint();
-                alert(`Restored ${updates.length} prices! Refresh the page.`);
-                loadStats();
-              }}
-            >
-              Restore Legacy Prices
             </Button>
           </CardContent>
         </Card>

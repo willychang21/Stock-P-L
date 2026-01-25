@@ -28,3 +28,13 @@ data/
 .agents/*
 .specify/*
 /specs
+
+# Backend
+backend/venv/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/*.pyc
+backend/.env
+backend/data/
+
+

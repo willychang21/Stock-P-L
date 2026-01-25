@@ -1,6 +1,6 @@
 // Restored PriceService
 // Interfaces defined inline to avoid dependency issues during recovery
-import { db } from '@infrastructure/storage/database';
+import { apiClient } from '@infrastructure/api/client';
 
 interface QuoteResponse {
   symbol: string;
@@ -24,46 +24,8 @@ interface PriceCache {
 const CACHE_DURATION_MS = 12 * 60 * 60 * 1000; // Increased to 12 hours
 
 export class PriceService {
-  // In-memory L1 cache to avoid hitting DuckDB for every single render
+  // In-memory L1 cache to avoid hitting Backend for every single render
   private memoryCache = new Map<string, PriceCache>();
-  private initialized = false;
-
-  constructor() {
-    this.init();
-  }
-
-  private async init() {
-    if (this.initialized) return;
-    try {
-      // Preload current cache from DB
-      await db.createSchema(); // Ensure schema exists (idempotent)
-      const rows = await db.query<{
-        symbol: string;
-        price: number;
-        change: number;
-        change_percent: number;
-        updated_at: number;
-        quote_type: string;
-      }>('SELECT * FROM prices');
-
-      for (const row of rows) {
-        this.memoryCache.set(row.symbol, {
-          price: row.price,
-          change: row.change,
-          changePercent: row.change_percent,
-          // Convert BigInt to Number to avoid type mismatch with Date.now()
-          timestamp:
-            typeof row.updated_at === 'bigint'
-              ? Number(row.updated_at)
-              : row.updated_at,
-          quoteType: row.quote_type,
-        });
-      }
-      this.initialized = true;
-    } catch (error) {
-      console.warn('PriceService init failed (DB might not be ready):', error);
-    }
-  }
 
   getAssetType(symbol: string): string {
     const cached = this.memoryCache.get(symbol.toUpperCase());
@@ -78,11 +40,6 @@ export class PriceService {
       new Set(symbols.map(s => s.toUpperCase()))
     );
     const toFetch: string[] = [];
-
-    // Ensure initialized
-    if (!this.initialized && uniqueSymbols.length > 0) {
-      await this.init();
-    }
 
     // 1. Check Cache
     for (const symbol of uniqueSymbols) {
@@ -99,8 +56,6 @@ export class PriceService {
     }
 
     // 2. Fetch Missing (Deduplicated) and Stale
-    // console.log(`🔌 Fetching prices for: ${toFetch.join(', ')}`);
-
     const reallyNewSymbols: string[] = [];
     const pendingPromises: Promise<QuoteResponse[]>[] = [];
 
@@ -138,11 +93,6 @@ export class PriceService {
 
     await Promise.all(pendingPromises);
 
-    // Explicit checkpoint after batch fetch to ensure prices.parquet is updated on server
-    if (reallyNewSymbols.length > 0) {
-      db.checkpoint().catch(console.error);
-    }
-
     // 3. Re-read from cache
     for (const symbol of toFetch) {
       const cached = this.memoryCache.get(symbol);
@@ -160,13 +110,8 @@ export class PriceService {
     if (symbols.length === 0) return [];
 
     try {
-      const response = await fetch(
-        `http://localhost:3001/api/quotes?symbols=${symbols.join(',')}`
-      );
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const data = await response.json();
-      const results = data.quoteResponse?.result || [];
+      const data = await apiClient.getQuotes(symbols);
+      const results = data.result || [];
 
       if (Array.isArray(results)) {
         return results.map((item: any) => ({
@@ -185,7 +130,7 @@ export class PriceService {
     }
   }
 
-  private async setCache(symbol: string, quote: QuoteResponse): Promise<void> {
+  private setCache(symbol: string, quote: QuoteResponse): void {
     const normalizedSymbol = symbol.toUpperCase();
 
     // Update Memory Cache
@@ -196,24 +141,6 @@ export class PriceService {
       timestamp: Date.now(),
       quoteType: quote.quoteType,
     });
-
-    // Update DB
-    try {
-      await db.run(
-        `INSERT OR REPLACE INTO prices (symbol, price, change, change_percent, updated_at, quote_type)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          normalizedSymbol,
-          quote.regularMarketPrice,
-          quote.regularMarketChange,
-          quote.regularMarketChangePercent,
-          Date.now(),
-          quote.quoteType || 'EQUITY',
-        ]
-      );
-    } catch (e) {
-      console.error('Failed to save price to DB', e);
-    }
   }
 
   private getCached(symbol: string): PriceCache | null {
@@ -226,8 +153,6 @@ export class PriceService {
 
   async clearCache(): Promise<void> {
     this.memoryCache.clear();
-    await db.run('DELETE FROM prices');
-    await db.checkpoint();
     console.log('🧹 Price cache cleared');
   }
 }
