@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js';
 import { transactionRepo } from '@infrastructure/storage/TransactionRepository';
+import { apiClient, BehavioralAnalytics } from '@infrastructure/api/client';
 import { FIFOCalculator } from '@domain/calculators/FIFOCalculator';
 import { AverageCostCalculator } from '@domain/calculators/AverageCostCalculator';
 import { CostBasisMethod } from '@domain/models/PLReport';
@@ -259,7 +260,7 @@ export class PLService {
 
     const holding = createEmptyHolding(symbol);
     holding.assetType = priceService.getAssetType(symbol) || 'UNKNOWN';
-    
+
     if (calculator instanceof FIFOCalculator) {
       holding.quantity = calculator.getTotalShares();
       holding.costBasis = calculator.getTotalCostBasis();
@@ -273,10 +274,14 @@ export class PLService {
       holding.averageCost = calculator.getAverageCost();
     }
 
-    // Legacy support mapping
-    holding.total_shares = holding.quantity;
-    holding.cost_basis = holding.costBasis;
-    holding.average_cost = holding.averageCost;
+    // Calculate market value and Unrealized P/L
+    let marketValue = new Decimal(0);
+    const currentPrice = await priceService.getCurrentPrice(symbol);
+    if (currentPrice) {
+      marketValue = holding.quantity.mul(currentPrice);
+    }
+    holding.marketValue = marketValue;
+    holding.unrealizedPL = marketValue.minus(holding.costBasis);
 
     return holding;
   }
@@ -355,7 +360,10 @@ export class PLService {
         const result = calculator.processTransaction(tx);
 
         if (tx.type === TransactionType.SELL) {
-          const periodKey = this.getPeriodKey(tx.date.toISOString().split('T')[0]!, timePeriod);
+          const periodKey = this.getPeriodKey(
+            tx.date.toISOString().split('T')[0]!,
+            timePeriod
+          );
           const pl = result.realizedPL;
 
           if (!periodMap.has(periodKey)) {
@@ -401,6 +409,13 @@ export class PLService {
    */
   async updateTransactionNotes(id: string, notes: string): Promise<void> {
     await transactionRepo.updateNotes(id, notes);
+  }
+
+  /**
+   * Get behavioral analytics data
+   */
+  async getBehavioralAnalytics(): Promise<BehavioralAnalytics> {
+    return apiClient.getBehavioralAnalytics();
   }
 
   /**

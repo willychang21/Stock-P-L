@@ -59,23 +59,23 @@ export const apiClient = {
   },
 
   uploadImport: async (formData: FormData): Promise<any> => {
-      const response = await fetch(`${API_BASE_URL}/import`, {
-          method: 'POST',
-          body: formData
-      });
-      if (!response.ok) {
-          throw new Error(`Failed to upload file: ${response.statusText}`);
-      }
-      return response.json();
+    const response = await fetch(`${API_BASE_URL}/import`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to upload file: ${response.statusText}`);
+    }
+    return response.json();
   },
 
   getQuotes: async (symbols: string[]): Promise<any> => {
-      const params = new URLSearchParams({ symbols: symbols.join(',') });
-      const response = await fetch(`${API_BASE_URL}/quotes?${params}`);
-       if (!response.ok) {
-          throw new Error(`Failed to fetch quotes: ${response.statusText}`);
-      }
-      return response.json();
+    const params = new URLSearchParams({ symbols: symbols.join(',') });
+    const response = await fetch(`${API_BASE_URL}/quotes?${params}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch quotes: ${response.statusText}`);
+    }
+    return response.json();
   },
 
   updateTransactionNotes: async (id: string, notes: string): Promise<void> => {
@@ -92,5 +92,39 @@ export const apiClient = {
       method: 'DELETE',
     });
     await handleResponse(response);
-  }
+  },
+
+  getBehavioralAnalytics: async (): Promise<BehavioralAnalytics> => {
+    const response = await fetch(
+      `${API_BASE_URL}/portfolio/analytics/behavior`
+    );
+    return handleResponse(response);
+  },
 };
+
+export interface BehavioralAnalytics {
+  metrics: {
+    avgHoldingDaysWinners: number;
+    avgHoldingDaysLosers: number;
+    avgHoldingDaysWinnersOpen: number;
+    avgHoldingDaysLosersOpen: number;
+    totalWinners: number;
+    totalLosers: number;
+    openWinners: number;
+    openLosers: number;
+  };
+  trades: {
+    symbol: string;
+    quantity: number;
+    entryDate: string;
+    exitDate: string;
+    realizedPl: number;
+    holdingDays: number;
+    status: 'OPEN' | 'CLOSED';
+    mfe: number;
+    mae: number;
+    efficiency: number;
+    entryPrice: number;
+    exitPrice: number;
+  }[];
+}

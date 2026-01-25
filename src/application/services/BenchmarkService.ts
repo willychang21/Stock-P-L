@@ -14,6 +14,7 @@ import { plService } from './PLService';
 export interface DailyReturn {
   date: string;
   cumulativeReturn: number; // e.g., 0.15 = 15%
+  realizedReturn?: number; // e.g., 0.05 = 5% (realized portion)
 }
 
 export interface BenchmarkResult {
@@ -26,6 +27,8 @@ export interface PortfolioResult {
   twr: number;
   simpleReturn: number;
   totalPL: Decimal;
+  realizedPL: Decimal;
+  unrealizedPL: Decimal;
   dailyReturns: DailyReturn[];
 }
 
@@ -67,16 +70,13 @@ class BenchmarkService {
     const startDate: string = firstValue.date;
 
     // 3. Calculate portfolio simple return and total P/L
+    // 3. Calculate portfolio simple return and total P/L
     const holdings = await plService.getAllHoldings();
-    let currentValue = new Decimal(0);
-    let totalCostBasis = new Decimal(0);
     let unrealizedPL = new Decimal(0);
 
-      for (const holding of holdings.values()) {
-        currentValue = currentValue.plus(holding.marketValue || 0);
-        totalCostBasis = totalCostBasis.plus(holding.costBasis || 0);
-        unrealizedPL = unrealizedPL.plus(holding.unrealizedPL || 0);
-      }
+    for (const holding of holdings.values()) {
+      unrealizedPL = unrealizedPL.plus(holding.unrealizedPL || 0);
+    }
 
     const perfReport = await plService.getTradePerformance();
     const realizedPL = perfReport.overall.totalRealized;
@@ -84,20 +84,29 @@ class BenchmarkService {
     // Total P/L = Unrealized + Realized
     const totalPL = unrealizedPL.plus(realizedPL);
 
-    // Simple Return = Total P/L / Total Cost Basis of current holdings
-    // This isn't perfectly accurate for simple return but gives a reasonable estimate
-    const simpleReturn = totalCostBasis.isZero()
+    // Calculate Max Net Invested Capital to align with chart
+    let netInvested = new Decimal(0);
+    let maxInvested = new Decimal(0);
+
+    for (const val of dailyValues) {
+      netInvested = netInvested.plus(val.cashFlow);
+      if (netInvested.gt(maxInvested)) {
+        maxInvested = netInvested;
+      }
+    }
+
+    // Simple Return = Total P/L / Max Invested Capital
+    // This is the correct way to measure return on capital at risk
+    const simpleReturn = maxInvested.isZero()
       ? 0
-      : totalPL.div(totalCostBasis).toNumber();
+      : totalPL.div(maxInvested).toNumber();
 
     // 4. Calculate portfolio daily cumulative returns for chart
     const portfolioDailyReturns =
       this.calculateDailyCumulativeReturns(dailyValues);
 
-    // Use simpleReturn as the displayed TWR since the period-by-period
-    // TWR calculation gives unrealistic results with frequent trades.
-    // This is a known limitation when cash flows are large relative to portfolio size.
-    const portfolioTWR = simpleReturn;
+    // Use True Geometric TWR Calculation
+    const portfolioTWR = this.calculateGeometricallyLinkedTWR(dailyValues);
 
     // 5. Fetch benchmark data and calculate returns
     const benchmarkResults: BenchmarkResult[] = [];
@@ -121,6 +130,8 @@ class BenchmarkService {
         twr: portfolioTWR,
         simpleReturn,
         totalPL,
+        realizedPL,
+        unrealizedPL,
         dailyReturns: portfolioDailyReturns,
       },
       benchmarks: benchmarkResults,
@@ -179,44 +190,121 @@ class BenchmarkService {
   ): DailyReturn[] {
     if (values.length === 0) return [];
 
-    // Use Return on Gross Invested Capital (Total PL / Total Capital Deployed)
-    // This provides a stable performance view that doesn't spike on withdrawals
+    // Use Return on Max Net Invested Capital (Total PL / Max Invested)
+    // This correctly handles reinvestment without diluting returns
     const returns: DailyReturn[] = [];
 
     let netInvested = new Decimal(0);
-    let grossInvested = new Decimal(0);
+    let maxInvested = new Decimal(0);
 
     // Iterate ALL values to build cumulative history from start
     for (const val of values) {
       // Net Invested accumulates all flows (+/-)
+      // BUY = Positive Flow (into strategy)
+      // SELL = Negative Flow (out of strategy)
+      // BenchmarkService assumes val.cashFlow handles this directionality appropriately
+      // But typically buying increases invested capital, selling decreases it.
+      // DailyPortfolioValue.cashFlow:
+      // BUY: +amount (Investment)
+      // SELL: -amount (Divestment)
       netInvested = netInvested.plus(val.cashFlow);
 
-      // Gross Invested only accumulates inflows (money put to work)
-      if (val.cashFlow.isPositive()) {
-        grossInvested = grossInvested.plus(val.cashFlow);
+      // Track High Water Mark of Invested Capital
+      if (netInvested.gt(maxInvested)) {
+        maxInvested = netInvested;
       }
 
       let cumulativeReturn = 0;
+      let realizedReturnVal = 0;
 
-      // Calculate return based on Total P/L against Gross Capital Deployed
-      // Calculate return based on Total P/L against Gross Capital Deployed
-      if (!grossInvested.isZero()) {
-        // Alignment Fix: Use the same logic as "Performance Metrics" table.
-        // Total PL = (Market Value - Cost Basis) + Realized P/L
-        // This ensures the chart matches the table's P/L figure.
+      // Calculate return based on Total P/L against Max Capital Deployed
+      if (!maxInvested.isZero()) {
         const unrealizedPL = val.marketValue.minus(val.costBasis);
         const totalPL = unrealizedPL.plus(val.realizedPL);
 
-        cumulativeReturn = totalPL.div(grossInvested).toNumber();
+        cumulativeReturn = totalPL.div(maxInvested).toNumber();
+        realizedReturnVal = val.realizedPL.div(maxInvested).toNumber();
       }
 
       returns.push({
         date: val.date,
         cumulativeReturn,
+        realizedReturn: realizedReturnVal,
       });
     }
 
     return returns;
+  }
+
+  /**
+   * Calculate Time-Weighted Return (TWR) using Geometric Linking.
+   * Formula: TWR = (1 + r1) * (1 + r2) * ... * (1 + rn) - 1
+   * Where r_i = (MV_end - CashFlow) / MV_start - 1
+   */
+  private calculateGeometricallyLinkedTWR(
+    values: DailyPortfolioValue[]
+  ): number {
+    if (values.length === 0) return 0;
+
+    let cumulativeTWR = 0;
+    let prevMarketValue = new Decimal(0);
+
+    // Sort by date just in case
+    const sortedValues = [...values].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    for (let i = 0; i < sortedValues.length; i++) {
+      const val = sortedValues[i];
+      if (!val) continue;
+
+      const cashFlow = val.cashFlow;
+      const endMarketValue = val.marketValue;
+
+      // For TWR, we need the Portfolio Value BEFORE the cash flow to calculate the return generated by the manager
+      // MV_end = MV_start * (1 + r) + CashFlow
+      // => MV_end - CashFlow = MV_start * (1 + r)
+      // => (MV_end - CashFlow) / MV_start = 1 + r
+      // => r = (MV_end - CashFlow) / MV_start - 1
+
+      // On Day 1, Start Value is effectively the initial CashFlow (deposit)
+      // So r = (MV_end - CF) / 0 ... undefined?
+      // Standard approach for Day 1:
+      // If it's the very first deposit, the return is just (MV_end - Deposit) / Deposit?
+      // Or we can treat the "Start Value" as 0, and the CashFlow establishes the baseline.
+      // If Previous MV is 0, we can't calculate a return percentage from 0.
+      // We essentially skip the return calculation for the exact moment of initial deposit
+      // and start tracking from the next period?
+      // BETTER:
+      // Period 1: Deposit $100. End of Day $110.
+      // MV_start = 0. CashFlow = 100. MV_end = 110.
+      // Adjusted End = 110 - 100 = 10.
+      // Return on 0 is undefined.
+      // This implies the return happened ON the $100.
+      // Modification for Day 1:
+      // Denominator should be (PrevMV + CashFlow) if we assume cash flow happened at valid start?
+      // GIPS often assumes Modified Dietz or specific timing.
+      // Simplified Geometric:
+      // Denominator = PrevMV + WeightedCashFlow.
+      // If we assume Cash Flow happens at START of day:
+      // Denominator = PrevMV + CashFlow.
+      // r = (MV_end) / (PrevMV + CashFlow) - 1.
+
+      const denominator = prevMarketValue.plus(cashFlow);
+      let dailyReturn = 0;
+
+      if (!denominator.isZero()) {
+        dailyReturn = endMarketValue.div(denominator).minus(1).toNumber();
+      }
+
+      // Chain the return
+      cumulativeTWR = (1 + cumulativeTWR) * (1 + dailyReturn) - 1;
+
+      // Update PrevMarketValue for next day
+      prevMarketValue = endMarketValue;
+    }
+
+    return cumulativeTWR;
   }
 
   /**
@@ -228,6 +316,8 @@ class BenchmarkService {
         twr: 0,
         simpleReturn: 0,
         totalPL: new Decimal(0),
+        realizedPL: new Decimal(0),
+        unrealizedPL: new Decimal(0),
         dailyReturns: [],
       },
       benchmarks: [],

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Container,
@@ -55,7 +55,6 @@ export function Dashboard() {
       // 2. Fetch Transactions (for recent list)
       const txs = await apiClient.getTransactions();
       setTransactions(txs);
-
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Failed to fetch dashboard data');
@@ -78,12 +77,12 @@ export function Dashboard() {
   const totalValue = portfolio?.totalMarketValue || new Decimal(0);
   const totalUnrealizedPL = portfolio?.totalUnrealizedPL || new Decimal(0);
   const totalRealizedPL = portfolio?.totalRealizedPL || new Decimal(0);
-  
+
   const totalPL = totalUnrealizedPL.plus(totalRealizedPL);
   const totalCost = totalValue.minus(totalUnrealizedPL);
-  
-  const totalPLPercent = !totalCost.isZero() 
-    ? totalPL.div(totalCost).times(100) 
+
+  const totalPLPercent = !totalCost.isZero()
+    ? totalPL.div(totalCost).times(100)
     : new Decimal(0);
 
   return (
@@ -107,7 +106,7 @@ export function Dashboard() {
                 labelId="calculator-select-label"
                 value={calculatorId}
                 label="Cost Basis"
-                onChange={(e) => setCalculatorId(e.target.value)}
+                onChange={e => setCalculatorId(e.target.value)}
               >
                 <MenuItem value="fifo">FIFO</MenuItem>
                 <MenuItem value="weighted_avg">Weighted Average</MenuItem>

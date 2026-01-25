@@ -1,11 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import {
-  ThemeProvider,
-  createTheme,
-  CssBaseline,
-} from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { Layout } from './presentation/components/Layout';
 import { Dashboard } from './presentation/pages/Dashboard';
 import { Transactions } from './presentation/pages/Transactions';
@@ -83,7 +79,8 @@ const darkTheme = createTheme({
       styleOverrides: {
         root: {
           backgroundImage: 'none',
-          backgroundColor: '#18181b', // Zinc 900
+          backgroundColor: 'rgba(24, 24, 27, 0.6)', // Zinc 900 @ 60%
+          backdropFilter: 'blur(12px)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
           boxShadow:
             '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', // Subtle shadow

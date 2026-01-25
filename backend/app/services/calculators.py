@@ -10,10 +10,27 @@ class Lot:
     cost_basis_per_share: Decimal
     transaction_id: str
 
+@dataclass
+class TradeRecord:
+    symbol: str
+    quantity: Decimal
+    entry_date: date
+    exit_date: date
+    realized_pl: Decimal
+    holding_days: int
+    status: str = 'CLOSED'
+    mfe: Decimal = Decimal(0)
+    mae: Decimal = Decimal(0)
+    efficiency: float = 0.0
+    entry_price: Decimal = Decimal(0)
+    exit_price: Decimal = Decimal(0)
+
+
 class FIFOCalculator:
     def __init__(self):
         self.lots: List[Lot] = []
         self.total_realized_pl: Decimal = Decimal(0)
+        self.trades: List[TradeRecord] = []
 
     def process_transaction(self, tx: dict):
         # tx is a dictionary from the database row
@@ -54,6 +71,23 @@ class FIFOCalculator:
                 
                 realized_pl = proceeds - cost_basis
                 self.total_realized_pl += realized_pl
+                
+                # Create Trade Record
+                entry_date = current_lot.purchase_date
+                exit_date = tx['transaction_date']
+                holding_days = (exit_date - entry_date).days
+                
+                self.trades.append(TradeRecord(
+                    symbol=tx.get('symbol', 'UNKNOWN'),
+                    quantity=sell_from_lot,
+                    entry_date=entry_date,
+                    exit_date=exit_date,
+                    realized_pl=realized_pl,
+                    holding_days=holding_days,
+                    entry_price=current_lot.cost_basis_per_share,
+                    exit_price=price,
+                    status='CLOSED'
+                ))
                 
                 # Update lot
                 current_lot.quantity -= sell_from_lot

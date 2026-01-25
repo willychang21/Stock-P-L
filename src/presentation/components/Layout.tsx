@@ -149,7 +149,8 @@ export function Layout() {
           p: { xs: 3, md: 4 },
           width: { md: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
-          bgcolor: 'background.default',
+          background:
+            'radial-gradient(circle at 50% 0%, #1e1b4b 0%, #09090b 60%)', // Indigo 950 glow to Zinc 950
         }}
       >
         <Toolbar /> {/* Spacer for AppBar */}

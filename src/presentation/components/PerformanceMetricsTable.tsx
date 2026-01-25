@@ -125,6 +125,60 @@ export const PerformanceMetricsTable: React.FC<
             ))}
           </TableRow>
 
+          {/* Realized P/L */}
+          <TableRow>
+            <TableCell>
+              <Typography fontWeight="medium">Realized P/L</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Profit/Loss from closed trades
+              </Typography>
+            </TableCell>
+            <TableCell align="right">
+              <Typography
+                fontWeight="bold"
+                color={
+                  data.portfolio.realizedPL.gte(0)
+                    ? 'success.main'
+                    : 'error.main'
+                }
+              >
+                {formatCurrency(data.portfolio.realizedPL.toNumber())}
+              </Typography>
+            </TableCell>
+            {data.benchmarks.map(b => (
+              <TableCell key={b.symbol} align="right">
+                <Typography color="text.secondary">—</Typography>
+              </TableCell>
+            ))}
+          </TableRow>
+
+          {/* Unrealized P/L */}
+          <TableRow>
+            <TableCell>
+              <Typography fontWeight="medium">Unrealized P/L</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Paper value change of open positions
+              </Typography>
+            </TableCell>
+            <TableCell align="right">
+              <Typography
+                fontWeight="bold"
+                color={
+                  data.portfolio.unrealizedPL.gte(0)
+                    ? 'success.main'
+                    : 'error.main'
+                }
+              >
+                {formatCurrency(data.portfolio.unrealizedPL.toNumber())}
+              </Typography>
+            </TableCell>
+            {data.benchmarks.map(b => (
+              <TableCell key={b.symbol} align="right">
+                <Typography color="text.secondary">—</Typography>
+              </TableCell>
+            ))}
+          </TableRow>
+
           {/* Total P/L */}
           <TableRow>
             <TableCell>

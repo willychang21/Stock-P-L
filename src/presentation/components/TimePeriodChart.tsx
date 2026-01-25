@@ -70,20 +70,38 @@ export const TimePeriodChart: React.FC<TimePeriodChartProps> = ({
       case 'bar':
         return (
           <BarChart {...commonProps}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="period" />
-            <YAxis tickFormatter={value => `$${value.toLocaleString()}`} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(255,255,255,0.1)"
+            />
+            <XAxis
+              dataKey="period"
+              stroke="#a1a1aa"
+              fontSize={12}
+              tick={{ fill: '#a1a1aa' }}
+            />
+            <YAxis
+              tickFormatter={value => `$${value.toLocaleString()}`}
+              stroke="#a1a1aa"
+              fontSize={12}
+              tick={{ fill: '#a1a1aa' }}
+            />
             <Tooltip
+              contentStyle={{
+                backgroundColor: 'rgba(9, 9, 11, 0.95)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fafafa',
+              }}
               formatter={(value: number) => [
                 `$${value.toFixed(2)}`,
                 'Realized P/L',
               ]}
             />
-            <Legend />
+            <Legend wrapperStyle={{ color: '#a1a1aa' }} />
             <Bar
               dataKey="realizedPL"
               name="Realized P/L"
-              fill="#8884d8"
+              fill="#818cf8"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>
@@ -92,23 +110,41 @@ export const TimePeriodChart: React.FC<TimePeriodChartProps> = ({
       case 'line':
         return (
           <LineChart {...commonProps}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="period" />
-            <YAxis tickFormatter={value => `$${value.toLocaleString()}`} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(255,255,255,0.1)"
+            />
+            <XAxis
+              dataKey="period"
+              stroke="#a1a1aa"
+              fontSize={12}
+              tick={{ fill: '#a1a1aa' }}
+            />
+            <YAxis
+              tickFormatter={value => `$${value.toLocaleString()}`}
+              stroke="#a1a1aa"
+              fontSize={12}
+              tick={{ fill: '#a1a1aa' }}
+            />
             <Tooltip
+              contentStyle={{
+                backgroundColor: 'rgba(9, 9, 11, 0.95)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fafafa',
+              }}
               formatter={(value: number) => [
                 `$${value.toFixed(2)}`,
                 'Realized P/L',
               ]}
             />
-            <Legend />
+            <Legend wrapperStyle={{ color: '#a1a1aa' }} />
             <Line
               type="monotone"
               dataKey="realizedPL"
               name="Realized P/L"
-              stroke="#8884d8"
+              stroke="#818cf8"
               strokeWidth={2}
-              dot={{ fill: '#8884d8' }}
+              dot={{ fill: '#818cf8' }}
             />
           </LineChart>
         );
@@ -116,22 +152,40 @@ export const TimePeriodChart: React.FC<TimePeriodChartProps> = ({
       case 'area':
         return (
           <AreaChart {...commonProps}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="period" />
-            <YAxis tickFormatter={value => `$${value.toLocaleString()}`} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(255,255,255,0.1)"
+            />
+            <XAxis
+              dataKey="period"
+              stroke="#a1a1aa"
+              fontSize={12}
+              tick={{ fill: '#a1a1aa' }}
+            />
+            <YAxis
+              tickFormatter={value => `$${value.toLocaleString()}`}
+              stroke="#a1a1aa"
+              fontSize={12}
+              tick={{ fill: '#a1a1aa' }}
+            />
             <Tooltip
+              contentStyle={{
+                backgroundColor: 'rgba(9, 9, 11, 0.95)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fafafa',
+              }}
               formatter={(value: number) => [
                 `$${value.toFixed(2)}`,
                 'Realized P/L',
               ]}
             />
-            <Legend />
+            <Legend wrapperStyle={{ color: '#a1a1aa' }} />
             <Area
               type="monotone"
               dataKey="realizedPL"
               name="Realized P/L"
-              stroke="#8884d8"
-              fill="#8884d8"
+              stroke="#818cf8"
+              fill="#818cf8"
               fillOpacity={0.3}
             />
           </AreaChart>

@@ -106,6 +106,11 @@ export class PriceService {
     return prices;
   }
 
+  async getCurrentPrice(symbol: string): Promise<number | undefined> {
+    const prices = await this.getPrices([symbol]);
+    return prices.get(symbol);
+  }
+
   private async fetchQuotes(symbols: string[]): Promise<QuoteResponse[]> {
     if (symbols.length === 0) return [];
 

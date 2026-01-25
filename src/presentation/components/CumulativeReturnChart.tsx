@@ -20,6 +20,7 @@ import { DailyReturn } from '@application/services/BenchmarkService';
 interface ChartDataPoint {
   date: string;
   portfolio?: number;
+  realized?: number;
   [key: string]: string | number | undefined;
 }
 
@@ -52,6 +53,10 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
     dateMap.set(point.date, {
       date: point.date,
       portfolio: point.cumulativeReturn * 100, // Convert to percentage
+      realized:
+        point.realizedReturn !== undefined
+          ? point.realizedReturn * 100
+          : undefined,
     });
   }
 
@@ -132,6 +137,18 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
             strokeWidth={3}
             dot={false}
             activeDot={{ r: 6 }}
+            connectNulls={true}
+          />
+
+          {/* Realized Return line */}
+          <Line
+            type="monotone"
+            dataKey="realized"
+            name="Realized Return"
+            stroke="#2dd4bf" // Teal 400
+            strokeWidth={2}
+            dot={false}
+            strokeDasharray="4 4" // Dashed line
             connectNulls={true}
           />
 
