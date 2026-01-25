@@ -100,6 +100,13 @@ export const apiClient = {
     );
     return handleResponse(response);
   },
+
+  getFundamentals: async (symbols: string[]): Promise<any[]> => {
+    const params = new URLSearchParams();
+    symbols.forEach(s => params.append('symbols', s)); // array query params
+    const response = await fetch(`${API_BASE_URL}/fundamentals?${params}`);
+    return handleResponse(response);
+  },
 };
 
 export interface BehavioralAnalytics {

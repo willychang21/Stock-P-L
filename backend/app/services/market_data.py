@@ -85,4 +85,42 @@ class MarketDataService:
             print(f"Failed to fetch historical for {symbol}: {e}")
             return {"symbol": symbol, "prices": []}
 
+
+    def get_fundamentals(self, symbols: List[str]) -> List[Dict]:
+        if not symbols:
+            return []
+            
+        tickers = yf.Tickers(' '.join(symbols))
+        results = []
+        
+        def fetch_info(symbol):
+            try:
+                ticker = tickers.tickers[symbol]
+                info = ticker.info
+                return {
+                    "symbol": symbol,
+                    "sector": info.get('sector'),
+                    "industry": info.get('industry'),
+                    "marketCap": info.get('marketCap'),
+                    "trailingPE": info.get('trailingPE'),
+                    "forwardPE": info.get('forwardPE'),
+                    "fiftyTwoWeekHigh": info.get('fiftyTwoWeekHigh'),
+                    "fiftyTwoWeekLow": info.get('fiftyTwoWeekLow'),
+                    "dividendYield": info.get('dividendYield'),
+                    "beta": info.get("beta")
+                }
+            except Exception as e:
+                print(f"Failed to fetch fundamentals for {symbol}: {e}")
+                return None
+
+        # Parallelize
+        with ThreadPoolExecutor(max_workers=min(len(symbols), 10)) as executor:
+            futures = [executor.submit(fetch_info, sym) for sym in symbols]
+            for future in futures:
+                res = future.result()
+                if res:
+                    results.append(res)
+                
+        return results
+
 market_data_service = MarketDataService()

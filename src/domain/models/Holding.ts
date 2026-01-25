@@ -9,6 +9,18 @@ export interface Lot {
   cost_basis_per_share: Decimal;
 }
 
+export interface FundamentalData {
+  sector?: string;
+  industry?: string;
+  marketCap?: number;
+  peRatio?: number;
+  forwardPE?: number;
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
+  dividendYield?: number;
+  beta?: number;
+}
+
 export interface Holding {
   symbol: string;
   quantity: Decimal;
@@ -19,6 +31,8 @@ export interface Holding {
   realizedPL: Decimal;
   assetType?: string;
   costBasis: Decimal;
+  fundamentals?: FundamentalData;
+  note?: string;
   // Legacy support
   total_shares: Decimal;
   average_cost: Decimal;
@@ -47,6 +61,6 @@ export function createEmptyHolding(symbol: string): Holding {
     current_price: new Decimal(0),
     market_value: new Decimal(0),
     unrealized_pl: new Decimal(0),
-    lots: []
+    lots: [],
   };
 }
