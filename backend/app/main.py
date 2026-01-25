@@ -57,8 +57,9 @@ app.include_router(quotes.router, prefix="/api/quotes", tags=["quotes"])
 app.include_router(historical.router, prefix="/api/historical-prices", tags=["historical"])
 app.include_router(system.router, prefix="/api/system", tags=["system"])
 app.include_router(fundamentals.router, prefix="/api/fundamentals", tags=["fundamentals"])
-from app.api.endpoints import research
+from app.api.endpoints import research, strategy
 app.include_router(research.router, prefix="/api/research", tags=["research"])
+app.include_router(strategy.router, prefix="/api/strategy", tags=["strategy"])
 
 @app.get("/health")
 def health_check():

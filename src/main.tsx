@@ -7,6 +7,7 @@ import { Dashboard } from './presentation/pages/Dashboard';
 import { Transactions } from './presentation/pages/Transactions';
 import { PerformanceAnalysis } from './presentation/pages/PerformanceAnalysis';
 import { BenchmarkComparison } from './presentation/pages/BenchmarkComparison';
+import { Strategy } from './presentation/pages/Strategy';
 import { Settings } from './presentation/pages/Settings';
 import './index.css';
 
@@ -173,6 +174,7 @@ function App() {
           <Route path="transactions" element={<Transactions />} />
           <Route path="analysis" element={<PerformanceAnalysis />} />
           <Route path="benchmark" element={<BenchmarkComparison />} />
+          <Route path="strategy" element={<Strategy />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
