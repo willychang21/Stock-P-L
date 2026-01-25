@@ -7,13 +7,11 @@ import {
   TextField,
   Button,
   List,
-  ListItem,
-  ListItemText,
   IconButton,
   Divider,
   Paper,
 } from '@mui/material';
-import { Delete, Edit, Save } from '@mui/icons-material';
+import { Delete, Save } from '@mui/icons-material';
 
 interface Note {
   id: string;
