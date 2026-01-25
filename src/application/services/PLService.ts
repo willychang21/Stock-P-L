@@ -287,8 +287,7 @@ export class PLService {
   }
 
   async getAllHoldings(
-    method: CostBasisMethod = 'FIFO',
-    includeFundamentals: boolean = false
+    method: CostBasisMethod = 'FIFO'
   ): Promise<Map<string, Holding>> {
     const symbols = await transactionRepo.getAllSymbols();
     const holdings = new Map<string, Holding>();
@@ -301,21 +300,6 @@ export class PLService {
       if (holding.quantity.gt(0.000001)) {
         holdings.set(symbol, holding);
         activeSymbols.push(symbol);
-      }
-    }
-
-    if (includeFundamentals && activeSymbols.length > 0) {
-      try {
-        const fundamentals = await apiClient.getFundamentals(activeSymbols);
-        for (const data of fundamentals) {
-          const holding = holdings.get(data.symbol);
-          if (holding) {
-            holding.fundamentals = data;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch fundamentals:', error);
-        // Do not fail the whole request, just log error
       }
     }
 

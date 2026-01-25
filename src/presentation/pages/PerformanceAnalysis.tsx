@@ -25,22 +25,17 @@ import {
 import { useStore } from '../../application/store/useStore';
 import { TimePeriodChart, ChartType } from '../components/TimePeriodChart';
 import { TimePeriodTable } from '../components/TimePeriodTable';
-import { SectorBreakdown } from '../components/analysis/SectorBreakdown';
-import { FundamentalGrid } from '../components/analysis/FundamentalGrid';
-import { ResearchNotes } from '../components/analysis/ResearchNotes';
 import { BehavioralAnalytics } from '../components/BehavioralAnalytics';
-import { Holding } from '../../domain/models/Holding';
 
 export const PerformanceAnalysis: React.FC = () => {
   const [report, setReport] = useState<PerformanceReport | null>(null);
   const [timeReport, setTimeReport] = useState<TimePerformanceReport | null>(
     null
   );
-  const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loading, setLoading] = useState(true);
 
   // View Control
-  const [viewTab, setViewTab] = useState(0); // 0: Performance, 1: Portfolio Analysis, 2: Research
+  const [viewTab, setViewTab] = useState(0); // 0: Performance
 
   // Performance Filters
   const [tabValue, setTabValue] = useState<AssetFilter>('ALL');
@@ -57,18 +52,16 @@ export const PerformanceAnalysis: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [perfData, timeData, holdingsMap] = await Promise.all([
+      const [perfData, timeData] = await Promise.all([
         plService.getTradePerformance(costBasisMethod),
         plService.getPerformanceByTimePeriod(
           timePeriod,
           tabValue,
           costBasisMethod
         ),
-        plService.getAllHoldings(costBasisMethod, true), // Fetch with fundamentals
       ]);
       setReport(perfData);
       setTimeReport(timeData);
-      setHoldings(Array.from(holdingsMap.values()));
     } catch (error) {
       console.error('Failed to load performance data:', error);
     } finally {
@@ -147,8 +140,6 @@ export const PerformanceAnalysis: React.FC = () => {
           aria-label="analysis tabs"
         >
           <Tab label="Trade Performance" sx={{ fontWeight: 600 }} />
-          <Tab label="Portfolio Composition" sx={{ fontWeight: 600 }} />
-          <Tab label="Research Journal" sx={{ fontWeight: 600 }} />
         </Tabs>
       </Box>
 
@@ -483,20 +474,7 @@ export const PerformanceAnalysis: React.FC = () => {
         </>
       )}
 
-      {/* View 1: Portfolio Composition */}
-      {viewTab === 1 && (
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <SectorBreakdown holdings={holdings} />
-          </Grid>
-          <Grid item xs={12} md={8}>
-            <FundamentalGrid holdings={holdings} />
-          </Grid>
-        </Grid>
-      )}
-
-      {/* View 2: Research Journal */}
-      {viewTab === 2 && <ResearchNotes />}
+      {/* View 1 and 2 Removed */}
     </Container>
   );
 };

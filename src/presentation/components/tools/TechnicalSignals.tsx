@@ -17,7 +17,6 @@ import {
   TrendingDown,
   RemoveCircleOutline,
 } from '@mui/icons-material';
-import { useStore } from '@application/store/useStore'; // Ensure route exists, or use direct API call
 
 // Simple inline interface for the Strategy Response
 interface StrategyResponse {
