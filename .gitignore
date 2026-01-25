@@ -22,10 +22,9 @@ dist-ssr
 *.parquet
 data/
 
-# Build artifacts
-.gemini
-
 # Agent
+.gemini
 .agent/*
 .agents/*
 .specify/*
+/specs
