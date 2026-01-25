@@ -72,16 +72,59 @@ export const PerformanceMetricsTable: React.FC<
                 <Typography color={b.twr >= 0 ? 'success.main' : 'error.main'}>
                   {formatPercent(b.twr)}
                 </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Lump Sum
+                </Typography>
               </TableCell>
             ))}
           </TableRow>
 
-          {/* Alpha */}
+          {/* Cash-Flow Weighted Return - NEW! */}
+          <TableRow sx={{ backgroundColor: 'rgba(99, 102, 241, 0.05)' }}>
+            <TableCell>
+              <Typography fontWeight="medium">Same Timing Return</Typography>
+              <Typography variant="caption" color="text.secondary">
+                If you invested in benchmark with same timing
+              </Typography>
+            </TableCell>
+            <TableCell align="right">
+              <Typography
+                fontWeight="bold"
+                color={
+                  data.portfolio.simpleReturn >= 0
+                    ? 'success.main'
+                    : 'error.main'
+                }
+                fontSize="1.1rem"
+              >
+                {formatPercent(data.portfolio.simpleReturn)}
+              </Typography>
+            </TableCell>
+            {data.benchmarks.map(b => (
+              <TableCell key={b.symbol} align="right">
+                <Typography
+                  fontWeight="bold"
+                  color={
+                    (b.cashFlowWeightedReturn || 0) >= 0
+                      ? 'success.main'
+                      : 'error.main'
+                  }
+                >
+                  {formatPercent(b.cashFlowWeightedReturn || 0)}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Same Timing
+                </Typography>
+              </TableCell>
+            ))}
+          </TableRow>
+
+          {/* Alpha (Lump Sum) */}
           <TableRow>
             <TableCell>
-              <Typography fontWeight="medium">Alpha</Typography>
+              <Typography fontWeight="medium">Alpha (Lump Sum)</Typography>
               <Typography variant="caption" color="text.secondary">
-                Excess return vs {data.benchmarks[0]?.symbol || 'benchmark'}
+                TWR vs {data.benchmarks[0]?.symbol || 'benchmark'} lump sum
               </Typography>
             </TableCell>
             <TableCell align="right">
@@ -89,6 +132,32 @@ export const PerformanceMetricsTable: React.FC<
                 label={formatPercent(data.alpha)}
                 size="small"
                 color={data.alpha >= 0 ? 'success' : 'error'}
+                sx={{ fontWeight: 'bold' }}
+              />
+            </TableCell>
+            {data.benchmarks.map(b => (
+              <TableCell key={b.symbol} align="right">
+                <Typography color="text.secondary">—</Typography>
+              </TableCell>
+            ))}
+          </TableRow>
+
+          {/* Alpha (Same Timing) - NEW! */}
+          <TableRow sx={{ backgroundColor: 'rgba(99, 102, 241, 0.05)' }}>
+            <TableCell>
+              <Typography fontWeight="medium">Alpha (Same Timing)</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Your return vs {data.benchmarks[0]?.symbol || 'benchmark'} same
+                timing
+              </Typography>
+            </TableCell>
+            <TableCell align="right">
+              <Chip
+                label={formatPercent(data.cashFlowWeightedAlpha || 0)}
+                size="small"
+                color={
+                  (data.cashFlowWeightedAlpha || 0) >= 0 ? 'success' : 'error'
+                }
                 sx={{ fontWeight: 'bold' }}
               />
             </TableCell>

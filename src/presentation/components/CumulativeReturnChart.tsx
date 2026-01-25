@@ -1,6 +1,7 @@
 /**
  * Cumulative Return Chart
  * Displays portfolio vs benchmark performance over time.
+ * Now includes both Lump Sum and Same Timing benchmark lines.
  */
 
 import React from 'react';
@@ -29,15 +30,24 @@ interface CumulativeReturnChartProps {
   benchmarks: {
     symbol: string;
     dailyReturns: DailyReturn[];
+    cashFlowWeightedDailyReturns?: DailyReturn[];
   }[];
 }
 
-// Color palette for benchmarks
+// Color palette for benchmarks (Lump Sum - lighter/dashed)
 const BENCHMARK_COLORS: { [key: string]: string } = {
   QQQ: '#00BCD4',
   SPY: '#FF9800',
   VOO: '#4CAF50',
   default: '#9C27B0',
+};
+
+// Color palette for Same Timing benchmarks (more saturated/solid)
+const SAME_TIMING_COLORS: { [key: string]: string } = {
+  QQQ: '#00ACC1', // Darker cyan
+  SPY: '#F57C00', // Darker orange
+  VOO: '#388E3C', // Darker green
+  default: '#7B1FA2',
 };
 
 export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
@@ -60,12 +70,21 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
     });
   }
 
-  // Add benchmark returns
+  // Add benchmark returns (Lump Sum)
   for (const benchmark of benchmarks) {
     for (const point of benchmark.dailyReturns) {
       const existing = dateMap.get(point.date) || { date: point.date };
-      existing[benchmark.symbol] = point.cumulativeReturn * 100;
+      existing[`${benchmark.symbol}_lumpsum`] = point.cumulativeReturn * 100;
       dateMap.set(point.date, existing);
+    }
+
+    // Add Same Timing returns
+    if (benchmark.cashFlowWeightedDailyReturns) {
+      for (const point of benchmark.cashFlowWeightedDailyReturns) {
+        const existing = dateMap.get(point.date) || { date: point.date };
+        existing[`${benchmark.symbol}_sametime`] = point.cumulativeReturn * 100;
+        dateMap.set(point.date, existing);
+      }
     }
   }
 
@@ -120,13 +139,23 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
               border: '1px solid #444',
               borderRadius: 8,
             }}
-            formatter={(value: number, name: string) => [
-              `${value.toFixed(2)}%`,
-              name === 'portfolio' ? 'Your Portfolio' : name,
-            ]}
+            formatter={(value: number, name: string) => {
+              const displayName = name
+                .replace('_lumpsum', ' (Lump Sum)')
+                .replace('_sametime', ' (Same Timing)')
+                .replace('portfolio', 'Your Portfolio')
+                .replace('realized', 'Realized Return');
+              return [`${value.toFixed(2)}%`, displayName];
+            }}
             labelFormatter={label => `Date: ${label}`}
           />
-          <Legend />
+          <Legend
+            formatter={(value: string) => {
+              return value
+                .replace('_lumpsum', ' (Lump)')
+                .replace('_sametime', ' (Same)');
+            }}
+          />
 
           {/* Portfolio line */}
           <Line
@@ -145,20 +174,20 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
             type="monotone"
             dataKey="realized"
             name="Realized Return"
-            stroke="#2dd4bf" // Teal 400
+            stroke="#2dd4bf"
             strokeWidth={2}
             dot={false}
-            strokeDasharray="4 4" // Dashed line
+            strokeDasharray="4 4"
             connectNulls={true}
           />
 
-          {/* Benchmark lines */}
+          {/* Benchmark lines - Lump Sum (dashed) */}
           {benchmarks.map(benchmark => (
             <Line
-              key={benchmark.symbol}
+              key={`${benchmark.symbol}_lumpsum`}
               type="monotone"
-              dataKey={benchmark.symbol}
-              name={benchmark.symbol}
+              dataKey={`${benchmark.symbol}_lumpsum`}
+              name={`${benchmark.symbol}_lumpsum`}
               stroke={
                 BENCHMARK_COLORS[benchmark.symbol] || BENCHMARK_COLORS.default
               }
@@ -168,6 +197,29 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
               connectNulls={true}
             />
           ))}
+
+          {/* Benchmark lines - Same Timing (solid) */}
+          {benchmarks
+            .filter(
+              b =>
+                b.cashFlowWeightedDailyReturns &&
+                b.cashFlowWeightedDailyReturns.length > 0
+            )
+            .map(benchmark => (
+              <Line
+                key={`${benchmark.symbol}_sametime`}
+                type="monotone"
+                dataKey={`${benchmark.symbol}_sametime`}
+                name={`${benchmark.symbol}_sametime`}
+                stroke={
+                  SAME_TIMING_COLORS[benchmark.symbol] ||
+                  SAME_TIMING_COLORS.default
+                }
+                strokeWidth={2}
+                dot={false}
+                connectNulls={true}
+              />
+            ))}
         </LineChart>
       </ResponsiveContainer>
     </Box>

@@ -17,10 +17,30 @@ export interface DailyReturn {
   realizedReturn?: number; // e.g., 0.05 = 5% (realized portion)
 }
 
+// DCA (Dollar Cost Averaging) Types
+export type DCAFrequency = 'weekly' | 'biweekly' | 'monthly';
+
+export interface DCASettings {
+  frequency: DCAFrequency;
+  amountPerInvestment: number;
+  startDate?: string; // defaults to first portfolio transaction
+  endDate?: string; // defaults to today
+}
+
+export interface DCABenchmarkResult {
+  symbol: string;
+  totalInvested: number;
+  finalValue: number;
+  totalReturn: number; // percentage
+  dailyReturns: DailyReturn[];
+}
+
 export interface BenchmarkResult {
   symbol: string;
-  twr: number;
+  twr: number; // Lump sum return (traditional: buy at start, hold)
+  cashFlowWeightedReturn: number; // Same cash flows as portfolio
   dailyReturns: DailyReturn[];
+  cashFlowWeightedDailyReturns: DailyReturn[]; // Daily returns using CF weighting
 }
 
 export interface PortfolioResult {
@@ -35,7 +55,8 @@ export interface PortfolioResult {
 export interface BenchmarkComparisonResult {
   portfolio: PortfolioResult;
   benchmarks: BenchmarkResult[];
-  alpha: number; // Portfolio TWR - Primary Benchmark TWR
+  alpha: number; // Portfolio TWR - Primary Benchmark TWR (Lump Sum)
+  cashFlowWeightedAlpha: number; // Portfolio Return - Benchmark CF Weighted Return
   periodStart: string;
   periodEnd: string;
 }
@@ -70,12 +91,17 @@ class BenchmarkService {
     const startDate: string = firstValue.date;
 
     // 2. Fetch all data in PARALLEL for maximum performance
-    // Use getAllHoldingsBasic (no quote fetching) since Benchmark uses historical prices
+    // Use getAllHoldings (with optimized batch price fetching) for unrealized P/L calculation
     const [holdings, perfReport, ...benchmarkResults] = await Promise.all([
-      plService.getAllHoldingsBasic(),
+      plService.getAllHoldings(),
       plService.getTradePerformance(),
       ...benchmarkSymbols.map(symbol =>
-        this.calculateBenchmarkReturn(symbol, startDate, actualEndDate)
+        this.calculateBenchmarkReturn(
+          symbol,
+          startDate,
+          actualEndDate,
+          dailyValues
+        )
       ),
     ]);
 
@@ -111,11 +137,17 @@ class BenchmarkService {
     // Use True Geometric TWR Calculation
     const portfolioTWR = this.calculateGeometricallyLinkedTWR(dailyValues);
 
-    // 6. Calculate alpha (vs first benchmark)
-    // benchmarkResults is already populated from Promise.all above
+    // 6. Calculate alphas (vs first benchmark)
     const firstBenchmark = benchmarkResults[0];
+    // Traditional Alpha: Portfolio TWR vs Benchmark Lump Sum
     const primaryBenchmarkTWR = firstBenchmark ? firstBenchmark.twr : 0;
     const alpha = portfolioTWR - primaryBenchmarkTWR;
+
+    // Cash-Flow Weighted Alpha: Portfolio Return vs Benchmark Same Timing
+    const primaryBenchmarkCFR = firstBenchmark
+      ? firstBenchmark.cashFlowWeightedReturn
+      : 0;
+    const cashFlowWeightedAlpha = simpleReturn - primaryBenchmarkCFR;
 
     return {
       portfolio: {
@@ -128,6 +160,7 @@ class BenchmarkService {
       },
       benchmarks: benchmarkResults,
       alpha,
+      cashFlowWeightedAlpha,
       periodStart: startDate,
       periodEnd: actualEndDate,
     };
@@ -135,11 +168,13 @@ class BenchmarkService {
 
   /**
    * Calculate benchmark return from historical prices.
+   * Now includes cash-flow weighted return for fair comparison.
    */
   private async calculateBenchmarkReturn(
     symbol: string,
     startDate: string,
-    endDate: string
+    endDate: string,
+    dailyValues?: DailyPortfolioValue[]
   ): Promise<BenchmarkResult> {
     const prices = await historicalPriceService.getHistoricalPrices(
       symbol,
@@ -148,29 +183,135 @@ class BenchmarkService {
     );
 
     if (prices.length === 0) {
-      return { symbol, twr: 0, dailyReturns: [] };
+      return {
+        symbol,
+        twr: 0,
+        cashFlowWeightedReturn: 0,
+        dailyReturns: [],
+        cashFlowWeightedDailyReturns: [],
+      };
     }
 
     const firstPrice = prices[0];
     const lastPrice = prices[prices.length - 1];
 
     if (!firstPrice || !lastPrice) {
-      return { symbol, twr: 0, dailyReturns: [] };
+      return {
+        symbol,
+        twr: 0,
+        cashFlowWeightedReturn: 0,
+        dailyReturns: [],
+        cashFlowWeightedDailyReturns: [],
+      };
     }
 
     const startPrice = firstPrice.close;
     const endPrice = lastPrice.close;
 
-    // Simple return for benchmark (no cash flows)
+    // === 1. Traditional TWR (Lump Sum) ===
+    // Assumes all money invested at start
     const twr = (endPrice - startPrice) / startPrice;
 
-    // Calculate daily cumulative returns
+    // Daily cumulative returns for lump sum
     const dailyReturns: DailyReturn[] = prices.map(p => ({
       date: p.date,
       cumulativeReturn: (p.close - startPrice) / startPrice,
     }));
 
-    return { symbol, twr, dailyReturns };
+    // === 2. Cash-Flow Weighted Return ===
+    // Simulates buying benchmark with same timing/amounts as portfolio
+    const { cfReturn, cfDailyReturns } = this.simulateCashFlowWeightedBenchmark(
+      prices,
+      dailyValues || []
+    );
+
+    return {
+      symbol,
+      twr,
+      cashFlowWeightedReturn: cfReturn,
+      dailyReturns,
+      cashFlowWeightedDailyReturns: cfDailyReturns,
+    };
+  }
+
+  /**
+   * Simulate buying benchmark using the same cash flows as the portfolio.
+   * This answers: "If I invested in {benchmark} instead of my stocks,
+   * at the same times and amounts, what would my return be?"
+   */
+  private simulateCashFlowWeightedBenchmark(
+    prices: { date: string; close: number }[],
+    dailyValues: DailyPortfolioValue[]
+  ): { cfReturn: number; cfDailyReturns: DailyReturn[] } {
+    if (prices.length === 0 || dailyValues.length === 0) {
+      return { cfReturn: 0, cfDailyReturns: [] };
+    }
+
+    // Build a price lookup by date
+    const priceByDate = new Map<string, number>();
+    for (const p of prices) {
+      priceByDate.set(p.date, p.close);
+    }
+
+    // Helper to get nearest available price for a date
+    const getPrice = (date: string): number => {
+      if (priceByDate.has(date)) return priceByDate.get(date)!;
+      // Find closest previous date
+      const sortedDates = Array.from(priceByDate.keys()).sort();
+      for (let i = sortedDates.length - 1; i >= 0; i--) {
+        if (sortedDates[i]! <= date) return priceByDate.get(sortedDates[i]!)!;
+      }
+      // Or first available
+      return prices[0]?.close || 0;
+    };
+
+    // Simulate buying benchmark shares with each cash flow
+    let totalShares = new Decimal(0);
+    let totalInvested = new Decimal(0);
+    let maxInvested = new Decimal(0);
+    const cfDailyReturns: DailyReturn[] = [];
+
+    for (const val of dailyValues) {
+      const cashFlow = val.cashFlow;
+      const price = getPrice(val.date);
+
+      if (price > 0 && !cashFlow.isZero()) {
+        // Positive cash flow = BUY shares of benchmark
+        // Negative cash flow = SELL shares of benchmark
+        const sharesDelta = cashFlow.div(price);
+        totalShares = totalShares.plus(sharesDelta);
+        totalInvested = totalInvested.plus(cashFlow);
+
+        if (totalInvested.gt(maxInvested)) {
+          maxInvested = totalInvested;
+        }
+      }
+
+      // Calculate current benchmark portfolio value
+      const currentPrice = getPrice(val.date);
+      const benchmarkValue = totalShares.times(currentPrice);
+
+      // Calculate return on max invested capital (consistent with portfolio calculation)
+      let cumulativeReturn = 0;
+      if (!maxInvested.isZero()) {
+        const benchmarkPL = benchmarkValue.minus(totalInvested);
+        cumulativeReturn = benchmarkPL.div(maxInvested).toNumber();
+      }
+
+      cfDailyReturns.push({
+        date: val.date,
+        cumulativeReturn,
+      });
+    }
+
+    // Final return
+    const lastPrice = prices[prices.length - 1]?.close || 0;
+    const finalBenchmarkValue = totalShares.times(lastPrice);
+    const cfReturn = maxInvested.isZero()
+      ? 0
+      : finalBenchmarkValue.minus(totalInvested).div(maxInvested).toNumber();
+
+    return { cfReturn, cfDailyReturns };
   }
 
   /**
@@ -314,9 +455,132 @@ class BenchmarkService {
       },
       benchmarks: [],
       alpha: 0,
+      cashFlowWeightedAlpha: 0,
       periodStart: '',
       periodEnd: endDate,
     };
+  }
+
+  /**
+   * Simulate DCA (Dollar Cost Averaging) for a benchmark.
+   * User can customize frequency and amount per investment.
+   */
+  async simulateDCA(
+    symbol: string,
+    settings: DCASettings,
+    startDate: string,
+    endDate: string
+  ): Promise<DCABenchmarkResult> {
+    const prices = await historicalPriceService.getHistoricalPrices(
+      symbol,
+      startDate,
+      endDate
+    );
+
+    if (prices.length === 0) {
+      return {
+        symbol,
+        totalInvested: 0,
+        finalValue: 0,
+        totalReturn: 0,
+        dailyReturns: [],
+      };
+    }
+
+    // Build price lookup by date
+    const priceByDate = new Map<string, number>();
+    for (const p of prices) {
+      priceByDate.set(p.date, p.close);
+    }
+
+    // Generate DCA investment dates based on frequency
+    const investmentDates = this.generateDCADates(
+      startDate,
+      endDate,
+      settings.frequency
+    );
+
+    // Simulate DCA investments
+    let totalShares = new Decimal(0);
+    let totalInvested = new Decimal(0);
+    const dailyReturns: DailyReturn[] = [];
+
+    // Helper to get nearest available price
+    const getPrice = (date: string): number => {
+      if (priceByDate.has(date)) return priceByDate.get(date)!;
+      const sortedDates = Array.from(priceByDate.keys()).sort();
+      for (let i = sortedDates.length - 1; i >= 0; i--) {
+        if (sortedDates[i]! <= date) return priceByDate.get(sortedDates[i]!)!;
+      }
+      return prices[0]?.close || 0;
+    };
+
+    // Process each investment date
+    for (const investDate of investmentDates) {
+      const price = getPrice(investDate);
+      if (price > 0) {
+        const shares = new Decimal(settings.amountPerInvestment).div(price);
+        totalShares = totalShares.plus(shares);
+        totalInvested = totalInvested.plus(settings.amountPerInvestment);
+      }
+    }
+
+    // Calculate daily returns for chart
+    for (const price of prices) {
+      const currentValue = totalShares.times(price.close);
+      const pnl = currentValue.minus(totalInvested);
+      const returnPct = totalInvested.isZero()
+        ? 0
+        : pnl.div(totalInvested).toNumber();
+
+      dailyReturns.push({
+        date: price.date,
+        cumulativeReturn: returnPct,
+      });
+    }
+
+    // Calculate final values
+    const lastPrice = prices[prices.length - 1]?.close || 0;
+    const finalValue = totalShares.times(lastPrice).toNumber();
+    const totalReturn = totalInvested.isZero()
+      ? 0
+      : new Decimal(finalValue)
+          .minus(totalInvested)
+          .div(totalInvested)
+          .toNumber();
+
+    return {
+      symbol,
+      totalInvested: totalInvested.toNumber(),
+      finalValue,
+      totalReturn,
+      dailyReturns,
+    };
+  }
+
+  /**
+   * Generate DCA investment dates based on frequency.
+   */
+  private generateDCADates(
+    startDate: string,
+    endDate: string,
+    frequency: DCAFrequency
+  ): string[] {
+    const dates: string[] = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    let current = new Date(start);
+
+    // Interval in days
+    const intervalDays =
+      frequency === 'weekly' ? 7 : frequency === 'biweekly' ? 14 : 30;
+
+    while (current <= end) {
+      dates.push(current.toISOString().split('T')[0]!);
+      current.setDate(current.getDate() + intervalDays);
+    }
+
+    return dates;
   }
 }
 

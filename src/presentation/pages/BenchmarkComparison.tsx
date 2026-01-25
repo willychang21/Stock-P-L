@@ -1,6 +1,7 @@
 /**
  * Benchmark Comparison Page
  * Compare portfolio performance against market benchmarks using TWR.
+ * Includes DCA (Dollar Cost Averaging) simulator.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -19,10 +20,13 @@ import { TrendingUp, TrendingDown } from '@mui/icons-material';
 import {
   benchmarkService,
   BenchmarkComparisonResult,
+  DCASettings,
+  DCABenchmarkResult,
 } from '@application/services/BenchmarkService';
 import { useStore } from '@application/store/useStore';
 import { CumulativeReturnChart } from '../components/CumulativeReturnChart';
 import { PerformanceMetricsTable } from '../components/PerformanceMetricsTable';
+import { DCASettingsPanel } from '../components/DCASettingsPanel';
 
 type BenchmarkSelection = 'QQQ' | 'SPY' | 'VOO';
 
@@ -34,6 +38,14 @@ export const BenchmarkComparison: React.FC = () => {
     BenchmarkSelection[]
   >(['QQQ', 'SPY']);
   const lastRefresh = useStore(state => state.lastRefresh);
+
+  // DCA Simulator State
+  const [dcaSettings, setDcaSettings] = useState<DCASettings>({
+    frequency: 'monthly',
+    amountPerInvestment: 500,
+  });
+  const [dcaResults, setDcaResults] = useState<DCABenchmarkResult[]>([]);
+  const [dcaLoading, setDcaLoading] = useState(false);
 
   // Memoize the load function to prevent unnecessary re-creation
   const loadData = useCallback(async (benchmarks: BenchmarkSelection[]) => {
@@ -62,6 +74,30 @@ export const BenchmarkComparison: React.FC = () => {
   ) => {
     if (newBenchmarks.length > 0) {
       setSelectedBenchmarks(newBenchmarks);
+    }
+  };
+
+  // DCA Simulation Handler
+  const handleDCASimulate = async () => {
+    if (!data) return;
+
+    setDcaLoading(true);
+    try {
+      const results = await Promise.all(
+        selectedBenchmarks.map(symbol =>
+          benchmarkService.simulateDCA(
+            symbol,
+            dcaSettings,
+            data.periodStart,
+            data.periodEnd
+          )
+        )
+      );
+      setDcaResults(results);
+    } catch (err) {
+      console.error('DCA simulation failed:', err);
+    } finally {
+      setDcaLoading(false);
     }
   };
 
@@ -224,7 +260,7 @@ export const BenchmarkComparison: React.FC = () => {
       </Card>
 
       {/* Performance Metrics Table */}
-      <Card>
+      <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Performance Metrics
@@ -232,6 +268,63 @@ export const BenchmarkComparison: React.FC = () => {
           <PerformanceMetricsTable data={data} />
         </CardContent>
       </Card>
+
+      {/* DCA Simulator */}
+      <DCASettingsPanel
+        settings={dcaSettings}
+        onSettingsChange={setDcaSettings}
+        onSimulate={handleDCASimulate}
+        loading={dcaLoading}
+      />
+
+      {/* DCA Results */}
+      {dcaResults.length > 0 && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              📊 DCA Simulation Results
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              If you invested ${dcaSettings.amountPerInvestment}{' '}
+              {dcaSettings.frequency} from {data.periodStart} to{' '}
+              {data.periodEnd}
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 2,
+              }}
+            >
+              {dcaResults.map(result => (
+                <Card key={result.symbol} variant="outlined">
+                  <CardContent>
+                    <Typography variant="h6" color="primary">
+                      {result.symbol}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Invested: ${result.totalInvested.toLocaleString()}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Final Value: ${result.finalValue.toLocaleString()}
+                    </Typography>
+                    <Typography
+                      variant="h5"
+                      color={
+                        result.totalReturn >= 0 ? 'success.main' : 'error.main'
+                      }
+                      sx={{ mt: 1 }}
+                    >
+                      {result.totalReturn >= 0 ? '+' : ''}
+                      {(result.totalReturn * 100).toFixed(2)}%
+                    </Typography>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 };
