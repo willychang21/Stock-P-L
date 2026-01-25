@@ -246,7 +246,32 @@ export class PLService {
     return totalRealizedPL;
   }
 
+  /**
+   * Get holding for a single symbol WITH current price (market value calculated).
+   */
   async getHolding(
+    symbol: string,
+    method: CostBasisMethod = 'FIFO'
+  ): Promise<Holding> {
+    const holding = await this.getHoldingBasic(symbol, method);
+
+    // Calculate market value and Unrealized P/L
+    let marketValue = new Decimal(0);
+    const currentPrice = await priceService.getCurrentPrice(symbol);
+    if (currentPrice) {
+      marketValue = holding.quantity.mul(currentPrice);
+    }
+    holding.marketValue = marketValue;
+    holding.unrealizedPL = marketValue.minus(holding.costBasis);
+
+    return holding;
+  }
+
+  /**
+   * Get holding for a single symbol WITHOUT fetching current price.
+   * Use this for pages that don't need real-time prices (e.g., Benchmark).
+   */
+  async getHoldingBasic(
     symbol: string,
     method: CostBasisMethod = 'FIFO'
   ): Promise<Holding> {
@@ -274,18 +299,12 @@ export class PLService {
       holding.averageCost = calculator.getAverageCost();
     }
 
-    // Calculate market value and Unrealized P/L
-    let marketValue = new Decimal(0);
-    const currentPrice = await priceService.getCurrentPrice(symbol);
-    if (currentPrice) {
-      marketValue = holding.quantity.mul(currentPrice);
-    }
-    holding.marketValue = marketValue;
-    holding.unrealizedPL = marketValue.minus(holding.costBasis);
-
     return holding;
   }
 
+  /**
+   * Get all holdings WITH current prices - optimized with batch price fetching.
+   */
   async getAllHoldings(
     method: CostBasisMethod = 'FIFO'
   ): Promise<Map<string, Holding>> {
@@ -293,13 +312,48 @@ export class PLService {
     const holdings = new Map<string, Holding>();
     const activeSymbols: string[] = [];
 
+    // 1. First, get all holdings WITHOUT prices (fast, no API calls)
     for (const symbol of symbols) {
-      const holding = await this.getHolding(symbol, method);
-
-      // Filter dust
+      const holding = await this.getHoldingBasic(symbol, method);
       if (holding.quantity.gt(0.000001)) {
         holdings.set(symbol, holding);
         activeSymbols.push(symbol);
+      }
+    }
+
+    // 2. Batch fetch all prices at once (single API call)
+    if (activeSymbols.length > 0) {
+      const prices = await priceService.getPrices(activeSymbols);
+
+      // 3. Update holdings with market values
+      for (const symbol of activeSymbols) {
+        const holding = holdings.get(symbol);
+        if (holding) {
+          const price = prices.get(symbol) || 0;
+          holding.marketValue = holding.quantity.mul(price);
+          holding.unrealizedPL = holding.marketValue.minus(holding.costBasis);
+        }
+      }
+    }
+
+    return holdings;
+  }
+
+  /**
+   * Get all holdings WITHOUT fetching current prices.
+   * Use this for pages like Benchmark that use historical prices instead.
+   * This is much faster as it doesn't make any API calls.
+   */
+  async getAllHoldingsBasic(
+    method: CostBasisMethod = 'FIFO'
+  ): Promise<Map<string, Holding>> {
+    const symbols = await transactionRepo.getAllSymbols();
+    const holdings = new Map<string, Holding>();
+
+    for (const symbol of symbols) {
+      const holding = await this.getHoldingBasic(symbol, method);
+      if (holding.quantity.gt(0.000001)) {
+        holdings.set(symbol, holding);
       }
     }
 

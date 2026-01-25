@@ -3,7 +3,7 @@
  * Compare portfolio performance against market benchmarks using TWR.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -35,15 +35,13 @@ export const BenchmarkComparison: React.FC = () => {
   >(['QQQ', 'SPY']);
   const lastRefresh = useStore(state => state.lastRefresh);
 
-  useEffect(() => {
-    loadData();
-  }, [lastRefresh, selectedBenchmarks]);
-
-  const loadData = async () => {
+  // Memoize the load function to prevent unnecessary re-creation
+  const loadData = useCallback(async (benchmarks: BenchmarkSelection[]) => {
     try {
       setLoading(true);
       setError(null);
-      const result = await benchmarkService.compare(selectedBenchmarks);
+      // BenchmarkService now fetches everything in parallel
+      const result = await benchmarkService.compare(benchmarks);
       setData(result);
     } catch (err) {
       console.error('Failed to load benchmark comparison:', err);
@@ -51,7 +49,12 @@ export const BenchmarkComparison: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Load data when lastRefresh or selectedBenchmarks change
+  useEffect(() => {
+    loadData(selectedBenchmarks);
+  }, [lastRefresh, selectedBenchmarks, loadData]);
 
   const handleBenchmarkChange = (
     _: React.MouseEvent<HTMLElement>,

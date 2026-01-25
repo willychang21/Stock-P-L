@@ -54,7 +54,7 @@ class BenchmarkService {
     const todayDate = todayParts[0] ?? '2026-01-01';
     const actualEndDate: string = endDate || todayDate;
 
-    // 1. Get portfolio daily values
+    // 1. First get daily values (needed for date range)
     const dailyValues =
       await portfolioValueCalculator.calculateDailyValues(actualEndDate);
 
@@ -69,22 +69,26 @@ class BenchmarkService {
 
     const startDate: string = firstValue.date;
 
-    // 3. Calculate portfolio simple return and total P/L
-    // 3. Calculate portfolio simple return and total P/L
-    const holdings = await plService.getAllHoldings();
-    let unrealizedPL = new Decimal(0);
+    // 2. Fetch all data in PARALLEL for maximum performance
+    // Use getAllHoldingsBasic (no quote fetching) since Benchmark uses historical prices
+    const [holdings, perfReport, ...benchmarkResults] = await Promise.all([
+      plService.getAllHoldingsBasic(),
+      plService.getTradePerformance(),
+      ...benchmarkSymbols.map(symbol =>
+        this.calculateBenchmarkReturn(symbol, startDate, actualEndDate)
+      ),
+    ]);
 
+    // 3. Calculate portfolio metrics from parallel results
+    let unrealizedPL = new Decimal(0);
     for (const holding of holdings.values()) {
       unrealizedPL = unrealizedPL.plus(holding.unrealizedPL || 0);
     }
 
-    const perfReport = await plService.getTradePerformance();
     const realizedPL = perfReport.overall.totalRealized;
-
-    // Total P/L = Unrealized + Realized
     const totalPL = unrealizedPL.plus(realizedPL);
 
-    // Calculate Max Net Invested Capital to align with chart
+    // 4. Calculate Max Net Invested Capital
     let netInvested = new Decimal(0);
     let maxInvested = new Decimal(0);
 
@@ -96,31 +100,19 @@ class BenchmarkService {
     }
 
     // Simple Return = Total P/L / Max Invested Capital
-    // This is the correct way to measure return on capital at risk
     const simpleReturn = maxInvested.isZero()
       ? 0
       : totalPL.div(maxInvested).toNumber();
 
-    // 4. Calculate portfolio daily cumulative returns for chart
+    // 5. Calculate portfolio daily cumulative returns for chart
     const portfolioDailyReturns =
       this.calculateDailyCumulativeReturns(dailyValues);
 
     // Use True Geometric TWR Calculation
     const portfolioTWR = this.calculateGeometricallyLinkedTWR(dailyValues);
 
-    // 5. Fetch benchmark data and calculate returns
-    const benchmarkResults: BenchmarkResult[] = [];
-
-    for (const symbol of benchmarkSymbols) {
-      const benchmarkResult = await this.calculateBenchmarkReturn(
-        symbol,
-        startDate,
-        actualEndDate
-      );
-      benchmarkResults.push(benchmarkResult);
-    }
-
     // 6. Calculate alpha (vs first benchmark)
+    // benchmarkResults is already populated from Promise.all above
     const firstBenchmark = benchmarkResults[0];
     const primaryBenchmarkTWR = firstBenchmark ? firstBenchmark.twr : 0;
     const alpha = portfolioTWR - primaryBenchmarkTWR;

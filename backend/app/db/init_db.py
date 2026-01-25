@@ -70,6 +70,21 @@ def init_db():
             );
         """)
 
+        # Historical Prices Cache Table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS historical_prices (
+                symbol TEXT NOT NULL,
+                date DATE NOT NULL,
+                open DOUBLE,
+                high DOUBLE,
+                low DOUBLE,
+                close DOUBLE NOT NULL,
+                volume BIGINT,
+                created_at TIMESTAMP NOT NULL,
+                PRIMARY KEY (symbol, date)
+            );
+        """)
+
         print("✅ Database initialized successfully.")
     except Exception as e:
         print(f"❌ Database initialization failed: {e}")

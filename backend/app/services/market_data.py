@@ -3,26 +3,40 @@ from app.models.price import Price
 from typing import List, Dict
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from app.services.price_cache import price_cache_service, historical_price_cache_service
 
 class MarketDataService:
 
     def get_quotes(self, symbols: List[str]) -> List[Dict]:
         if not symbols:
             return []
-            
-        tickers = yf.Tickers(' '.join(symbols))
-        results = []
+        
+        # Normalize symbols
+        normalized_symbols = [s.upper() for s in symbols]
+        
+        # 1. Check cache first
+        cached_results, missing_symbols = price_cache_service.get(normalized_symbols)
+        
+        results = list(cached_results.values())
+        
+        # 2. If all symbols are cached and valid, return immediately
+        if not missing_symbols:
+            print(f"✅ Cache HIT for all {len(normalized_symbols)} symbols")
+            return results
+        
+        print(f"📡 Cache MISS: fetching {len(missing_symbols)} of {len(normalized_symbols)} symbols from Yahoo Finance")
+        
+        # 3. Fetch only missing symbols from Yahoo Finance
+        tickers = yf.Tickers(' '.join(missing_symbols))
         
         def fetch_data(symbol):
             try:
-                # Accessing .tickers[symbol] might be lazy, but accessing .fast_info triggers request
                 ticker = tickers.tickers[symbol]
                 
                 price = None
-                quote_type = "EQUITY" # Default
+                quote_type = "EQUITY"
                 
                 try:
-                    # Try fast_info first
                     info = ticker.fast_info
                     price = info.get('last_price')
                     quote_type = info.get('quoteType', 'EQUITY')
@@ -30,11 +44,9 @@ class MarketDataService:
                     pass
                 
                 if price is None:
-                    # Fallback to history
                     hist = ticker.history(period="1d")
                     if not hist.empty:
                         price = hist['Close'].iloc[-1]
-                        # History doesn't give quoteType easily, stick to default or try info (slow)
                 
                 if price is not None:
                     return {
@@ -50,24 +62,43 @@ class MarketDataService:
             return None
 
         # Parallelize to speed up
-        with ThreadPoolExecutor(max_workers=min(len(symbols), 20)) as executor:
-            futures = [executor.submit(fetch_data, sym) for sym in symbols]
+        fresh_quotes = []
+        with ThreadPoolExecutor(max_workers=min(len(missing_symbols), 20)) as executor:
+            futures = [executor.submit(fetch_data, sym) for sym in missing_symbols]
             for future in futures:
                 res = future.result()
                 if res:
+                    fresh_quotes.append(res)
                     results.append(res)
-                
+        
+        # 4. Update cache with fresh data
+        if fresh_quotes:
+            price_cache_service.set(fresh_quotes)
+        
         return results
 
     def get_historical_prices(self, symbol: str, start_date: str, end_date: str) -> Dict:
+        upper_symbol = symbol.upper()
+        
+        # 1. Check if we have complete cached data
+        if historical_price_cache_service.has_complete_data(upper_symbol, start_date, end_date):
+            cached_prices = historical_price_cache_service.get(
+                upper_symbol, start_date, end_date
+            )
+            print(f"✅ Historical cache HIT for {upper_symbol}: {len(cached_prices)} days")
+            return {
+                "symbol": upper_symbol,
+                "prices": cached_prices
+            }
+        
+        # 2. Fetch from Yahoo Finance
+        print(f"📡 Historical cache MISS for {upper_symbol}: fetching from Yahoo Finance")
         try:
             ticker = yf.Ticker(symbol)
-            # yfinance expects YYYY-MM-DD
             hist = ticker.history(start=start_date, end=end_date, interval="1d")
             
             prices = []
             for date, row in hist.iterrows():
-                # date is Timestamp
                 prices.append({
                     "date": date.strftime('%Y-%m-%d'),
                     "open": row['Open'],
@@ -76,14 +107,30 @@ class MarketDataService:
                     "close": row['Close'],
                     "volume": int(row['Volume'])
                 })
-                
+            
+            # 3. Update cache with fresh data
+            if prices:
+                historical_price_cache_service.set(upper_symbol, prices)
+            
             return {
-                "symbol": symbol,
+                "symbol": upper_symbol,
                 "prices": prices
             }
         except Exception as e:
             print(f"Failed to fetch historical for {symbol}: {e}")
-            return {"symbol": symbol, "prices": []}
+            
+            # Fallback to partial cached data if available
+            cached_prices = historical_price_cache_service.get(
+                upper_symbol, start_date, end_date
+            )
+            if cached_prices:
+                print(f"⚠️ Using partial cache: {len(cached_prices)} days")
+                return {
+                    "symbol": upper_symbol,
+                    "prices": cached_prices
+                }
+            
+            return {"symbol": upper_symbol, "prices": []}
 
 
     def get_fundamentals(self, symbols: List[str]) -> List[Dict]:
