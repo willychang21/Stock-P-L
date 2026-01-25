@@ -35,7 +35,7 @@ export class TransactionRepository {
   async findAll(): Promise<Transaction[]> {
     const all = await apiClient.getTransactions();
     return all.sort((a, b) => {
-      const dateCompare = a.transaction_date.localeCompare(b.transaction_date);
+      const dateCompare = a.date.getTime() - b.date.getTime();
       if (dateCompare !== 0) return dateCompare;
       return a.id.localeCompare(b.id);
     });
@@ -49,10 +49,12 @@ export class TransactionRepository {
     endDate: string,
     symbol?: string
   ): Promise<Transaction[]> {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
     const all = await this.findAll();
     return all.filter(t => {
       const dateMatch =
-        t.transaction_date >= startDate && t.transaction_date <= endDate;
+        t.date >= start && t.date <= end;
       const symbolMatch = symbol ? t.symbol === symbol : true;
       return dateMatch && symbolMatch;
     });
@@ -62,9 +64,10 @@ export class TransactionRepository {
    * Find all transactions up to a date (for historical P/L calculation)
    */
   async findUpToDate(endDate: string, symbol?: string): Promise<Transaction[]> {
+    const end = new Date(endDate);
     const all = await this.findAll();
     return all.filter(t => {
-      const dateMatch = t.transaction_date <= endDate;
+      const dateMatch = t.date <= end;
       const symbolMatch = symbol ? t.symbol === symbol : true;
       return dateMatch && symbolMatch;
     });
@@ -74,16 +77,21 @@ export class TransactionRepository {
    * Get all unique symbols
    */
   async getAllSymbols(): Promise<string[]> {
-    const all = await apiClient.getTransactions();
-    const symbols = new Set(all.map(t => t.symbol));
-    return Array.from(symbols).sort();
+    try {
+      const all = await apiClient.getTransactions();
+      const symbols = new Set(all.map(t => t.symbol).filter(s => s && s !== ''));
+      return Array.from(symbols).sort();
+    } catch (e) {
+      console.error('Failed to get symbols:', e);
+      return [];
+    }
   }
 
   /**
    * Get existing content hashes (for deduplication)
    */
   async getExistingHashes(_hashes: string[]): Promise<Set<string>> {
-    // Not implemented efficiently via API yet.
+    // For now return empty, let API handle deduplication via INSERT IGNORE if needed
     return new Set();
   }
 
@@ -91,22 +99,26 @@ export class TransactionRepository {
    * Count total transactions
    */
   async count(): Promise<number> {
-    const all = await apiClient.getTransactions();
-    return all.length;
+    try {
+      const all = await apiClient.getTransactions();
+      return all.length;
+    } catch (e) {
+      return 0;
+    }
   }
 
   /**
    * Delete a transaction by ID
    */
-  async delete(_id: string): Promise<void> {
-    console.warn('delete() not implemented in API mode');
+  async delete(id: string): Promise<void> {
+    await apiClient.deleteTransaction(id);
   }
 
   /**
    * Update transaction notes
    */
-  async updateNotes(_id: string, _notes: string): Promise<void> {
-    console.warn('updateNotes() not implemented in API mode');
+  async updateNotes(id: string, notes: string): Promise<void> {
+    await apiClient.updateTransactionNotes(id, notes);
   }
 }
 

@@ -32,6 +32,7 @@ const steps = ['Upload CSV', 'Select Broker', 'Preview', 'Results'];
 interface ImportWizardProps {
   open: boolean;
   onClose: () => void;
+  onImportSuccess?: () => void;
 }
 
 // Result interface matching Backend response
@@ -45,7 +46,7 @@ interface APIImportResult {
 /**
  * Multi-step CSV import wizard
  */
-export function ImportWizard({ open, onClose }: ImportWizardProps) {
+export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedBroker, setSelectedBroker] = useState<Broker>(Broker.ROBINHOOD);
@@ -81,18 +82,22 @@ export function ImportWizard({ open, onClose }: ImportWizardProps) {
     } catch (error: any) {
       console.error('Import failed:', error);
       setErrorMsg(error.message || 'Import failed');
-      // Stay on step 2 or show error?
     } finally {
       setIsImporting(false);
     }
   };
 
   const handleClose = () => {
+    const wasSuccessful = activeStep === 3 && importResult?.success;
     setActiveStep(0);
     setSelectedFile(null);
     setImportResult(null);
     setErrorMsg(null);
     onClose();
+    
+    if (wasSuccessful && onImportSuccess) {
+      onImportSuccess();
+    }
   };
 
   return (
@@ -150,7 +155,7 @@ export function ImportWizard({ open, onClose }: ImportWizardProps) {
                 onChange={(e) => setSelectedBroker(e.target.value as Broker)}
               >
                 <MenuItem value={Broker.ROBINHOOD}>Robinhood</MenuItem>
-                <MenuItem value={Broker.CHARLES_SCHWAB}>Charles Schwab</MenuItem>
+                <MenuItem value={Broker.SCHWAB}>Charles Schwab</MenuItem>
                 <MenuItem value={Broker.MANUAL}>Manual Entry</MenuItem>
               </Select>
             </FormControl>
@@ -179,7 +184,7 @@ export function ImportWizard({ open, onClose }: ImportWizardProps) {
                   </TableRow>
                   <TableRow>
                     <TableCell><strong>Size:</strong></TableCell>
-                    <TableCell>{(selectedFile?.size ?? 0 / 1024).toFixed(2)} KB</TableCell>
+                    <TableCell>{((selectedFile?.size ?? 0) / 1024).toFixed(2)} KB</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>

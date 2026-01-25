@@ -1,108 +1,50 @@
+import sys
+import os
+from pathlib import Path
 
-from app.models.transaction import Transaction, TransactionType
-from datetime import datetime
-import pandas as pd
-import numpy as np
-import traceback
+sys.path.append(str(Path(__file__).parent))
 
-def test():
-    print("Testing Transaction Instantiation with NULLs/Numpy...")
+try:
+    from app.db.session import db
+    from app.schemas.portfolio import TransactionResponse
+    from pydantic import ValidationError
+    import json
+
+    conn = db.get_connection()
+    query = "SELECT * FROM transactions LIMIT 10"
+    cursor = conn.execute(query)
+    cols = [desc[0] for desc in cursor.description]
+    rows = cursor.fetchall()
     
-    try:
-        # Simulate values from importer
-        batch_id = "test-batch"
-        symbol = "AAPL"
-        tx_type = TransactionType.BUY
-        tx_date = datetime.now().date()
+    print(f"Found {len(rows)} rows in database.")
+    
+    for row in rows:
+        row_dict = dict(zip(cols, row))
+        print(f"\nProcessing row ID: {row_dict.get('id')}")
         
-        # Test 1: numpy float64
-        quantity = np.float64(10.5)
-        price = np.float64(150.0)
-        fees = 0.0
-        amount = 1575.0
+        mapped = {
+            "id": str(row_dict.get("id", "")),
+            "date": row_dict.get("transaction_date") or row_dict.get("date"),
+            "symbol": row_dict.get("symbol", "UNKNOWN"),
+            "type": row_dict.get("transaction_type") or row_dict.get("type", "BUY"),
+            "quantity": row_dict.get("quantity", 0),
+            "price": row_dict.get("price", 0),
+            "fees": row_dict.get("fees", 0),
+            "currency": row_dict.get("currency", "USD"),
+            "broker": row_dict.get("broker", "UNKNOWN"),
+            "rawData": row_dict.get("raw_data"),
+            "notes": row_dict.get("notes")
+        }
         
-        print(f"NumPy Float64 Test: Qty Type: {type(quantity)}")
-        
-        tx = Transaction(
-            import_batch_id=batch_id,
-            symbol=symbol,
-            transaction_type=tx_type,
-            transaction_date=tx_date,
-            quantity=quantity,
-            price=price,
-            fees=fees,
-            total_amount=amount, 
-            broker="ROBINHOOD",
-            raw_data="{}",
-            content_hash="abc"
-        )
-        print("Success with NumPy float64!")
-
-        # Test 2: NaN
-        print("Testing NaN quantity...")
-        quantity_nan = float('nan')
         try:
-             Transaction(
-                import_batch_id=batch_id,
-                symbol=symbol,
-                transaction_type=tx_type,
-                transaction_date=tx_date,
-                quantity=quantity_nan,
-                price=price,
-                fees=fees,
-                total_amount=amount, 
-                broker="ROBINHOOD",
-                raw_data="{}",
-                content_hash="abc_nan"
-            )
-             print("Success with NaN!")
-        except Exception as e:
-            print(f"Failed with NaN: {e}")
+            # Manually trigger Pydantic validation
+            obj = TransactionResponse(**mapped)
+            print(f"✓ Validation passed for {mapped['symbol']} {mapped['type']}")
+        except ValidationError as ve:
+            print(f"✗ Validation FAILED for {mapped['symbol']}")
+            print(f"  Mapped data: {mapped}")
+            print(f"  Errors: {ve.json()}")
 
-        # Test 3: Float Timestamp for Date
-        print("Testing Float Timestamp for Date...")
-        try:
-             Transaction(
-                import_batch_id=batch_id,
-                symbol=symbol,
-                transaction_type=tx_type,
-                transaction_date=1706054400.0, # Float timestamp
-                quantity=1,
-                price=1,
-                fees=0,
-                total_amount=1, 
-                broker="ROBINHOOD",
-                raw_data="{}",
-                content_hash="abc_ts"
-            )
-             print("Success with Float Timestamp!")
-        except Exception as e:
-            # traceback.print_exc()
-            print(f"Failed with Float Timestamp: {e}")
-
-        # Test 4: NaN for Date (Expecting Error)
-        print("Testing NaN for Date...")
-        try:
-             Transaction(
-                import_batch_id=batch_id,
-                symbol=symbol,
-                transaction_type=tx_type,
-                transaction_date=float('nan'),
-                quantity=1,
-                price=1,
-                fees=0,
-                total_amount=1, 
-                broker="ROBINHOOD",
-                raw_data="{}",
-                content_hash="abc_date_nan"
-            )
-             print("Sucess with NaN Date!")
-        except Exception:
-            # This is EXPECTED to fail differently?
-            traceback.print_exc()
-        
-    except Exception:
-        traceback.print_exc()
-
-if __name__ == "__main__":
-    test()
+except Exception as e:
+    import traceback
+    traceback.print_exc()

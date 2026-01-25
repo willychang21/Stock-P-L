@@ -25,7 +25,6 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Edit as EditIcon } from '@mui/icons-material';
-// import { db } from '@infrastructure/storage/database'; // Removed
 import { apiClient } from '../../infrastructure/api/client';
 import { TransactionType } from '@domain/models/Transaction';
 import { useStore } from '@application/store/useStore';
@@ -34,90 +33,75 @@ import { TransactionNoteDialog } from '../components/TransactionNoteDialog';
 interface TransactionRow {
   id: string;
   symbol: string;
-  transaction_type: string;
-  transaction_date: string;
+  type: TransactionType;
+  date: string;
   quantity: string;
   price: string;
   fees: string;
   total_amount: string;
   broker: string;
-  raw_data?: string; // Original CSV row data as JSON
-  realizedPL?: number; // Calculated P/L for SELL transactions
-  realizedCostBasis?: number; // Cost basis for percentage calculation
-  originalAction?: string; // Extracted original action from CSV
+  rawData?: string;
+  realizedPL?: number;
+  realizedCostBasis?: number;
+  originalAction?: string;
   notes?: string;
 }
 
 type OrderBy =
-  | 'transaction_date'
+  | 'date'
   | 'symbol'
-  | 'transaction_type'
+  | 'type'
   | 'quantity'
   | 'price';
 
-/**
- * Transactions page - displays all stored transactions with analysis
- */
 export function Transactions() {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
-  const [orderBy, setOrderBy] = useState<OrderBy>('transaction_date');
+  const [orderBy, setOrderBy] = useState<OrderBy>('date');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [filterSymbol, setFilterSymbol] = useState<string>('');
   const [filterType, setFilterType] = useState<string>('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [tabIndex, setTabIndex] = useState(0);
 
-  // Note editing state
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState('');
 
-  const costBasisMethod = useStore(state => state.costBasisMethod);
   const lastRefresh = useStore(state => state.lastRefresh);
 
-  // Load transactions
   useEffect(() => {
     loadTransactions();
   }, [lastRefresh]);
-
-  // Calculate symbol summaries when transactions change
-  useEffect(() => {
-    // calculateSymbolSummaries(); // Disabled complex client-side calc for MVP
-  }, [transactions, costBasisMethod]);
 
   const loadTransactions = async () => {
     try {
       const txs = await apiClient.getTransactions();
 
-      // Convert domain/API objects to View Rows
-      const rows: TransactionRow[] = txs.map(t => ({
-        id: t.id,
-        symbol: t.symbol,
-        transaction_type: t.transaction_type,
-        transaction_date: t.transaction_date,
-        quantity: t.quantity.toString(),
-        price: t.price.toString(),
-        fees: t.fees.toString(),
-        total_amount: t.total_amount.toString(),
-        broker: t.broker,
-        raw_data: t.raw_data,
-        notes: t.notes,
-      }));
+      const rows: TransactionRow[] = txs.map(t => {
+        const isValidDate = t.date instanceof Date && !isNaN(t.date.getTime());
+        return {
+          id: t.id,
+          symbol: t.symbol,
+          type: t.type,
+          date: isValidDate ? t.date.toISOString() : new Date().toISOString(),
+          quantity: t.quantity.toString(),
+          price: t.price.toString(),
+          fees: t.fees.toString(),
+          total_amount: t.quantity.mul(t.price).plus(t.fees).toString(),
+          broker: t.broker || '',
+          rawData: t.rawData,
+          notes: t.notes,
+        };
+      });
 
-      // Calculate realized P/L and extract original actions
       const processedTransactions = await processTransactions(rows);
-
-      // Reverse to show newest first
       setTransactions(processedTransactions.reverse());
     } catch (error) {
       console.error('Failed to load transactions:', error);
     }
   };
 
-  /**
-   * Helper to format raw action codes into readable text
-   */
   const formatAction = (action: string): string => {
     const map: Record<string, string> = {
       CDIV: 'Cash Dividend',
@@ -129,35 +113,22 @@ export function Transactions() {
     return map[action] || action;
   };
 
-  /**
-   * Process transactions: calculate P/L and extract original actions
-   */
   const processTransactions = async (
     txs: TransactionRow[]
   ): Promise<TransactionRow[]> => {
-    // 1. Extract original actions
     for (const tx of txs) {
-      if (tx.raw_data) {
+      if (tx.rawData) {
         try {
-          const data = JSON.parse(tx.raw_data);
-          // Schwab
+          const data = JSON.parse(tx.rawData);
           if (data['Action']) {
             tx.originalAction = data['Action'];
-          }
-          // Robinhood
-          else if (data['Trans Code']) {
+          } else if (data['Trans Code']) {
             tx.originalAction = formatAction(data['Trans Code']);
           }
-        } catch (e) {
-          // ignore parsing error
-        }
+        } catch (e) {}
       }
     }
 
-    // 2. Calculate P/L (existing logic) - simplified or removed for MVP API mode
-    // Keeping it here assuming client-side calc is still desired for table display
-
-    // Group transactions by symbol
     const symbolTxs = new Map<string, TransactionRow[]>();
 
     for (const tx of txs) {
@@ -168,27 +139,20 @@ export function Transactions() {
       symbolTxs.get(tx.symbol)!.push(tx);
     }
 
-    // For each symbol, calculate P/L for sells using FIFO
     for (const [_, symbolTransactions] of symbolTxs.entries()) {
-      // Sort by date ASC
       symbolTransactions.sort(
-        (a, b) =>
-          new Date(a.transaction_date).getTime() -
-          new Date(b.transaction_date).getTime()
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
       );
 
-      // FIFO lot queue: { quantity, costBasisPerShare }
       const lots: { quantity: number; costBasis: number }[] = [];
 
       for (const tx of symbolTransactions) {
         const qty = Math.abs(parseFloat(tx.quantity) || 0);
         const price = parseFloat(tx.price) || 0;
 
-        if (tx.transaction_type === 'BUY' && qty > 0) {
-          // Add to lot queue
+        if (tx.type === TransactionType.BUY && qty > 0) {
           lots.push({ quantity: qty, costBasis: price });
-        } else if (tx.transaction_type === 'SELL' && qty > 0) {
-          // Calculate realized P/L using FIFO
+        } else if (tx.type === TransactionType.SELL && qty > 0) {
           let remainingToSell = qty;
           let totalCostBasis = 0;
           let totalProceeds = qty * price;
@@ -202,11 +166,10 @@ export function Transactions() {
             remainingToSell -= sellFromLot;
 
             if (lot.quantity <= 0.0001) {
-              lots.shift(); // Remove depleted lot
+              lots.shift();
             }
           }
 
-          // P/L = Proceeds - Cost Basis
           tx.realizedPL = totalProceeds - totalCostBasis;
           tx.realizedCostBasis = totalCostBasis;
         }
@@ -216,14 +179,12 @@ export function Transactions() {
     return txs;
   };
 
-  // Get unique symbols for filter
   const uniqueSymbols = useMemo(() => {
     const transactionsSymbols = transactions.map(t => t.symbol).filter(s => s);
     const symbols = new Set(transactionsSymbols);
     return Array.from(symbols).sort();
   }, [transactions]);
 
-  // Filter and sort transactions
   const filteredTransactions = useMemo(() => {
     let result = [...transactions];
 
@@ -231,7 +192,7 @@ export function Transactions() {
       result = result.filter(t => t.symbol === filterSymbol);
     }
     if (filterType) {
-      result = result.filter(t => t.transaction_type === filterType);
+      result = result.filter(t => t.type === filterType);
     }
 
     result.sort((a, b) => {
@@ -258,11 +219,10 @@ export function Transactions() {
     setOrderBy(property);
   };
 
-  const handleDelete = async (_id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this transaction?')) return;
     try {
-      // await db.run('DELETE FROM transactions WHERE id = ?', [id]);
-      // await db.checkpoint();
-      alert('Delete disabled in API mode');
+      await apiClient.deleteTransaction(id);
       loadTransactions();
     } catch (error) {
       setDeleteError('Failed to delete transaction');
@@ -275,13 +235,16 @@ export function Transactions() {
     setEditingNote(currentNote || '');
   };
 
-  const handleSaveNote = async (_note: string) => {
+  const handleSaveNote = async (note: string) => {
     if (editingTxId) {
-      // await plService.updateTransactionNotes(editingTxId, note);
-      alert('Update notes disabled in API mode');
-      // Refresh transactions to show new note
-      await loadTransactions();
-      setEditingTxId(null);
+      try {
+        await apiClient.updateTransactionNotes(editingTxId, note);
+        await loadTransactions();
+        setEditingTxId(null);
+      } catch (error) {
+        console.error('Failed to update note:', error);
+        alert('Failed to update note');
+      }
     }
   };
 
@@ -311,7 +274,7 @@ export function Transactions() {
     const actionUpper = (action || '').toUpperCase();
 
     if (actionUpper.includes('REINVEST')) {
-      return 'secondary'; // Purple for Reinvestment
+      return 'secondary';
     }
 
     switch (type) {
@@ -395,11 +358,9 @@ export function Transactions() {
                   <TableRow>
                     <TableCell>
                       <TableSortLabel
-                        active={orderBy === 'transaction_date'}
-                        direction={
-                          orderBy === 'transaction_date' ? order : 'asc'
-                        }
-                        onClick={() => handleSort('transaction_date')}
+                        active={orderBy === 'date'}
+                        direction={orderBy === 'date' ? order : 'asc'}
+                        onClick={() => handleSort('date')}
                       >
                         Date
                       </TableSortLabel>
@@ -415,11 +376,9 @@ export function Transactions() {
                     </TableCell>
                     <TableCell>
                       <TableSortLabel
-                        active={orderBy === 'transaction_type'}
-                        direction={
-                          orderBy === 'transaction_type' ? order : 'asc'
-                        }
-                        onClick={() => handleSort('transaction_type')}
+                        active={orderBy === 'type'}
+                        direction={orderBy === 'type' ? order : 'asc'}
+                        onClick={() => handleSort('type')}
                       >
                         Type
                       </TableSortLabel>
@@ -455,19 +414,14 @@ export function Transactions() {
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map(tx => (
                       <TableRow key={tx.id} hover>
-                        <TableCell>{formatDate(tx.transaction_date)}</TableCell>
+                        <TableCell>{formatDate(tx.date)}</TableCell>
                         <TableCell>
                           <strong>{tx.symbol}</strong>
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={tx.originalAction || tx.transaction_type}
-                            color={
-                              getChipColor(
-                                tx.transaction_type,
-                                tx.originalAction
-                              ) as any
-                            }
+                            label={tx.originalAction || tx.type}
+                            color={getChipColor(tx.type, tx.originalAction) as any}
                             size="small"
                             variant="filled"
                           />
@@ -485,7 +439,7 @@ export function Transactions() {
                           ${formatNumber(tx.total_amount)}
                         </TableCell>
                         <TableCell align="right">
-                          {tx.transaction_type === 'SELL' &&
+                          {tx.type === TransactionType.SELL &&
                           tx.realizedPL !== undefined &&
                           tx.realizedPL !== 0 ? (
                             <Box
@@ -540,9 +494,7 @@ export function Transactions() {
                           >
                             <Typography
                               variant="body2"
-                              color={
-                                tx.notes ? 'text.primary' : 'text.secondary'
-                              }
+                              color={tx.notes ? 'text.primary' : 'text.secondary'}
                               sx={{
                                 maxWidth: 250,
                                 overflow: 'hidden',

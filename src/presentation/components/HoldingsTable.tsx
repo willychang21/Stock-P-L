@@ -56,9 +56,9 @@ function HoldingRow({
   const [isLoading, setIsLoading] = useState(false);
   const costBasisMethod = useStore(state => state.costBasisMethod);
 
-  const returnPct = holding.cost_basis.isZero()
+  const returnPct = holding.costBasis.isZero()
     ? new Decimal(0)
-    : holding.unrealized_pl.div(holding.cost_basis).times(100);
+    : holding.unrealizedPL.div(holding.costBasis).times(100);
   const isPositive = returnPct.gte(0);
 
   // Load transactions when row is expanded
@@ -111,23 +111,23 @@ function HoldingRow({
           />
         </TableCell>
         <TableCell align="right">
-          {formatShares(holding.total_shares)}
+          {formatShares(holding.quantity)}
         </TableCell>
         <TableCell align="right">
-          {formatCurrency(holding.average_cost)}
+          {formatCurrency(holding.averageCost)}
         </TableCell>
         <TableCell align="right">
-          {holding.current_price.gt(0)
-            ? formatCurrency(holding.current_price)
+          {holding.currentPrice.gt(0)
+            ? formatCurrency(holding.currentPrice)
             : '—'}
         </TableCell>
         <TableCell align="right">
-          {formatCurrency(holding.market_value)}
+          {formatCurrency(holding.marketValue)}
         </TableCell>
         <TableCell align="right">
           <Chip
-            label={formatCurrency(holding.unrealized_pl)}
-            color={holding.unrealized_pl.gte(0) ? 'success' : 'error'}
+            label={formatCurrency(holding.unrealizedPL)}
+            color={holding.unrealizedPL.gte(0) ? 'success' : 'error'}
             size="small"
           />
         </TableCell>
@@ -180,13 +180,13 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
 
   // Calculate return % for a holding
   const getReturnPct = (holding: Holding): Decimal => {
-    if (holding.cost_basis.isZero()) return new Decimal(0);
-    return holding.unrealized_pl.div(holding.cost_basis).times(100);
+    if (holding.costBasis.isZero()) return new Decimal(0);
+    return holding.unrealizedPL.div(holding.costBasis).times(100);
   };
 
   // Filter out holdings with zero shares (with null check)
   const activeHoldings = holdings.filter(
-    h => h.total_shares && !h.total_shares.isZero()
+    h => h.quantity && !h.quantity.isZero()
   );
 
   const sortedHoldings = [...activeHoldings].sort((a, b) => {
@@ -199,24 +199,24 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
           ? a.symbol.localeCompare(b.symbol)
           : b.symbol.localeCompare(a.symbol);
       case 'shares':
-        aVal = a.total_shares;
-        bVal = b.total_shares;
+        aVal = a.quantity;
+        bVal = b.quantity;
         break;
       case 'avgCost':
-        aVal = a.average_cost;
-        bVal = b.average_cost;
+        aVal = a.averageCost;
+        bVal = b.averageCost;
         break;
       case 'currentPrice':
-        aVal = a.current_price;
-        bVal = b.current_price;
+        aVal = a.currentPrice;
+        bVal = b.currentPrice;
         break;
       case 'marketValue':
-        aVal = a.market_value;
-        bVal = b.market_value;
+        aVal = a.marketValue;
+        bVal = b.marketValue;
         break;
       case 'unrealizedPL':
-        aVal = a.unrealized_pl;
-        bVal = b.unrealized_pl;
+        aVal = a.unrealizedPL;
+        bVal = b.unrealizedPL;
         break;
       case 'returnPct':
         aVal = getReturnPct(a);

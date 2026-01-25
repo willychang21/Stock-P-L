@@ -4,10 +4,22 @@ A **full-stack web application** for personal investment tracking and P/L analys
 
 ## Architecture
 
-This application uses a client-server architecture:
+This application follows a **Strict Layered (Hexagonal) Architecture** to ensure maintainability, extensibility, and testability:
 
-- **Backend**: Python FastAPI with **DuckDB** for high-performance analytical queries. Handles CSV parsing, data storage, and external market data (Yahoo Finance).
-- **Frontend**: React + TypeScript + Material UI. Consumes the backend via a REST API.
+- **Domain Layer**: Pure business logic (Entities, Value Objects, Port Interfaces). No external dependencies.
+  - *Location*: `src/domain/`, `backend/app/core/domain/`
+- **Application Layer**: Orchestrates domain logic via Services (Use Cases).
+  - *Location*: `src/application/`, `backend/app/services/`
+- **Infrastructure Layer**: Implementation of port interfaces (API clients, Database repositories, Market data adapters).
+  - *Location*: `src/infrastructure/`, `backend/app/infrastructure/`
+- **Presentation Layer**: UI Components (React) and API Endpoints (FastAPI).
+  - *Location*: `src/presentation/`, `backend/app/api/`
+
+### Key Design Patterns
+
+- **Strategy Pattern**: Decoupled portfolio calculators (FIFO, Weighted Average) that can be selected at runtime.
+- **Repository Pattern**: Abstracted data access to isolate the domain from storage details (DuckDB/LocalStorage).
+- **Result Pattern**: Standardized error handling across the stack.
 
 ## Features
 
@@ -107,22 +119,21 @@ Once the backend is running, full API documentation (Swagger UI) is available at
 ### Backend Structure
 
 ```
-backend/
-├── app/
-│   ├── api/          # Endpoints (Routes)
-│   ├── db/           # Database session & init
-│   ├── models/       # Pydantic models
-│   ├── services/     # Business logic (Portfolio, Import)
-│   └── main.py       # Entry point
+backend/app/
+├── core/             # Domain Entities & Port Interfaces
+├── infrastructure/   # Adapters (DB, External APIs)
+├── services/         # Application Services
+└── api/              # Presentation (FastAPI Endpoints)
 ```
 
 ### Frontend Structure
 
 ```
 src/
-├── domain/           # Models & Types
-├── infrastructure/   # API Clients (replaces legacy WASM)
-└── presentation/     # React Components & Pages
+├── domain/           # Pure Domain Logic (Models, Calculators, Ports)
+├── application/      # Application Services (Use Cases, Store)
+├── infrastructure/   # Infrastructure Adapters (API Client, Repositories)
+└── presentation/     # Presentation Layer (Components, Pages, Hooks)
 ```
 
 ## Troubleshooting

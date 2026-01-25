@@ -4,7 +4,7 @@ from typing import List
 
 router = APIRouter()
 
-@router.get("/")
+@router.get("")
 def get_quotes(symbols: str = Query(..., description="Comma-separated list of symbols")):
     symbol_list = [s.strip().upper() for s in symbols.split(',') if s.strip()]
     if not symbol_list:

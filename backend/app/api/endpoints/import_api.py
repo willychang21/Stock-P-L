@@ -4,7 +4,7 @@ from app.schemas.portfolio import ImportResult # Need to define this schema or g
 
 router = APIRouter()
 
-@router.post("/", response_model=dict)
+@router.post("", response_model=dict)
 async def import_csv(
     file: UploadFile = File(...),
     broker: str = Form(...)

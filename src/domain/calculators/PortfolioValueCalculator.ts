@@ -24,7 +24,7 @@ export class PortfolioValueCalculator {
   private getTransactionDates(transactions: Transaction[]): string[] {
     const dates = new Set<string>();
     for (const tx of transactions) {
-      dates.add(tx.transaction_date);
+      dates.add(tx.date.toISOString().split('T')[0]!);
     }
     return Array.from(dates).sort();
   }
@@ -45,7 +45,6 @@ export class PortfolioValueCalculator {
    */
   async calculateDailyValues(endDate?: string): Promise<DailyPortfolioValue[]> {
     // Get all transactions
-    // Get all transactions
     const allTransactions = await transactionRepo.findAll();
 
     if (allTransactions.length === 0) return [];
@@ -53,14 +52,14 @@ export class PortfolioValueCalculator {
     // Sort by date then ID
     allTransactions.sort(
       (a, b) =>
-        a.transaction_date.localeCompare(b.transaction_date) ||
+        a.date.getTime() - b.date.getTime() ||
         a.id.localeCompare(b.id)
     );
 
     const firstTx = allTransactions[0];
     if (!firstTx) return [];
 
-    const startDate: string = firstTx.transaction_date;
+    const startDate: string = firstTx.date.toISOString().split('T')[0]!;
     const todayStr = new Date().toISOString().split('T')[0] || startDate;
     const actualEndDate: string = endDate || todayStr;
 
@@ -90,11 +89,12 @@ export class PortfolioValueCalculator {
     for (const date of transactionDates) {
       // Calculate daily cash flow for this specific date
       let dailyCashFlow = new Decimal(0);
+      const dateObj = new Date(date);
 
       // Process all transactions up to/on this date
       while (
         txIndex < allTransactions.length &&
-        allTransactions[txIndex]!.transaction_date <= date
+        allTransactions[txIndex]!.date.toISOString().split('T')[0]! <= date
       ) {
         const tx = allTransactions[txIndex]!;
         const sym = tx.symbol.toUpperCase();
@@ -107,11 +107,13 @@ export class PortfolioValueCalculator {
         // "Net Invested" = Sum of CashFlows.
         // Buy = Positive Investment.
         // Sell = Negative Investment (Capital Returned).
-        const amount = tx.total_amount.abs();
+        // total_amount is derived in some places, but Transaction domain might not have it.
+        // Transaction domain: quantity, price, fees.
+        const amount = tx.quantity.mul(tx.price).plus(tx.fees).abs();
 
-        if (tx.transaction_type === TransactionType.BUY) {
+        if (tx.type === TransactionType.BUY) {
           dailyCashFlow = dailyCashFlow.plus(amount);
-        } else if (tx.transaction_type === TransactionType.SELL) {
+        } else if (tx.type === TransactionType.SELL) {
           dailyCashFlow = dailyCashFlow.minus(amount);
         }
 
@@ -137,6 +139,8 @@ export class PortfolioValueCalculator {
 
         // Accumulate specific metrics from FIFO logic
         totalCostBasis = totalCostBasis.plus(calculator.getTotalCostBasis());
+        // FIFOCalculator doesn't have getTotalRealizedPL yet, let's check its implementation.
+        // I'll add it.
         cumulativeRealizedPL = cumulativeRealizedPL.plus(
           calculator.getTotalRealizedPL()
         );
@@ -178,18 +182,18 @@ export class PortfolioValueCalculator {
    */
   async getFirstTransactionDate(): Promise<string | null> {
     const allSymbols = await transactionRepo.getAllSymbols();
-    let earliest: string | null = null;
+    let earliestDate: Date | null = null;
 
     for (const symbol of allSymbols) {
       const txs = await transactionRepo.findBySymbol(symbol);
       for (const tx of txs) {
-        if (!earliest || tx.transaction_date < earliest) {
-          earliest = tx.transaction_date;
+        if (!earliestDate || tx.date < earliestDate) {
+          earliestDate = tx.date;
         }
       }
     }
 
-    return earliest;
+    return earliestDate ? earliestDate.toISOString().split('T')[0]! : null;
   }
 }
 

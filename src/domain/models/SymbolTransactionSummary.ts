@@ -28,7 +28,7 @@ export interface SymbolTransactionSummary {
  */
 export function hasRealizedPL(txWithPL: TransactionWithPL): boolean {
   return (
-    txWithPL.transaction.transaction_type === TransactionType.SELL &&
+    txWithPL.transaction.type === TransactionType.SELL &&
     txWithPL.realized_pl !== null
   );
 }

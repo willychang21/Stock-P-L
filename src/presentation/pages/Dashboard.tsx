@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Container,
@@ -11,16 +11,19 @@ import {
   Alert,
   Tabs,
   Tab,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 
 import { Add, Refresh } from '@mui/icons-material';
 import { HoldingsTable } from '../components/HoldingsTable';
 import { ImportWizard } from '../components/ImportWizard';
 import { apiClient } from '../../infrastructure/api/client';
-import { plService } from '../../application/services/PLService';
-import { PortfolioSummary } from '../../domain/models/PortfolioSummary';
 import { Transaction } from '../../domain/models/Transaction';
 import { Holding } from '../../domain/models/Holding';
+import { Portfolio } from '../../domain/models/Portfolio';
 import Decimal from 'decimal.js';
 
 /**
@@ -30,14 +33,13 @@ export function Dashboard() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [calculatorId, setCalculatorId] = useState('fifo');
 
   // New State for API data
-  const [portfolioSummary, setPortfolioSummary] =
-    useState<PortfolioSummary | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [_transactions, setTransactions] = useState<Transaction[]>([]);
 
-  // Filter state (Note: Filtering might need to move to backend or happen on fetched data)
+  // Filter state
   const [assetFilter, setAssetFilter] = useState<'ALL' | 'EQUITY' | 'ETF'>(
     'ALL'
   );
@@ -46,49 +48,14 @@ export function Dashboard() {
     setIsLoading(true);
     setError(null);
     try {
-      // 1. Fetch Summary
-      const summary = await apiClient.getPortfolioSummary();
-      setPortfolioSummary(summary);
+      // 1. Fetch Portfolio (includes summary and holdings)
+      const data = await apiClient.getPortfolio(calculatorId);
+      setPortfolio(data);
 
       // 2. Fetch Transactions (for recent list)
       const txs = await apiClient.getTransactions();
       setTransactions(txs);
 
-      // 3. Calculate Holdings (Client-side for now)
-      const holdingsMap = await plService.getAllHoldings();
-
-      // 4. Fetch Current Prices (Fix for missing price in Holdings Table)
-      const symbols = Array.from(holdingsMap.keys());
-      if (symbols.length > 0) {
-        const quoteResponse = await apiClient.getQuotes(symbols);
-        const quotes = quoteResponse.result || [];
-
-        // Merge prices into holdings
-        for (const quote of quotes) {
-          const sym = quote.symbol;
-          if (holdingsMap.has(sym)) {
-            const holding = holdingsMap.get(sym)!;
-            const price = new Decimal(quote.regularMarketPrice || 0);
-
-            // Update holding with price
-            // We need to mutate or replace the holding in the map
-            const normalizedType = quote.quoteType === 'ETF' ? 'ETF' : 'EQUITY';
-
-            const updatedHolding = {
-              ...holding,
-              current_price: price,
-              assetType: normalizedType,
-              market_value: holding.total_shares.times(price),
-              unrealized_pl: holding.total_shares
-                .times(price)
-                .minus(holding.cost_basis),
-            };
-            holdingsMap.set(sym, updatedHolding);
-          }
-        }
-      }
-
-      setHoldings(Array.from(holdingsMap.values()));
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Failed to fetch dashboard data');
@@ -99,31 +66,24 @@ export function Dashboard() {
 
   useEffect(() => {
     refreshData();
-  }, []);
+  }, [calculatorId]);
 
   // Filter logic
-  const filteredHoldings = holdings.filter(h => {
+  const holdings = portfolio?.holdings || [];
+  const filteredHoldings = holdings.filter((h: Holding) => {
     if (assetFilter === 'ALL') return true;
     return h.assetType === assetFilter;
   });
 
-  const totalValue = portfolioSummary
-    ? new Decimal(portfolioSummary.total_value || 0)
-    : new Decimal(0);
-  const totalCost = portfolioSummary
-    ? new Decimal(portfolioSummary.total_cost || 0)
-    : new Decimal(0);
-  const totalPL = portfolioSummary
-    ? new Decimal(portfolioSummary.total_pl || 0)
-    : new Decimal(0);
-  const totalPLPercent = portfolioSummary
-    ? new Decimal(portfolioSummary.total_pl_percent || 0)
-    : new Decimal(0);
-  const totalRealizedPL = portfolioSummary
-    ? new Decimal(portfolioSummary.total_realized_pl || 0)
-    : new Decimal(0);
-  const totalUnrealizedPL = portfolioSummary
-    ? new Decimal(portfolioSummary.total_unrealized_pl || 0)
+  const totalValue = portfolio?.totalMarketValue || new Decimal(0);
+  const totalUnrealizedPL = portfolio?.totalUnrealizedPL || new Decimal(0);
+  const totalRealizedPL = portfolio?.totalRealizedPL || new Decimal(0);
+  
+  const totalPL = totalUnrealizedPL.plus(totalRealizedPL);
+  const totalCost = totalValue.minus(totalUnrealizedPL);
+  
+  const totalPLPercent = !totalCost.isZero() 
+    ? totalPL.div(totalCost).times(100) 
     : new Decimal(0);
 
   return (
@@ -140,7 +100,19 @@ export function Dashboard() {
           <Typography variant="h4" component="h1">
             Portfolio Dashboard
           </Typography>
-          <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <FormControl sx={{ mr: 2, minWidth: 150 }} size="small">
+              <InputLabel id="calculator-select-label">Cost Basis</InputLabel>
+              <Select
+                labelId="calculator-select-label"
+                value={calculatorId}
+                label="Cost Basis"
+                onChange={(e) => setCalculatorId(e.target.value)}
+              >
+                <MenuItem value="fifo">FIFO</MenuItem>
+                <MenuItem value="weighted_avg">Weighted Average</MenuItem>
+              </Select>
+            </FormControl>
             <Button
               startIcon={<Refresh />}
               onClick={refreshData}
@@ -297,6 +269,7 @@ export function Dashboard() {
       <ImportWizard
         open={importDialogOpen}
         onClose={() => setImportDialogOpen(false)}
+        onImportSuccess={refreshData}
       />
     </Container>
   );

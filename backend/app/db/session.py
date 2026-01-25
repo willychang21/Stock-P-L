@@ -13,27 +13,30 @@ os.makedirs(DATA_DIR, exist_ok=True)
 class Database:
     def __init__(self, db_path: str):
         self.db_path = db_path
-        self._connection = None
+        self._conn = None
 
     def get_connection(self):
         """
-        Get a connection to the DuckDB database.
-        DuckDB Python client is not thread-safe for sharing a single connection across threads,
-        but using `duckdb.connect()` creates a new connection each time.
-        For read-only concurrency, separate cursors are fine.
-        For persistent storage, we connect to the file.
+        Get a singleton connection to the DuckDB database.
+        DuckDB supports multiple threads using the same connection object
+        by creating child cursors.
         """
-        # In a real high-concurrency app, we might want a connection pool or cursor management.
-        # For this local app, creating a connection per request is acceptable for DuckDB.
-        conn = duckdb.connect(self.db_path)
-        return conn
+        if self._conn is None:
+            # Open the connection once
+            self._conn = duckdb.connect(self.db_path)
+        
+        # Return a cursor (thread-safe way to use a shared connection)
+        return self._conn.cursor()
 
 db = Database(DB_PATH)
 
 def get_db():
     """Dependency for FastAPI endpoints"""
-    conn = db.get_connection()
+    # Note: cursors in DuckDB don't need explicit closing in the same way connections do,
+    # but we follow the pattern for consistency.
+    cursor = db.get_connection()
     try:
-        yield conn
+        yield cursor
     finally:
-        conn.close()
+        # Cursor close is optional but good practice
+        pass

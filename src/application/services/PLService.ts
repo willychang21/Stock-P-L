@@ -106,8 +106,8 @@ export class PLService {
         const result = calculator.processTransaction(tx);
 
         // Count Realized P/L from SELLS
-        if (tx.transaction_type === 'SELL') {
-          const pl = result.realized_pl;
+        if (tx.type === TransactionType.SELL) {
+          const pl = result.realizedPL;
           updateStats(report.overall, pl);
           updateStats(report.byAssetType[type], pl);
         }
@@ -165,7 +165,7 @@ export class PLService {
     for (const tx of allTxs) {
       const result = calculator.processTransaction(tx);
 
-      if (tx.transaction_type === TransactionType.BUY) {
+      if (tx.type === TransactionType.BUY) {
         buyCount++;
         transactionsWithPL.push({
           transaction: tx,
@@ -173,17 +173,17 @@ export class PLService {
           return_percentage: null,
           cost_basis: null,
         });
-      } else if (tx.transaction_type === TransactionType.SELL) {
+      } else if (tx.type === TransactionType.SELL) {
         sellCount++;
-        const realizedPL = result.realized_pl;
+        const realizedPL = result.realizedPL;
         totalRealizedPL = totalRealizedPL.plus(realizedPL);
 
         // Calculate cost basis from matched lots for return percentage
         let costBasisForSell = new Decimal(0);
-        if (result.matched_lots) {
-          for (const match of result.matched_lots) {
+        if (result.matchedLots) {
+          for (const match of result.matchedLots) {
             costBasisForSell = costBasisForSell.plus(
-              match.quantity_sold.times(match.lot.cost_basis_per_share)
+              match.quantitySold.times(match.lot.cost_basis_per_share)
             );
           }
         }
@@ -224,6 +224,8 @@ export class PLService {
     endDate: string,
     method: CostBasisMethod = 'FIFO'
   ): Promise<Decimal> {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
     const allTxs = await transactionRepo.findUpToDate(endDate, symbol);
     const calculator =
       method === 'FIFO' ? new FIFOCalculator() : new AverageCostCalculator();
@@ -233,11 +235,11 @@ export class PLService {
     for (const tx of allTxs) {
       const result = calculator.processTransaction(tx);
       if (
-        tx.transaction_type === 'SELL' &&
-        tx.transaction_date >= startDate &&
-        tx.transaction_date <= endDate
+        tx.type === TransactionType.SELL &&
+        tx.date >= start &&
+        tx.date <= end
       ) {
-        totalRealizedPL = totalRealizedPL.plus(result.realized_pl);
+        totalRealizedPL = totalRealizedPL.plus(result.realizedPL);
       }
     }
     return totalRealizedPL;
@@ -257,17 +259,24 @@ export class PLService {
 
     const holding = createEmptyHolding(symbol);
     holding.assetType = priceService.getAssetType(symbol) || 'UNKNOWN';
-    holding.total_shares = calculator.getTotalShares();
-    holding.cost_basis = calculator.getTotalCostBasis();
-
-    if (method === 'FIFO' && calculator instanceof FIFOCalculator) {
+    
+    if (calculator instanceof FIFOCalculator) {
+      holding.quantity = calculator.getTotalShares();
+      holding.costBasis = calculator.getTotalCostBasis();
       holding.lots = calculator.getLots();
-      holding.average_cost = holding.total_shares.isZero()
+      holding.averageCost = holding.quantity.isZero()
         ? new Decimal(0)
-        : holding.cost_basis.div(holding.total_shares);
+        : holding.costBasis.div(holding.quantity);
     } else if (calculator instanceof AverageCostCalculator) {
-      holding.average_cost = calculator.getAverageCost();
+      holding.quantity = calculator.getTotalShares();
+      holding.costBasis = calculator.getTotalCostBasis();
+      holding.averageCost = calculator.getAverageCost();
     }
+
+    // Legacy support mapping
+    holding.total_shares = holding.quantity;
+    holding.cost_basis = holding.costBasis;
+    holding.average_cost = holding.averageCost;
 
     return holding;
   }
@@ -282,7 +291,7 @@ export class PLService {
       const holding = await this.getHolding(symbol, method);
 
       // Filter dust
-      if (holding.total_shares.gt(0.000001)) {
+      if (holding.quantity.gt(0.000001)) {
         holdings.set(symbol, holding);
       }
     }
@@ -294,22 +303,19 @@ export class PLService {
   async generatePLReport(
     startDate: string,
     endDate: string,
-    _method: CostBasisMethod,
+    method: CostBasisMethod,
     _currentPrices: Map<string, Decimal>
   ) {
-    // Placeholder for full report generation if invoked
-    // Implementation similar to getTradePerformance but with Symbol detail
-    // For now, returning empty object or simple report
     return {
       startDate,
       endDate,
-      summary: {
-        totalRealizedPL: new Decimal(0),
-        totalUnrealizedPL: new Decimal(0),
-        totalFees: new Decimal(0),
-        netProfit: new Decimal(0),
-      },
-      symbols: [],
+      costBasisMethod: method,
+      realizedPL: new Decimal(0),
+      unrealizedPL: new Decimal(0),
+      totalPL: new Decimal(0),
+      breakdownBySymbol: new Map(),
+      transactionsAnalyzed: 0,
+      symbolsCount: 0,
     };
   }
 
@@ -348,9 +354,9 @@ export class PLService {
       for (const tx of allTxs) {
         const result = calculator.processTransaction(tx);
 
-        if (tx.transaction_type === 'SELL') {
-          const periodKey = this.getPeriodKey(tx.transaction_date, timePeriod);
-          const pl = result.realized_pl;
+        if (tx.type === TransactionType.SELL) {
+          const periodKey = this.getPeriodKey(tx.date.toISOString().split('T')[0]!, timePeriod);
+          const pl = result.realizedPL;
 
           if (!periodMap.has(periodKey)) {
             periodMap.set(periodKey, {

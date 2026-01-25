@@ -1,14 +1,11 @@
-# Dependencies
-node_modules/
-
-# Build output
-dist/
-build/
-
-# Data files
-data/
-test-data/
-
-# Misc
-.git/
+dist
+dist-ssr
+coverage
+node_modules
+.gemini
+.specify
+backend/venv
+backend/__pycache__
 *.log
+*.csv
+*.parquet

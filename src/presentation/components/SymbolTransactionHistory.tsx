@@ -101,25 +101,25 @@ export function SymbolTransactionHistory({
         <TableBody>
           {transactions.map((txWithPL, index) => {
             const tx = txWithPL.transaction;
-            const isSell = tx.transaction_type === TransactionType.SELL;
-            const isBuy = tx.transaction_type === TransactionType.BUY;
+            const isSell = tx.type === TransactionType.SELL;
+            const isBuy = tx.type === TransactionType.BUY;
             const quantity = Math.abs(parseFloat(tx.quantity.toString()));
             const price = parseFloat(tx.price.toString());
-            const total = Math.abs(parseFloat(tx.total_amount.toString()));
+            const total = tx.quantity.mul(tx.price).plus(tx.fees).abs();
 
             return (
               <TableRow key={tx.id || index}>
-                <TableCell>{formatDate(tx.transaction_date)}</TableCell>
+                <TableCell>{formatDate(tx.date.toISOString())}</TableCell>
                 <TableCell>
                   <Chip
-                    label={tx.transaction_type}
+                    label={tx.type}
                     size="small"
                     color={
                       isBuy
                         ? 'success'
                         : isSell
                           ? 'error'
-                          : tx.transaction_type === TransactionType.DIVIDEND
+                          : tx.type === TransactionType.DIVIDEND
                             ? 'info'
                             : 'default'
                     }
