@@ -72,11 +72,11 @@ class BenchmarkService {
     let totalCostBasis = new Decimal(0);
     let unrealizedPL = new Decimal(0);
 
-    for (const holding of holdings.values()) {
-      currentValue = currentValue.plus(holding.market_value || 0);
-      totalCostBasis = totalCostBasis.plus(holding.cost_basis || 0);
-      unrealizedPL = unrealizedPL.plus(holding.unrealized_pl || 0);
-    }
+      for (const holding of holdings.values()) {
+        currentValue = currentValue.plus(holding.marketValue || 0);
+        totalCostBasis = totalCostBasis.plus(holding.costBasis || 0);
+        unrealizedPL = unrealizedPL.plus(holding.unrealizedPL || 0);
+      }
 
     const perfReport = await plService.getTradePerformance();
     const realizedPL = perfReport.overall.totalRealized;

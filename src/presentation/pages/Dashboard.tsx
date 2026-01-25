@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Container,
@@ -11,16 +11,19 @@ import {
   Alert,
   Tabs,
   Tab,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 
 import { Add, Refresh } from '@mui/icons-material';
 import { HoldingsTable } from '../components/HoldingsTable';
 import { ImportWizard } from '../components/ImportWizard';
-import { useStore } from '@application/store/useStore';
-import {
-  plService,
-  PerformanceReport,
-} from '../../application/services/PLService';
+import { apiClient } from '../../infrastructure/api/client';
+import { Transaction } from '../../domain/models/Transaction';
+import { Holding } from '../../domain/models/Holding';
+import { Portfolio } from '../../domain/models/Portfolio';
 import Decimal from 'decimal.js';
 
 /**
@@ -28,66 +31,60 @@ import Decimal from 'decimal.js';
  */
 export function Dashboard() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [performanceReport, setPerformanceReport] =
-    useState<PerformanceReport | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [calculatorId, setCalculatorId] = useState('fifo');
+
+  // New State for API data
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [_transactions, setTransactions] = useState<Transaction[]>([]);
+
+  // Filter state
   const [assetFilter, setAssetFilter] = useState<'ALL' | 'EQUITY' | 'ETF'>(
     'ALL'
   );
 
-  const holdings = useStore(state => state.holdings);
-  const isLoading = useStore(state => state.isLoading);
-  const error = useStore(state => state.error);
-  const refreshHoldings = useStore(state => state.refreshHoldings);
-  const costBasisMethod = useStore(state => state.costBasisMethod);
+  const refreshData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // 1. Fetch Portfolio (includes summary and holdings)
+      const data = await apiClient.getPortfolio(calculatorId);
+      setPortfolio(data);
 
-  // ... (useEffects unchanged) ...
+      // 2. Fetch Transactions (for recent list)
+      const txs = await apiClient.getTransactions();
+      setTransactions(txs);
+
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Failed to fetch dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    refreshHoldings();
-  }, [refreshHoldings]);
+    refreshData();
+  }, [calculatorId]);
 
-  // Fetch performance report whenever holdings or cost basis method updates
-  useEffect(() => {
-    plService
-      .getTradePerformance(costBasisMethod)
-      .then(setPerformanceReport)
-      .catch(console.error);
-  }, [holdings, costBasisMethod]);
-
-  // Filter holdings
-  const filteredHoldings = Array.from(holdings.values()).filter(h => {
+  // Filter logic
+  const holdings = portfolio?.holdings || [];
+  const filteredHoldings = holdings.filter((h: Holding) => {
     if (assetFilter === 'ALL') return true;
     return h.assetType === assetFilter;
   });
 
-  // Calculate portfolio summary (with null checks for empty/partial data)
-  const totalValue = filteredHoldings.reduce(
-    (sum, h) => sum.plus(h.market_value || 0),
-    new Decimal(0)
-  );
-
-  const totalCost = filteredHoldings.reduce(
-    (sum, h) => sum.plus(h.cost_basis || 0),
-    new Decimal(0)
-  );
-
-  const totalUnrealizedPL = totalValue.minus(totalCost);
-
-  // Get Realized P/L based on filter
-  let realizedPL = new Decimal(0);
-
-  if (performanceReport) {
-    if (assetFilter === 'ALL')
-      realizedPL = performanceReport.overall.totalRealized;
-    else if (assetFilter === 'EQUITY')
-      realizedPL = performanceReport.byAssetType.EQUITY.totalRealized;
-    else if (assetFilter === 'ETF')
-      realizedPL = performanceReport.byAssetType.ETF.totalRealized;
-  }
-
-  // Calculate Return Percentages
-  const unrealizedReturn = totalCost.isZero()
-    ? new Decimal(0)
-    : totalUnrealizedPL.div(totalCost).times(100);
+  const totalValue = portfolio?.totalMarketValue || new Decimal(0);
+  const totalUnrealizedPL = portfolio?.totalUnrealizedPL || new Decimal(0);
+  const totalRealizedPL = portfolio?.totalRealizedPL || new Decimal(0);
+  
+  const totalPL = totalUnrealizedPL.plus(totalRealizedPL);
+  const totalCost = totalValue.minus(totalUnrealizedPL);
+  
+  const totalPLPercent = !totalCost.isZero() 
+    ? totalPL.div(totalCost).times(100) 
+    : new Decimal(0);
 
   return (
     <Container maxWidth="xl">
@@ -103,10 +100,22 @@ export function Dashboard() {
           <Typography variant="h4" component="h1">
             Portfolio Dashboard
           </Typography>
-          <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <FormControl sx={{ mr: 2, minWidth: 150 }} size="small">
+              <InputLabel id="calculator-select-label">Cost Basis</InputLabel>
+              <Select
+                labelId="calculator-select-label"
+                value={calculatorId}
+                label="Cost Basis"
+                onChange={(e) => setCalculatorId(e.target.value)}
+              >
+                <MenuItem value="fifo">FIFO</MenuItem>
+                <MenuItem value="weighted_avg">Weighted Average</MenuItem>
+              </Select>
+            </FormControl>
             <Button
               startIcon={<Refresh />}
-              onClick={() => refreshHoldings()}
+              onClick={refreshData}
               disabled={isLoading}
               sx={{ mr: 2 }}
             >
@@ -128,7 +137,7 @@ export function Dashboard() {
           </Alert>
         )}
 
-        {/* Filter Tabs */}
+        {/* Filter Tabs - Disabled for MVP if backend doesn't support filtering yet */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={assetFilter} onChange={(_, val) => setAssetFilter(val)}>
             <Tab label="All" value="ALL" />
@@ -163,92 +172,76 @@ export function Dashboard() {
           </Grid>
 
           {/* Realized P/L */}
-          <Grid item xs={6} sm={4} md={2.6}>
+          <Grid item xs={6} sm={4} md={2}>
             <Card>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
                   Realized P/L
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                  <Typography
-                    variant="h6"
-                    color={realizedPL.gte(0) ? 'success.main' : 'error.main'}
-                  >
-                    ${realizedPL.toFixed(2)}
-                  </Typography>
-                </Box>
+                <Typography
+                  variant="h6"
+                  color={totalRealizedPL.gte(0) ? 'success.main' : 'error.main'}
+                >
+                  ${totalRealizedPL.toFixed(2)}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
 
           {/* Unrealized P/L */}
-          <Grid item xs={6} sm={4} md={2.6}>
+          <Grid item xs={6} sm={4} md={2}>
             <Card>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
                   Unrealized P/L
                 </Typography>
+                <Typography
+                  variant="h6"
+                  color={
+                    totalUnrealizedPL.gte(0) ? 'success.main' : 'error.main'
+                  }
+                >
+                  ${totalUnrealizedPL.toFixed(2)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Total P/L ($) */}
+          <Grid item xs={6} sm={4} md={2}>
+            <Card>
+              <CardContent>
+                <Typography color="text.secondary" variant="caption">
+                  Total P/L ($)
+                </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
                   <Typography
                     variant="h6"
-                    color={
-                      totalUnrealizedPL.gte(0) ? 'success.main' : 'error.main'
-                    }
+                    color={totalPL.gte(0) ? 'success.main' : 'error.main'}
                   >
-                    ${totalUnrealizedPL.toFixed(2)}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color={
-                      unrealizedReturn.gte(0) ? 'success.main' : 'error.main'
-                    }
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    ({unrealizedReturn.gte(0) ? '+' : ''}
-                    {unrealizedReturn.toFixed(2)}%)
+                    ${totalPL.toFixed(2)}
                   </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Total P/L */}
-          <Grid item xs={6} sm={4} md={2.6}>
+          {/* Total P/L % */}
+          <Grid item xs={6} sm={4} md={2}>
             <Card>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
-                  Total P/L
+                  Total P/L (%)
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
                   <Typography
                     variant="h6"
                     color={
-                      realizedPL.plus(totalUnrealizedPL).gte(0)
-                        ? 'success.main'
-                        : 'error.main'
+                      totalPLPercent.gte(0) ? 'success.main' : 'error.main'
                     }
-                    fontWeight="bold"
                   >
-                    ${realizedPL.plus(totalUnrealizedPL).toFixed(2)}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color={
-                      realizedPL.plus(totalUnrealizedPL).gte(0)
-                        ? 'success.main'
-                        : 'error.main'
-                    }
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    ({realizedPL.plus(totalUnrealizedPL).gte(0) ? '+' : ''}
-                    {totalCost.isZero()
-                      ? '0.00'
-                      : realizedPL
-                          .plus(totalUnrealizedPL)
-                          .div(totalCost)
-                          .times(100)
-                          .toFixed(2)}
-                    %)
+                    {totalPLPercent.gte(0) ? '+' : ''}
+                    {totalPLPercent.toFixed(2)}%
                   </Typography>
                 </Box>
               </CardContent>
@@ -268,11 +261,15 @@ export function Dashboard() {
         ) : (
           <HoldingsTable holdings={filteredHoldings} />
         )}
+
+        {/* Recent Transactions List (Optional, can keep below) */}
+        {/* ... */}
       </Box>
 
       <ImportWizard
         open={importDialogOpen}
         onClose={() => setImportDialogOpen(false)}
+        onImportSuccess={refreshData}
       />
     </Container>
   );

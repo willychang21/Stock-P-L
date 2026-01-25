@@ -5,9 +5,6 @@ import {
   ThemeProvider,
   createTheme,
   CssBaseline,
-  Box,
-  CircularProgress,
-  Typography,
 } from '@mui/material';
 import { Layout } from './presentation/components/Layout';
 import { Dashboard } from './presentation/pages/Dashboard';
@@ -15,11 +12,9 @@ import { Transactions } from './presentation/pages/Transactions';
 import { PerformanceAnalysis } from './presentation/pages/PerformanceAnalysis';
 import { BenchmarkComparison } from './presentation/pages/BenchmarkComparison';
 import { Settings } from './presentation/pages/Settings';
-import { db } from './infrastructure/storage/database';
 import './index.css';
 
 // Create dark theme
-// Create premium dark theme
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
@@ -188,55 +183,15 @@ function App() {
   );
 }
 
-async function initApp() {
-  const rootElement = document.getElementById('root');
-  if (!rootElement) return;
-
+const rootElement = document.getElementById('root');
+if (rootElement) {
   const root = ReactDOM.createRoot(rootElement);
-
-  // 1. Render Loading State
   root.render(
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        flexDirection: 'column',
-        gap: 2,
-        bgcolor: '#09090b',
-        color: 'white',
-      }}
-    >
-      <CircularProgress />
-      <Typography>Initializing Database...</Typography>
-    </Box>
+    <React.StrictMode>
+      <ThemeProvider theme={darkTheme}>
+        <CssBaseline />
+        <App />
+      </ThemeProvider>
+    </React.StrictMode>
   );
-
-  try {
-    // 2. Initialize Database
-    await db.initialize();
-
-    // 3. Render App
-    root.render(
-      <React.StrictMode>
-        <ThemeProvider theme={darkTheme}>
-          <CssBaseline />
-          <App />
-        </ThemeProvider>
-      </React.StrictMode>
-    );
-  } catch (error) {
-    console.error('Failed to initialize app:', error);
-    root.render(
-      <Box sx={{ p: 4, bgcolor: '#09090b', height: '100vh', color: 'white' }}>
-        <Typography variant="h5" color="error" gutterBottom>
-          Initialization Error
-        </Typography>
-        <Typography>{String(error)}</Typography>
-      </Box>
-    );
-  }
 }
-
-initApp();

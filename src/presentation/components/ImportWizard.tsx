@@ -24,28 +24,35 @@ import {
   Paper,
 } from '@mui/material';
 import { CloudUpload } from '@mui/icons-material';
-import { Broker } from '@domain/models/Transaction';
-import { useStore } from '@application/store/useStore';
-import { ImportResult } from '@infrastructure/import/ImportPipeline';
+import { Broker } from '../../domain/models/Transaction';
+import { apiClient } from '../../infrastructure/api/client';
 
 const steps = ['Upload CSV', 'Select Broker', 'Preview', 'Results'];
 
 interface ImportWizardProps {
   open: boolean;
   onClose: () => void;
+  onImportSuccess?: () => void;
+}
+
+// Result interface matching Backend response
+interface APIImportResult {
+    success: boolean;
+    count: number;
+    batch_id: string;
+    message: string;
 }
 
 /**
  * Multi-step CSV import wizard
  */
-export function ImportWizard({ open, onClose }: ImportWizardProps) {
+export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedBroker, setSelectedBroker] = useState<Broker>(Broker.ROBINHOOD);
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importResult, setImportResult] = useState<APIImportResult | null>(null);
   const [isImporting, setIsImporting] = useState(false);
-
-  const importCSV = useStore((state) => state.importCSV);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -63,22 +70,34 @@ export function ImportWizard({ open, onClose }: ImportWizardProps) {
     if (!selectedFile) return;
 
     setIsImporting(true);
+    setErrorMsg(null);
     try {
-      const result = await importCSV(selectedFile, selectedBroker);
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('broker', selectedBroker);
+
+      const result = await apiClient.uploadImport(formData);
       setImportResult(result);
       setActiveStep(3);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Import failed:', error);
+      setErrorMsg(error.message || 'Import failed');
     } finally {
       setIsImporting(false);
     }
   };
 
   const handleClose = () => {
+    const wasSuccessful = activeStep === 3 && importResult?.success;
     setActiveStep(0);
     setSelectedFile(null);
     setImportResult(null);
+    setErrorMsg(null);
     onClose();
+    
+    if (wasSuccessful && onImportSuccess) {
+      onImportSuccess();
+    }
   };
 
   return (
@@ -97,6 +116,7 @@ export function ImportWizard({ open, onClose }: ImportWizardProps) {
         </Box>
 
         {isImporting && <LinearProgress sx={{ mb: 2 }} />}
+        {errorMsg && <Alert severity="error" sx={{ mb: 2 }}>{errorMsg}</Alert>}
 
         {/* Step 0: File Upload */}
         {activeStep === 0 && (
@@ -135,7 +155,7 @@ export function ImportWizard({ open, onClose }: ImportWizardProps) {
                 onChange={(e) => setSelectedBroker(e.target.value as Broker)}
               >
                 <MenuItem value={Broker.ROBINHOOD}>Robinhood</MenuItem>
-                <MenuItem value={Broker.CHARLES_SCHWAB}>Charles Schwab</MenuItem>
+                <MenuItem value={Broker.SCHWAB}>Charles Schwab</MenuItem>
                 <MenuItem value={Broker.MANUAL}>Manual Entry</MenuItem>
               </Select>
             </FormControl>
@@ -164,7 +184,7 @@ export function ImportWizard({ open, onClose }: ImportWizardProps) {
                   </TableRow>
                   <TableRow>
                     <TableCell><strong>Size:</strong></TableCell>
-                    <TableCell>{(selectedFile?.size ?? 0 / 1024).toFixed(2)} KB</TableCell>
+                    <TableCell>{((selectedFile?.size ?? 0) / 1024).toFixed(2)} KB</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -180,43 +200,27 @@ export function ImportWizard({ open, onClose }: ImportWizardProps) {
           <Box sx={{ py: 2 }}>
             {importResult.success ? (
               <>
-                {importResult.imported_count > 0 ? (
-                  <Alert severity="success" sx={{ mb: 2 }}>
-                    Import completed successfully!
-                  </Alert>
-                ) : (
-                  <Alert severity="warning" sx={{ mb: 2 }}>
-                    Import completed but no new transactions were added.
-                  </Alert>
-                )}
+                <Alert severity="success" sx={{ mb: 2 }}>
+                   {importResult.message}
+                </Alert>
                 <TableContainer component={Paper}>
                   <Table size="small">
                     <TableBody>
                       <TableRow>
-                        <TableCell><strong>Total Rows:</strong></TableCell>
-                        <TableCell>{importResult.total_rows}</TableCell>
+                        <TableCell><strong>Imported Transactions:</strong></TableCell>
+                        <TableCell>{importResult.count}</TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell><strong>Imported:</strong></TableCell>
-                        <TableCell>{importResult.imported_count}</TableCell>
+                         <TableCell><strong>Batch ID:</strong></TableCell>
+                         <TableCell>{importResult.batch_id}</TableCell>
                       </TableRow>
-                      <TableRow>
-                        <TableCell><strong>Duplicates Skipped:</strong></TableCell>
-                        <TableCell>{importResult.duplicate_count}</TableCell>
-                      </TableRow>
-                      {importResult.error_count > 0 && (
-                        <TableRow>
-                          <TableCell><strong>Errors:</strong></TableCell>
-                          <TableCell>{importResult.error_count}</TableCell>
-                        </TableRow>
-                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
               </>
             ) : (
               <Alert severity="error">
-                Import failed: {importResult.errors[0]?.message}
+                Import failed.
               </Alert>
             )}
           </Box>

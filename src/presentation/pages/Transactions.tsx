@@ -19,108 +19,89 @@ import {
   FormControl,
   InputLabel,
   MenuItem,
-  Card,
-  CardContent,
   Tabs,
   Tab,
   Tooltip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Edit as EditIcon } from '@mui/icons-material';
-import { db } from '@infrastructure/storage/database';
+import { apiClient } from '../../infrastructure/api/client';
 import { TransactionType } from '@domain/models/Transaction';
-import { plService } from '../../application/services/PLService';
 import { useStore } from '@application/store/useStore';
-import Decimal from 'decimal.js';
 import { TransactionNoteDialog } from '../components/TransactionNoteDialog';
 
 interface TransactionRow {
   id: string;
   symbol: string;
-  transaction_type: string;
-  transaction_date: string;
+  type: TransactionType;
+  date: string;
   quantity: string;
   price: string;
   fees: string;
   total_amount: string;
   broker: string;
-  raw_data?: string; // Original CSV row data as JSON
-  realizedPL?: number; // Calculated P/L for SELL transactions
-  realizedCostBasis?: number; // Cost basis for percentage calculation
-  originalAction?: string; // Extracted original action from CSV
+  rawData?: string;
+  realizedPL?: number;
+  realizedCostBasis?: number;
+  originalAction?: string;
   notes?: string;
 }
 
-interface SymbolSummary {
-  symbol: string;
-  buyCount: number;
-  sellCount: number;
-  buyAmount: number;
-  sellAmount: number;
-  realizedPL: Decimal;
-}
-
 type OrderBy =
-  | 'transaction_date'
+  | 'date'
   | 'symbol'
-  | 'transaction_type'
+  | 'type'
   | 'quantity'
   | 'price';
 
-/**
- * Transactions page - displays all stored transactions with analysis
- */
 export function Transactions() {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
-  const [orderBy, setOrderBy] = useState<OrderBy>('transaction_date');
+  const [orderBy, setOrderBy] = useState<OrderBy>('date');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [filterSymbol, setFilterSymbol] = useState<string>('');
   const [filterType, setFilterType] = useState<string>('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [tabIndex, setTabIndex] = useState(0);
-  const [symbolSummaries, setSymbolSummaries] = useState<SymbolSummary[]>([]);
 
-  // Note editing state
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState('');
 
-  const costBasisMethod = useStore(state => state.costBasisMethod);
   const lastRefresh = useStore(state => state.lastRefresh);
 
-  // Load transactions
   useEffect(() => {
     loadTransactions();
   }, [lastRefresh]);
 
-  // Calculate symbol summaries when transactions change
-  useEffect(() => {
-    calculateSymbolSummaries();
-  }, [transactions, costBasisMethod]);
-
   const loadTransactions = async () => {
     try {
-      const results = await db.query<TransactionRow>(`
-        SELECT id, symbol, transaction_type, transaction_date, 
-               quantity, price, fees, total_amount, broker, raw_data, notes
-        FROM transactions 
-        ORDER BY transaction_date ASC, id ASC
-      `);
+      const txs = await apiClient.getTransactions();
 
-      // Calculate realized P/L and extract original actions
-      const processedTransactions = await processTransactions(results);
+      const rows: TransactionRow[] = txs.map(t => {
+        const isValidDate = t.date instanceof Date && !isNaN(t.date.getTime());
+        return {
+          id: t.id,
+          symbol: t.symbol,
+          type: t.type,
+          date: isValidDate ? t.date.toISOString() : new Date().toISOString(),
+          quantity: t.quantity.toString(),
+          price: t.price.toString(),
+          fees: t.fees.toString(),
+          total_amount: t.quantity.mul(t.price).plus(t.fees).toString(),
+          broker: t.broker || '',
+          rawData: t.rawData,
+          notes: t.notes,
+        };
+      });
 
-      // Reverse to show newest first
+      const processedTransactions = await processTransactions(rows);
       setTransactions(processedTransactions.reverse());
     } catch (error) {
       console.error('Failed to load transactions:', error);
     }
   };
 
-  /**
-   * Helper to format raw action codes into readable text
-   */
   const formatAction = (action: string): string => {
     const map: Record<string, string> = {
       CDIV: 'Cash Dividend',
@@ -132,33 +113,22 @@ export function Transactions() {
     return map[action] || action;
   };
 
-  /**
-   * Process transactions: calculate P/L and extract original actions
-   */
   const processTransactions = async (
     txs: TransactionRow[]
   ): Promise<TransactionRow[]> => {
-    // 1. Extract original actions
     for (const tx of txs) {
-      if (tx.raw_data) {
+      if (tx.rawData) {
         try {
-          const data = JSON.parse(tx.raw_data);
-          // Schwab
+          const data = JSON.parse(tx.rawData);
           if (data['Action']) {
             tx.originalAction = data['Action'];
-          }
-          // Robinhood
-          else if (data['Trans Code']) {
+          } else if (data['Trans Code']) {
             tx.originalAction = formatAction(data['Trans Code']);
           }
-        } catch (e) {
-          // ignore parsing error
-        }
+        } catch (e) {}
       }
     }
 
-    // 2. Calculate P/L (existing logic)
-    // Group transactions by symbol
     const symbolTxs = new Map<string, TransactionRow[]>();
 
     for (const tx of txs) {
@@ -169,27 +139,20 @@ export function Transactions() {
       symbolTxs.get(tx.symbol)!.push(tx);
     }
 
-    // For each symbol, calculate P/L for sells using FIFO
     for (const [_, symbolTransactions] of symbolTxs.entries()) {
-      // Sort by date ASC (already sorted but ensuring)
       symbolTransactions.sort(
-        (a, b) =>
-          new Date(a.transaction_date).getTime() -
-          new Date(b.transaction_date).getTime()
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
       );
 
-      // FIFO lot queue: { quantity, costBasisPerShare }
       const lots: { quantity: number; costBasis: number }[] = [];
 
       for (const tx of symbolTransactions) {
         const qty = Math.abs(parseFloat(tx.quantity) || 0);
         const price = parseFloat(tx.price) || 0;
 
-        if (tx.transaction_type === 'BUY' && qty > 0) {
-          // Add to lot queue
+        if (tx.type === TransactionType.BUY && qty > 0) {
           lots.push({ quantity: qty, costBasis: price });
-        } else if (tx.transaction_type === 'SELL' && qty > 0) {
-          // Calculate realized P/L using FIFO
+        } else if (tx.type === TransactionType.SELL && qty > 0) {
           let remainingToSell = qty;
           let totalCostBasis = 0;
           let totalProceeds = qty * price;
@@ -203,11 +166,10 @@ export function Transactions() {
             remainingToSell -= sellFromLot;
 
             if (lot.quantity <= 0.0001) {
-              lots.shift(); // Remove depleted lot
+              lots.shift();
             }
           }
 
-          // P/L = Proceeds - Cost Basis
           tx.realizedPL = totalProceeds - totalCostBasis;
           tx.realizedCostBasis = totalCostBasis;
         }
@@ -217,93 +179,12 @@ export function Transactions() {
     return txs;
   };
 
-  const calculateSymbolSummaries = async () => {
-    // Group transactions by symbol
-    const symbolMap = new Map<
-      string,
-      { buys: TransactionRow[]; sells: TransactionRow[] }
-    >();
-
-    for (const tx of transactions) {
-      if (!tx.symbol) continue;
-
-      if (!symbolMap.has(tx.symbol)) {
-        symbolMap.set(tx.symbol, { buys: [], sells: [] });
-      }
-
-      const group = symbolMap.get(tx.symbol)!;
-      if (tx.transaction_type === 'BUY') {
-        group.buys.push(tx);
-      } else if (tx.transaction_type === 'SELL') {
-        group.sells.push(tx);
-      }
-    }
-
-    const summaries: SymbolSummary[] = [];
-
-    // Create an array of promises for parallel execution
-    const summaryPromises = Array.from(symbolMap.entries()).map(
-      async ([symbol, group]) => {
-        if (group.sells.length === 0 && group.buys.length === 0) return null;
-
-        let realizedPL = new Decimal(0);
-
-        // Only calculate P/L if there are sells
-        if (group.sells.length > 0) {
-          try {
-            // Get just this symbol's realized P/L
-            const allSymbolPL = await plService.calculateRealizedPL(
-              symbol,
-              '2000-01-01',
-              new Date().toISOString().split('T')[0]!,
-              costBasisMethod
-            );
-            realizedPL = allSymbolPL;
-          } catch (err) {
-            console.error(`Failed to calculate P/L for ${symbol}:`, err);
-          }
-        }
-
-        const buyAmount = group.buys.reduce(
-          (sum, tx) => sum + Math.abs(parseFloat(tx.total_amount) || 0),
-          0
-        );
-        const sellAmount = group.sells.reduce(
-          (sum, tx) => sum + Math.abs(parseFloat(tx.total_amount) || 0),
-          0
-        );
-
-        return {
-          symbol,
-          buyCount: group.buys.length,
-          sellCount: group.sells.length,
-          buyAmount,
-          sellAmount,
-          realizedPL,
-        };
-      }
-    );
-
-    const results = await Promise.all(summaryPromises);
-
-    // Filter out nulls and push to summaries
-    for (const res of results) {
-      if (res) summaries.push(res);
-    }
-
-    // Sort by symbol
-    summaries.sort((a, b) => a.symbol.localeCompare(b.symbol));
-    setSymbolSummaries(summaries);
-  };
-
-  // Get unique symbols for filter
   const uniqueSymbols = useMemo(() => {
     const transactionsSymbols = transactions.map(t => t.symbol).filter(s => s);
     const symbols = new Set(transactionsSymbols);
     return Array.from(symbols).sort();
   }, [transactions]);
 
-  // Filter and sort transactions
   const filteredTransactions = useMemo(() => {
     let result = [...transactions];
 
@@ -311,7 +192,7 @@ export function Transactions() {
       result = result.filter(t => t.symbol === filterSymbol);
     }
     if (filterType) {
-      result = result.filter(t => t.transaction_type === filterType);
+      result = result.filter(t => t.type === filterType);
     }
 
     result.sort((a, b) => {
@@ -339,9 +220,9 @@ export function Transactions() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this transaction?')) return;
     try {
-      await db.run('DELETE FROM transactions WHERE id = ?', [id]);
-      await db.checkpoint();
+      await apiClient.deleteTransaction(id);
       loadTransactions();
     } catch (error) {
       setDeleteError('Failed to delete transaction');
@@ -356,10 +237,14 @@ export function Transactions() {
 
   const handleSaveNote = async (note: string) => {
     if (editingTxId) {
-      await plService.updateTransactionNotes(editingTxId, note);
-      // Refresh transactions to show new note
-      await loadTransactions();
-      setEditingTxId(null);
+      try {
+        await apiClient.updateTransactionNotes(editingTxId, note);
+        await loadTransactions();
+        setEditingTxId(null);
+      } catch (error) {
+        console.error('Failed to update note:', error);
+        alert('Failed to update note');
+      }
     }
   };
 
@@ -385,18 +270,11 @@ export function Transactions() {
     });
   };
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
   const getChipColor = (type: string, action?: string) => {
     const actionUpper = (action || '').toUpperCase();
 
     if (actionUpper.includes('REINVEST')) {
-      return 'secondary'; // Purple for Reinvestment
+      return 'secondary';
     }
 
     switch (type) {
@@ -413,12 +291,6 @@ export function Transactions() {
     }
   };
 
-  // Calculate totals for summary
-  const totalRealizedPL = symbolSummaries.reduce(
-    (sum, s) => sum.plus(s.realizedPL),
-    new Decimal(0)
-  );
-
   return (
     <Container maxWidth="xl">
       <Typography variant="h4" component="h1" gutterBottom>
@@ -433,7 +305,6 @@ export function Transactions() {
 
       <Tabs value={tabIndex} onChange={(_, v) => setTabIndex(v)} sx={{ mb: 3 }}>
         <Tab label="All Transactions" />
-        <Tab label="Trade Analysis" />
       </Tabs>
 
       {tabIndex === 0 && (
@@ -487,11 +358,9 @@ export function Transactions() {
                   <TableRow>
                     <TableCell>
                       <TableSortLabel
-                        active={orderBy === 'transaction_date'}
-                        direction={
-                          orderBy === 'transaction_date' ? order : 'asc'
-                        }
-                        onClick={() => handleSort('transaction_date')}
+                        active={orderBy === 'date'}
+                        direction={orderBy === 'date' ? order : 'asc'}
+                        onClick={() => handleSort('date')}
                       >
                         Date
                       </TableSortLabel>
@@ -507,11 +376,9 @@ export function Transactions() {
                     </TableCell>
                     <TableCell>
                       <TableSortLabel
-                        active={orderBy === 'transaction_type'}
-                        direction={
-                          orderBy === 'transaction_type' ? order : 'asc'
-                        }
-                        onClick={() => handleSort('transaction_type')}
+                        active={orderBy === 'type'}
+                        direction={orderBy === 'type' ? order : 'asc'}
+                        onClick={() => handleSort('type')}
                       >
                         Type
                       </TableSortLabel>
@@ -547,19 +414,14 @@ export function Transactions() {
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map(tx => (
                       <TableRow key={tx.id} hover>
-                        <TableCell>{formatDate(tx.transaction_date)}</TableCell>
+                        <TableCell>{formatDate(tx.date)}</TableCell>
                         <TableCell>
                           <strong>{tx.symbol}</strong>
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={tx.originalAction || tx.transaction_type}
-                            color={
-                              getChipColor(
-                                tx.transaction_type,
-                                tx.originalAction
-                              ) as any
-                            }
+                            label={tx.originalAction || tx.type}
+                            color={getChipColor(tx.type, tx.originalAction) as any}
                             size="small"
                             variant="filled"
                           />
@@ -577,7 +439,7 @@ export function Transactions() {
                           ${formatNumber(tx.total_amount)}
                         </TableCell>
                         <TableCell align="right">
-                          {tx.transaction_type === 'SELL' &&
+                          {tx.type === TransactionType.SELL &&
                           tx.realizedPL !== undefined &&
                           tx.realizedPL !== 0 ? (
                             <Box
@@ -632,9 +494,7 @@ export function Transactions() {
                           >
                             <Typography
                               variant="body2"
-                              color={
-                                tx.notes ? 'text.primary' : 'text.secondary'
-                              }
+                              color={tx.notes ? 'text.primary' : 'text.secondary'}
                               sx={{
                                 maxWidth: 250,
                                 overflow: 'hidden',
@@ -710,103 +570,6 @@ export function Transactions() {
         onClose={() => setEditingTxId(null)}
         onSave={handleSaveNote}
       />
-
-      {tabIndex === 1 && (
-        <Box>
-          {/* Summary Card */}
-          <Card
-            sx={{
-              mb: 3,
-              background: totalRealizedPL.gte(0)
-                ? 'linear-gradient(45deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05))'
-                : 'linear-gradient(45deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05))',
-              border: '1px solid',
-              borderColor: totalRealizedPL.gte(0)
-                ? 'rgba(16, 185, 129, 0.2)'
-                : 'rgba(239, 68, 68, 0.2)',
-            }}
-          >
-            <CardContent>
-              <Typography variant="h6">Total Realized P/L</Typography>
-              <Typography
-                variant="h4"
-                color={totalRealizedPL.gte(0) ? 'success.dark' : 'error.dark'}
-                fontWeight="bold"
-              >
-                ${totalRealizedPL.toFixed(2)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                From {symbolSummaries.filter(s => s.sellCount > 0).length}{' '}
-                symbols with closed positions
-              </Typography>
-            </CardContent>
-          </Card>
-
-          {/* Per-symbol breakdown */}
-          <Typography variant="h6" gutterBottom>
-            P/L by Symbol
-          </Typography>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Symbol</TableCell>
-                  <TableCell align="right">Buy Trades</TableCell>
-                  <TableCell align="right">Sell Trades</TableCell>
-                  <TableCell align="right">Total Bought</TableCell>
-                  <TableCell align="right">Total Sold</TableCell>
-                  <TableCell align="right">Realized P/L</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {symbolSummaries.map(summary => (
-                  <TableRow key={summary.symbol}>
-                    <TableCell>
-                      <strong>{summary.symbol}</strong>
-                    </TableCell>
-                    <TableCell align="right">{summary.buyCount}</TableCell>
-                    <TableCell align="right">{summary.sellCount}</TableCell>
-                    <TableCell align="right">
-                      ${formatCurrency(summary.buyAmount)}
-                    </TableCell>
-                    <TableCell align="right">
-                      ${formatCurrency(summary.sellAmount)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {summary.sellCount > 0 ? (
-                        <Chip
-                          label={`$${summary.realizedPL.toFixed(2)}`}
-                          color={
-                            summary.realizedPL.gte(0) ? 'success' : 'error'
-                          }
-                          size="small"
-                        />
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          —
-                        </Typography>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {symbolSummaries.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ py: 4 }}
-                      >
-                        No transactions to analyze.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-      )}
     </Container>
   );
 }

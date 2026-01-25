@@ -55,19 +55,17 @@ export const useStore = create<AppState>()(
              if (price) {
                  const priceDec = new Decimal(price);
                  currentPrices.set(symbol, priceDec);
-                 holding.current_price = priceDec;
-                 holding.market_value = holding.total_shares.times(priceDec);
+                 holding.currentPrice = priceDec;
+                 holding.marketValue = holding.quantity.times(priceDec);
                  
                  // Recalculate Unrealized P/L
-                 // Value - Cost Basis
-                 holding.unrealized_pl = holding.market_value.minus(holding.cost_basis);
+                 holding.unrealizedPL = holding.marketValue.minus(holding.costBasis);
                  
                  // Return %
-                 if (!holding.cost_basis.isZero()) {
-                     holding.return_percentage = holding.unrealized_pl.div(holding.cost_basis).times(100);
+                 if (!holding.costBasis.isZero()) {
+                     (holding as any).returnPercentage = holding.unrealizedPL.div(holding.costBasis).times(100);
                  }
                  
-                 // Update Asset Type from Price Service if not set
                  const type = priceService.getAssetType(symbol);
                  if (type) holding.assetType = type;
              }

@@ -7,12 +7,6 @@ import { PLResult } from '../models/PLReport';
  * 
  * Simpler than FIFO - maintains running average of cost basis.
  * Used for comparison and user preference, but NOT IRS-compliant for stocks.
- * 
- * Key properties:
- * - Simpler logic than FIFO
- * - Faster computation
- * - Cannot provide lot-level detail
- * - NOT suitable for tax reporting (use FIFO for that)
  */
 export class AverageCostCalculator {
   private totalShares: Decimal = new Decimal(0);
@@ -26,13 +20,13 @@ export class AverageCostCalculator {
    * @throws Error if attempting to oversell
    */
   processTransaction(tx: Transaction): PLResult {
-    if (tx.transaction_type === TransactionType.BUY) {
+    if (tx.type === TransactionType.BUY) {
       return this.processBuy(tx);
-    } else if (tx.transaction_type === TransactionType.SELL) {
+    } else if (tx.type === TransactionType.SELL) {
       return this.processSell(tx);
     } else {
       // DIVIDEND, FEE, etc. don't affect position
-      return { realized_pl: new Decimal(0) };
+      return { realizedPL: new Decimal(0), realized_pl: new Decimal(0) };
     }
   }
 
@@ -77,7 +71,7 @@ export class AverageCostCalculator {
     this.totalShares = this.totalShares.plus(tx.quantity);
     this.totalCostBasis = this.totalCostBasis.plus(purchaseCost);
 
-    return { realized_pl: new Decimal(0) };
+    return { realizedPL: new Decimal(0), realized_pl: new Decimal(0) };
   }
 
   /**
@@ -91,7 +85,7 @@ export class AverageCostCalculator {
       throw new Error(
         `Oversell detected: Attempting to sell ${quantityToSell} shares ` +
           `but only ${this.totalShares} available. ` +
-          `Transaction: ${tx.symbol} on ${tx.transaction_date}`
+          `Transaction: ${tx.symbol} on ${tx.date}`
       );
     }
 
@@ -110,7 +104,7 @@ export class AverageCostCalculator {
 
     this.totalRealizedPL = this.totalRealizedPL.plus(realizedPL);
 
-    return { realized_pl: realizedPL };
+    return { realizedPL: realizedPL, realized_pl: realizedPL };
   }
 
   /**
