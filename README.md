@@ -7,13 +7,13 @@ A **full-stack web application** for personal investment tracking and P/L analys
 This application follows a **Strict Layered (Hexagonal) Architecture** to ensure maintainability, extensibility, and testability:
 
 - **Domain Layer**: Pure business logic (Entities, Value Objects, Port Interfaces). No external dependencies.
-  - *Location*: `src/domain/`, `backend/app/core/domain/`
+  - _Location_: `src/domain/`, `backend/app/core/domain/`
 - **Application Layer**: Orchestrates domain logic via Services (Use Cases).
-  - *Location*: `src/application/`, `backend/app/services/`
+  - _Location_: `src/application/`, `backend/app/services/`
 - **Infrastructure Layer**: Implementation of port interfaces (API clients, Database repositories, Market data adapters).
-  - *Location*: `src/infrastructure/`, `backend/app/infrastructure/`
+  - _Location_: `src/infrastructure/`, `backend/app/infrastructure/`
 - **Presentation Layer**: UI Components (React) and API Endpoints (FastAPI).
-  - *Location*: `src/presentation/`, `backend/app/api/`
+  - _Location_: `src/presentation/`, `backend/app/api/`
 
 ### Key Design Patterns
 
