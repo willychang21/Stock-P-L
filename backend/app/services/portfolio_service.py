@@ -98,7 +98,8 @@ class PortfolioService:
             
             total_realized_pl += realized
             
-            if qty > 0:
+            # Always include if there is any activity (quantity > 0 OR realized_pl != 0)
+            if qty > 0 or realized != 0:
                 price = price_map.get(sym, Decimal(0))
                 asset_type = type_map.get(sym, 'EQUITY')
                 market_val = qty * price

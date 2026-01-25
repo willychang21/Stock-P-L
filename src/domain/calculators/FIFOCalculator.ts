@@ -30,9 +30,9 @@ export class FIFOCalculator implements ICalculator {
         quantity: tx.quantity,
         price: tx.price,
         fees: tx.fees,
-        costBasisPerShare
+        costBasisPerShare,
       });
-      return { realized_pl: new Decimal(0) };
+      return { realizedPL: new Decimal(0), realized_pl: new Decimal(0) };
     } else if (tx.type === TransactionType.SELL) {
       let remainingToSell = tx.quantity.abs();
       const sellPrice = tx.price;
@@ -41,16 +41,16 @@ export class FIFOCalculator implements ICalculator {
       const matchedLots = [];
 
       while (remainingToSell.gt(0) && this.lots.length > 0) {
-        const currentLot = this.lots[0];
+        const currentLot = this.lots[0]!;
         const sellFromLot = Decimal.min(remainingToSell, currentLot.quantity);
-        
+
         const costBasis = sellFromLot.mul(currentLot.costBasisPerShare);
         const feesProrated = tx.fees.mul(sellFromLot.div(totalSellQty));
         const proceeds = sellFromLot.mul(sellPrice).minus(feesProrated);
-        
+
         const pl = proceeds.minus(costBasis);
         txRealizedPL = txRealizedPL.plus(pl);
-        
+
         matchedLots.push({
           lot: {
             id: currentLot.id,
@@ -58,23 +58,23 @@ export class FIFOCalculator implements ICalculator {
             quantity: currentLot.quantity,
             price: currentLot.price,
             fees: currentLot.fees,
-            costBasisPerShare: currentLot.costBasisPerShare
+            costBasisPerShare: currentLot.costBasisPerShare,
           },
-          quantitySold: sellFromLot
+          quantitySold: sellFromLot,
         });
 
         currentLot.quantity = currentLot.quantity.minus(sellFromLot);
         remainingToSell = remainingToSell.minus(sellFromLot);
-        
+
         if (currentLot.quantity.isZero()) {
           this.lots.shift();
         }
       }
       this.totalRealizedPL = this.totalRealizedPL.plus(txRealizedPL);
-      return { 
-        realizedPL: txRealizedPL, 
-        realized_pl: txRealizedPL, 
-        matchedLots: matchedLots as any 
+      return {
+        realizedPL: txRealizedPL,
+        realized_pl: txRealizedPL,
+        matchedLots: matchedLots as any,
       };
     }
     return { realizedPL: new Decimal(0), realized_pl: new Decimal(0) };
@@ -85,11 +85,17 @@ export class FIFOCalculator implements ICalculator {
   }
 
   getTotalShares(): Decimal {
-    return this.lots.reduce((acc, lot) => acc.plus(lot.quantity), new Decimal(0));
+    return this.lots.reduce(
+      (acc, lot) => acc.plus(lot.quantity),
+      new Decimal(0)
+    );
   }
 
   getTotalCostBasis(): Decimal {
-    return this.lots.reduce((acc, lot) => acc.plus(lot.quantity.mul(lot.costBasisPerShare)), new Decimal(0));
+    return this.lots.reduce(
+      (acc, lot) => acc.plus(lot.quantity.mul(lot.costBasisPerShare)),
+      new Decimal(0)
+    );
   }
 
   getLots(): HoldingLot[] {
@@ -99,16 +105,21 @@ export class FIFOCalculator implements ICalculator {
       quantity: lot.quantity,
       price: lot.price,
       fees: lot.fees,
-      cost_basis_per_share: lot.costBasisPerShare
+      cost_basis_per_share: lot.costBasisPerShare,
     }));
   }
 
   /**
    * Implementation of ICalculator interface
    */
-  calculate(transactions: Transaction[], _marketData: MarketDataMap): AnalysisResult {
-    const sortedTxs = [...transactions].sort((a, b) => a.date.getTime() - b.date.getTime());
-    
+  calculate(
+    transactions: Transaction[],
+    _marketData: MarketDataMap
+  ): AnalysisResult {
+    const sortedTxs = [...transactions].sort(
+      (a, b) => a.date.getTime() - b.date.getTime()
+    );
+
     // Reset internal state for bulk calculation
     this.lots = [];
     this.totalRealizedPL = new Decimal(0);
@@ -124,7 +135,7 @@ export class FIFOCalculator implements ICalculator {
         holdings: this.getTotalShares(),
         costBasis: this.getTotalCostBasis(),
       },
-      generatedAt: new Date()
+      generatedAt: new Date(),
     };
   }
 
@@ -132,7 +143,7 @@ export class FIFOCalculator implements ICalculator {
     return {
       id: 'fifo',
       name: 'First In First Out',
-      description: 'Calculates cost basis based on the earliest purchase.'
+      description: 'Calculates cost basis based on the earliest purchase.',
     };
   }
 }

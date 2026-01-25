@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -74,12 +74,29 @@ export function Dashboard() {
     return h.assetType === assetFilter;
   });
 
-  const totalValue = portfolio?.totalMarketValue || new Decimal(0);
-  const totalUnrealizedPL = portfolio?.totalUnrealizedPL || new Decimal(0);
-  const totalRealizedPL = portfolio?.totalRealizedPL || new Decimal(0);
+  // Calculate summary metrics based on filtered holdings
+  const { totalValue, totalUnrealizedPL, totalRealizedPL, totalCost } =
+    useMemo(() => {
+      let value = new Decimal(0);
+      let unrealized = new Decimal(0);
+      let realized = new Decimal(0);
+
+      filteredHoldings.forEach((h: Holding) => {
+        value = value.plus(h.marketValue);
+        unrealized = unrealized.plus(h.unrealizedPL);
+        realized = realized.plus(h.realizedPL);
+      });
+
+      const cost = value.minus(unrealized);
+      return {
+        totalValue: value,
+        totalUnrealizedPL: unrealized,
+        totalRealizedPL: realized,
+        totalCost: cost,
+      };
+    }, [filteredHoldings]);
 
   const totalPL = totalUnrealizedPL.plus(totalRealizedPL);
-  const totalCost = totalValue.minus(totalUnrealizedPL);
 
   const totalPLPercent = !totalCost.isZero()
     ? totalPL.div(totalCost).times(100)
@@ -258,7 +275,9 @@ export function Dashboard() {
             <CircularProgress />
           </Box>
         ) : (
-          <HoldingsTable holdings={filteredHoldings} />
+          <HoldingsTable
+            holdings={filteredHoldings.filter(h => h.quantity.gt(0))}
+          />
         )}
 
         {/* Recent Transactions List (Optional, can keep below) */}

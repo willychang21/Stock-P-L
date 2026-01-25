@@ -7,7 +7,7 @@ export enum TransactionType {
   SPLIT = 'SPLIT',
   FEE = 'FEE',
   TRANSFER = 'TRANSFER',
-  INTEREST = 'INTEREST'
+  INTEREST = 'INTEREST',
 }
 
 export enum Broker {
@@ -15,7 +15,7 @@ export enum Broker {
   SCHWAB = 'SCHWAB',
   CHARLES_SCHWAB = 'CHARLES_SCHWAB',
   GENERIC = 'GENERIC',
-  MANUAL = 'MANUAL'
+  MANUAL = 'MANUAL',
 }
 
 export interface Transaction {
@@ -30,6 +30,8 @@ export interface Transaction {
   broker?: string;
   rawData?: string;
   notes?: string;
+  tags?: string[];
+  rating?: number;
 }
 
 export interface RawTransaction {
@@ -45,7 +47,10 @@ export interface RawTransaction {
   notes?: string;
 }
 
-export function createTransaction(raw: RawTransaction, _batchId?: string): Transaction {
+export function createTransaction(
+  raw: RawTransaction,
+  _batchId?: string
+): Transaction {
   return {
     id: crypto.randomUUID(),
     date: new Date(raw.transaction_date),
@@ -57,6 +62,6 @@ export function createTransaction(raw: RawTransaction, _batchId?: string): Trans
     currency: 'USD',
     broker: raw.broker,
     rawData: raw.raw_data,
-    notes: raw.notes
+    notes: raw.notes,
   };
 }

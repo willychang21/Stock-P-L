@@ -51,9 +51,7 @@ export class PortfolioValueCalculator {
 
     // Sort by date then ID
     allTransactions.sort(
-      (a, b) =>
-        a.date.getTime() - b.date.getTime() ||
-        a.id.localeCompare(b.id)
+      (a, b) => a.date.getTime() - b.date.getTime() || a.id.localeCompare(b.id)
     );
 
     const firstTx = allTransactions[0];
@@ -89,7 +87,6 @@ export class PortfolioValueCalculator {
     for (const date of transactionDates) {
       // Calculate daily cash flow for this specific date
       let dailyCashFlow = new Decimal(0);
-      const dateObj = new Date(date);
 
       // Process all transactions up to/on this date
       while (

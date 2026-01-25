@@ -14,7 +14,6 @@ import {
   TablePagination,
   TableSortLabel,
   IconButton,
-  Alert,
   Select,
   FormControl,
   InputLabel,
@@ -22,9 +21,14 @@ import {
   Tabs,
   Tab,
   Tooltip,
+  Autocomplete,
+  TextField,
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { Edit as EditIcon } from '@mui/icons-material';
+import {
+  Edit as EditIcon,
+  FileDownload as FileDownloadIcon,
+  KeyboardArrowDown,
+} from '@mui/icons-material';
 import { apiClient } from '../../infrastructure/api/client';
 import { TransactionType } from '@domain/models/Transaction';
 import { useStore } from '@application/store/useStore';
@@ -45,14 +49,11 @@ interface TransactionRow {
   realizedCostBasis?: number;
   originalAction?: string;
   notes?: string;
+  tags?: string[];
+  rating?: number;
 }
 
-type OrderBy =
-  | 'date'
-  | 'symbol'
-  | 'type'
-  | 'quantity'
-  | 'price';
+type OrderBy = 'date' | 'symbol' | 'type' | 'quantity' | 'price';
 
 export function Transactions() {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
@@ -61,12 +62,13 @@ export function Transactions() {
   const [orderBy, setOrderBy] = useState<OrderBy>('date');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [filterSymbol, setFilterSymbol] = useState<string>('');
-  const [filterType, setFilterType] = useState<string>('');
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<string[]>([]);
   const [tabIndex, setTabIndex] = useState(0);
 
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState('');
+  const [editingTags, setEditingTags] = useState<string[]>([]);
+  const [editingRating, setEditingRating] = useState<number>(0);
 
   const lastRefresh = useStore(state => state.lastRefresh);
 
@@ -92,6 +94,8 @@ export function Transactions() {
           broker: t.broker || '',
           rawData: t.rawData,
           notes: t.notes,
+          tags: t.tags || [],
+          rating: t.rating || 0,
         };
       });
 
@@ -191,8 +195,8 @@ export function Transactions() {
     if (filterSymbol) {
       result = result.filter(t => t.symbol === filterSymbol);
     }
-    if (filterType) {
-      result = result.filter(t => t.type === filterType);
+    if (filterType.length > 0) {
+      result = result.filter(t => filterType.includes(t.type));
     }
 
     result.sort((a, b) => {
@@ -219,26 +223,78 @@ export function Transactions() {
     setOrderBy(property);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this transaction?')) return;
-    try {
-      await apiClient.deleteTransaction(id);
-      loadTransactions();
-    } catch (error) {
-      setDeleteError('Failed to delete transaction');
-      setTimeout(() => setDeleteError(null), 3000);
-    }
+  const handleExportCsv = () => {
+    const headers = [
+      'Date',
+      'Symbol',
+      'Type',
+      'Quantity',
+      'Price',
+      'Fees',
+      'Total Amount',
+      'Realized P/L',
+      'Realized Cost Basis',
+      'Broker',
+      'Notes',
+      'Tags',
+      'Rating',
+    ];
+
+    const csvContent = filteredTransactions.map(tx => {
+      return [
+        tx.date,
+        tx.symbol,
+        tx.type,
+        tx.quantity,
+        tx.price,
+        tx.fees,
+        tx.total_amount,
+        tx.realizedPL !== undefined ? tx.realizedPL.toFixed(2) : '',
+        tx.realizedCostBasis !== undefined
+          ? tx.realizedCostBasis.toFixed(2)
+          : '',
+        tx.broker,
+        `"${(tx.notes || '').replace(/"/g, '""')}"`,
+        `"${(tx.tags || []).join(', ')}"`,
+        tx.rating || 0,
+      ].join(',');
+    });
+
+    const csvString = [headers.join(','), ...csvContent].join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute(
+      'download',
+      `transactions_export_${new Date().toISOString().split('T')[0]}.csv`
+    );
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const handleEditNote = (txId: string, currentNote: string) => {
+  const handleEditNote = (
+    txId: string,
+    currentNote: string,
+    currentTags: string[],
+    currentRating: number
+  ) => {
     setEditingTxId(txId);
     setEditingNote(currentNote || '');
+    setEditingTags(currentTags || []);
+    setEditingRating(currentRating || 0);
   };
 
-  const handleSaveNote = async (note: string) => {
+  const handleSaveNote = async (
+    note: string,
+    tags: string[],
+    rating: number
+  ) => {
     if (editingTxId) {
       try {
-        await apiClient.updateTransactionNotes(editingTxId, note);
+        await apiClient.updateTransactionNotes(editingTxId, note, tags, rating);
         await loadTransactions();
         setEditingTxId(null);
       } catch (error) {
@@ -297,12 +353,6 @@ export function Transactions() {
         Transactions
       </Typography>
 
-      {deleteError && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {deleteError}
-        </Alert>
-      )}
-
       <Tabs value={tabIndex} onChange={(_, v) => setTabIndex(v)} sx={{ mb: 3 }}>
         <Tab label="All Transactions" />
       </Tabs>
@@ -310,36 +360,53 @@ export function Transactions() {
       {tabIndex === 0 && (
         <>
           <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-            <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Symbol</InputLabel>
-              <Select
-                value={filterSymbol}
-                label="Symbol"
-                onChange={e => setFilterSymbol(e.target.value)}
-              >
-                <MenuItem value="">All</MenuItem>
-                {uniqueSymbols.map(symbol => (
-                  <MenuItem key={symbol} value={symbol}>
-                    {symbol}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              value={filterSymbol || null}
+              onChange={(_, newValue) => setFilterSymbol(newValue || '')}
+              options={uniqueSymbols}
+              renderInput={params => (
+                <TextField {...params} label="Symbol" variant="outlined" />
+              )}
+              sx={{ minWidth: 200 }}
+              size="small"
+              popupIcon={<KeyboardArrowDown />}
+            />
 
-            <FormControl sx={{ minWidth: 150 }}>
+            <FormControl sx={{ minWidth: 200 }} size="small">
               <InputLabel>Type</InputLabel>
               <Select
+                multiple
                 value={filterType}
                 label="Type"
-                onChange={e => setFilterType(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  setFilterType(
+                    typeof val === 'string' ? val.split(',') : (val as string[])
+                  );
+                }}
+                renderValue={selected => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map(value => (
+                      <Chip key={value} label={value} size="small" />
+                    ))}
+                  </Box>
+                )}
               >
-                <MenuItem value="">All</MenuItem>
                 <MenuItem value={TransactionType.BUY}>Buy</MenuItem>
                 <MenuItem value={TransactionType.SELL}>Sell</MenuItem>
                 <MenuItem value={TransactionType.DIVIDEND}>Dividend</MenuItem>
                 <MenuItem value={TransactionType.FEE}>Fee</MenuItem>
+                <MenuItem value={TransactionType.TRANSFER}>Transfer</MenuItem>
+                <MenuItem value={TransactionType.SPLIT}>Split</MenuItem>
+                <MenuItem value={TransactionType.INTEREST}>Interest</MenuItem>
               </Select>
             </FormControl>
+
+            <Tooltip title="Export CSV">
+              <IconButton onClick={handleExportCsv} color="primary">
+                <FileDownloadIcon />
+              </IconButton>
+            </Tooltip>
 
             <Typography
               variant="body2"
@@ -421,7 +488,9 @@ export function Transactions() {
                         <TableCell>
                           <Chip
                             label={tx.originalAction || tx.type}
-                            color={getChipColor(tx.type, tx.originalAction) as any}
+                            color={
+                              getChipColor(tx.type, tx.originalAction) as any
+                            }
                             size="small"
                             variant="filled"
                           />
@@ -494,7 +563,9 @@ export function Transactions() {
                           >
                             <Typography
                               variant="body2"
-                              color={tx.notes ? 'text.primary' : 'text.secondary'}
+                              color={
+                                tx.notes ? 'text.primary' : 'text.secondary'
+                              }
                               sx={{
                                 maxWidth: 250,
                                 overflow: 'hidden',
@@ -511,23 +582,18 @@ export function Transactions() {
                                 className="edit-btn"
                                 sx={{ opacity: 0, transition: 'opacity 0.2s' }}
                                 onClick={() =>
-                                  handleEditNote(tx.id, tx.notes || '')
+                                  handleEditNote(
+                                    tx.id,
+                                    tx.notes || '',
+                                    tx.tags || [],
+                                    tx.rating || 0
+                                  )
                                 }
                               >
                                 <EditIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
                           </Box>
-                        </TableCell>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDelete(tx.id)}
-                            title="Delete transaction"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -567,6 +633,8 @@ export function Transactions() {
       <TransactionNoteDialog
         open={!!editingTxId}
         initialNote={editingNote}
+        initialTags={editingTags}
+        initialRating={editingRating}
         onClose={() => setEditingTxId(null)}
         onSave={handleSaveNote}
       />

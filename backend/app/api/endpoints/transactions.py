@@ -11,6 +11,8 @@ router = APIRouter()
 
 class UpdateTransactionRequest(BaseModel):
     notes: Optional[str] = None
+    tags: Optional[List[str]] = None
+    rating: Optional[int] = None
 
 from app.core.domain.models import TransactionType
 
@@ -60,7 +62,11 @@ def list_transactions(
                 "currency": str(row_dict.get("currency", "USD")),
                 "broker": str(row_dict.get("broker", "UNKNOWN")),
                 "rawData": row_dict.get("raw_data"),
-                "notes": row_dict.get("notes")
+                "broker": str(row_dict.get("broker", "UNKNOWN")),
+                "rawData": row_dict.get("raw_data"),
+                "notes": row_dict.get("notes"),
+                "tags": row_dict.get("tags"),
+                "rating": row_dict.get("rating")
             }
             results.append(mapped)
         except Exception as e:
@@ -75,8 +81,27 @@ def update_transaction(
     request: UpdateTransactionRequest,
     conn: duckdb.DuckDBPyConnection = Depends(get_db)
 ):
+    updates = []
+    params = []
+    
     if request.notes is not None:
-        conn.execute("UPDATE transactions SET notes = ? WHERE id = ?", [request.notes, transaction_id])
+        updates.append("notes = ?")
+        params.append(request.notes)
+    
+    if request.tags is not None:
+        import json
+        updates.append("tags = ?")
+        params.append(json.dumps(request.tags))
+        
+    if request.rating is not None:
+        updates.append("rating = ?")
+        params.append(request.rating)
+        
+    if updates:
+        query = f"UPDATE transactions SET {', '.join(updates)} WHERE id = ?"
+        params.append(transaction_id)
+        conn.execute(query, params)
+        
     return {"status": "success"}
 
 @router.delete("/{transaction_id}")

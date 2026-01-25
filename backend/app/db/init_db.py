@@ -19,6 +19,8 @@ def init_db():
                 broker TEXT NOT NULL,
                 account_id TEXT,
                 notes TEXT,
+                tags TEXT,
+                rating INTEGER,
                 created_at TIMESTAMP NOT NULL,
                 raw_data TEXT NOT NULL,
                 content_hash TEXT NOT NULL UNIQUE
@@ -50,6 +52,21 @@ def init_db():
                 change_percent DOUBLE NOT NULL,
                 updated_at TIMESTAMP NOT NULL,
                 quote_type TEXT
+            );
+        """)
+
+        # Research Notes Table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS research_notes (
+                id TEXT PRIMARY KEY,
+                symbol TEXT NOT NULL,
+                content TEXT,
+                forward_pe DOUBLE,
+                revenue_growth DOUBLE,
+                target_price DOUBLE,
+                sentiment TEXT,
+                external_links TEXT,
+                updated_at TIMESTAMP NOT NULL
             );
         """)
 

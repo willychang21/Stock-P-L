@@ -128,7 +128,9 @@ export function SymbolTransactionHistory({
                 </TableCell>
                 <TableCell align="right">{quantity.toFixed(4)}</TableCell>
                 <TableCell align="right">{formatCurrency(price)}</TableCell>
-                <TableCell align="right">{formatCurrency(total)}</TableCell>
+                <TableCell align="right">
+                  {formatCurrency(total.toNumber())}
+                </TableCell>
                 <TableCell align="right">
                   {txWithPL.realized_pl !== null ? (
                     <Chip

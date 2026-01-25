@@ -4,10 +4,8 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   LinearProgress,
   Chip,
-  useTheme,
   Divider,
 } from '@mui/material';
 import { Holding } from '../../../domain/models/Holding';
@@ -28,8 +26,6 @@ interface SectorStats {
 export const SectorBreakdown: React.FC<SectorBreakdownProps> = ({
   holdings,
 }) => {
-  const theme = useTheme();
-
   // Aggregate data by sector
   const totalValue = holdings.reduce(
     (sum, h) => sum.plus(h.marketValue),

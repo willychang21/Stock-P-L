@@ -78,11 +78,16 @@ export const apiClient = {
     return response.json();
   },
 
-  updateTransactionNotes: async (id: string, notes: string): Promise<void> => {
+  updateTransactionNotes: async (
+    id: string,
+    notes: string,
+    tags?: string[],
+    rating?: number
+  ): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notes }),
+      body: JSON.stringify({ notes, tags, rating }),
     });
     await handleResponse(response);
   },
