@@ -1,0 +1,225 @@
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Typography,
+  Chip,
+  IconButton,
+  Link,
+  Tooltip,
+  TableSortLabel,
+} from '@mui/material';
+import { Delete as DeleteIcon, OpenInNew } from '@mui/icons-material';
+import { Recommendation, Influencer } from '@domain/models/Influencer';
+import { useState } from 'react';
+
+interface RecommendationTableProps {
+  recommendations: Recommendation[];
+  influencers: Influencer[];
+  onDelete: (id: string) => void;
+}
+
+type Order = 'asc' | 'desc';
+type SortField = 'date' | 'influencer' | 'symbol' | 'return';
+
+export function RecommendationTable({
+  recommendations,
+  influencers,
+  onDelete,
+}: RecommendationTableProps) {
+  const [order, setOrder] = useState<Order>('desc');
+  const [orderBy, setOrderBy] = useState<SortField>('date');
+
+  const handleRequestSort = (property: SortField) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const getInfluencerName = (id: string) => {
+    return influencers.find(inf => inf.id === id)?.name || 'Unknown';
+  };
+
+  const formatCurrency = (val: number | undefined | null) => {
+    if (val === undefined || val === null) return '—';
+    return `$${val.toFixed(2)}`;
+  };
+
+  const formatPct = (val: number | undefined | null) => {
+    if (val === undefined || val === null) return '—';
+    const pct = val * 100;
+    return `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`;
+  };
+
+  const sortRecommendations = (recs: Recommendation[]) => {
+    return [...recs].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (orderBy) {
+        case 'date':
+          valA = a.recommendation_date;
+          valB = b.recommendation_date;
+          break;
+        case 'influencer':
+          valA = getInfluencerName(a.influencer_id).toLowerCase();
+          valB = getInfluencerName(b.influencer_id).toLowerCase();
+          break;
+        case 'symbol':
+          valA = a.symbol;
+          valB = b.symbol;
+          break;
+        case 'return':
+          valA = a.price_change_percent || -999;
+          valB = b.price_change_percent || -999;
+          break;
+      }
+
+      if (valA < valB) {
+        return order === 'asc' ? -1 : 1;
+      }
+      if (valA > valB) {
+        return order === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
+  if (recommendations.length === 0) {
+    return (
+      <Paper sx={{ p: 4, textAlign: 'center' }}>
+        <Typography color="text.secondary">
+          No recommendations tracked yet. Select an influencer and add a stock
+          pick!
+        </Typography>
+      </Paper>
+    );
+  }
+
+  const sortedRecs = sortRecommendations(recommendations);
+
+  return (
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell sortDirection={orderBy === 'date' ? order : false}>
+              <TableSortLabel
+                active={orderBy === 'date'}
+                direction={orderBy === 'date' ? order : 'asc'}
+                onClick={() => handleRequestSort('date')}
+              >
+                Date
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sortDirection={orderBy === 'influencer' ? order : false}>
+              <TableSortLabel
+                active={orderBy === 'influencer'}
+                direction={orderBy === 'influencer' ? order : 'asc'}
+                onClick={() => handleRequestSort('influencer')}
+              >
+                Influencer
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sortDirection={orderBy === 'symbol' ? order : false}>
+              <TableSortLabel
+                active={orderBy === 'symbol'}
+                direction={orderBy === 'symbol' ? order : 'asc'}
+                onClick={() => handleRequestSort('symbol')}
+              >
+                Symbol
+              </TableSortLabel>
+            </TableCell>
+            <TableCell align="right">Initial Price</TableCell>
+            <TableCell align="right">Current Price</TableCell>
+            <TableCell
+              align="right"
+              sortDirection={orderBy === 'return' ? order : false}
+            >
+              <TableSortLabel
+                active={orderBy === 'return'}
+                direction={orderBy === 'return' ? order : 'asc'}
+                onClick={() => handleRequestSort('return')}
+              >
+                Return
+              </TableSortLabel>
+            </TableCell>
+            <TableCell>Note</TableCell>
+            <TableCell align="right">Actions</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {sortedRecs.map(rec => {
+            const isPositive =
+              rec.price_change_percent && rec.price_change_percent >= 0;
+            const noteIsUrl = rec.note?.startsWith('http');
+
+            return (
+              <TableRow key={rec.id} hover>
+                <TableCell>{rec.recommendation_date}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={getInfluencerName(rec.influencer_id)}
+                    size="small"
+                    variant="outlined"
+                  />
+                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{rec.symbol}</TableCell>
+                <TableCell align="right">
+                  {formatCurrency(rec.initial_price)}
+                </TableCell>
+                <TableCell align="right">
+                  {formatCurrency(rec.current_price)}
+                </TableCell>
+                <TableCell align="right">
+                  <Typography
+                    variant="body2"
+                    color={isPositive ? 'success.main' : 'error.main'}
+                    fontWeight="bold"
+                  >
+                    {formatPct(rec.price_change_percent)}
+                  </Typography>
+                </TableCell>
+                <TableCell sx={{ maxWidth: 200 }}>
+                  {rec.note ? (
+                    noteIsUrl ? (
+                      <Link
+                        href={rec.note}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                      >
+                        Link <OpenInNew fontSize="small" />
+                      </Link>
+                    ) : (
+                      <Tooltip title={rec.note}>
+                        <Typography noWrap variant="body2">
+                          {rec.note}
+                        </Typography>
+                      </Tooltip>
+                    )
+                  ) : (
+                    '—'
+                  )}
+                </TableCell>
+                <TableCell align="right">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => onDelete(rec.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}

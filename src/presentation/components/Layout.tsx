@@ -21,6 +21,7 @@ import {
   Assessment,
   CompareArrows,
   Psychology,
+  People,
 } from '@mui/icons-material';
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
@@ -33,6 +34,7 @@ const menuItems = [
   { text: 'Analysis', icon: <Assessment />, path: '/analysis' },
   { text: 'Benchmark', icon: <CompareArrows />, path: '/benchmark' },
   { text: 'Strategy', icon: <Psychology />, path: '/strategy' },
+  { text: 'Influencers', icon: <People />, path: '/influencers' },
   { text: 'Settings', icon: <Settings />, path: '/settings' },
 ];
 

@@ -1,5 +1,11 @@
 import { Transaction } from '../../domain/models/Transaction';
 import { Portfolio } from '../../domain/models/Portfolio';
+import {
+  Influencer,
+  InfluencerCreate,
+  Recommendation,
+  RecommendationCreate,
+} from '../../domain/models/Influencer';
 import Decimal from 'decimal.js';
 
 const API_BASE_URL = 'http://localhost:3001/api';
@@ -104,6 +110,69 @@ export const apiClient = {
       `${API_BASE_URL}/portfolio/analytics/behavior`
     );
     return handleResponse(response);
+  },
+
+  // Influencer API
+  getInfluencers: async (): Promise<Influencer[]> => {
+    const response = await fetch(`${API_BASE_URL}/influencers`);
+    return handleResponse(response);
+  },
+
+  createInfluencer: async (data: InfluencerCreate): Promise<Influencer> => {
+    const response = await fetch(`${API_BASE_URL}/influencers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  deleteInfluencer: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/influencers/${id}`, {
+      method: 'DELETE',
+    });
+    await handleResponse(response);
+  },
+
+  getRecommendations: async (): Promise<Recommendation[]> => {
+    const response = await fetch(`${API_BASE_URL}/recommendations`);
+    return handleResponse(response);
+  },
+
+  createRecommendation: async (
+    influencerId: string,
+    data: RecommendationCreate
+  ): Promise<Recommendation> => {
+    // Legacy support or use batch under hood
+    const result = await apiClient.createRecommendationsBatch(influencerId, [
+      data,
+    ]);
+    if (!result || result.length === 0) {
+      throw new Error('Failed to create recommendation');
+    }
+    return result[0] as Recommendation;
+  },
+
+  createRecommendationsBatch: async (
+    influencerId: string,
+    data: RecommendationCreate[]
+  ): Promise<Recommendation[]> => {
+    const response = await fetch(
+      `${API_BASE_URL}/influencers/${influencerId}/recommendations/batch`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }
+    );
+    return handleResponse(response);
+  },
+
+  deleteRecommendation: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/recommendations/${id}`, {
+      method: 'DELETE',
+    });
+    await handleResponse(response);
   },
 };
 

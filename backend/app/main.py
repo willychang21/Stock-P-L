@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.endpoints import portfolio, transactions, import_api, quotes, historical, system, strategy
+from app.api.endpoints import portfolio, transactions, import_api, quotes, historical, system, strategy, influencers
 
 app = FastAPI(
     title="Stock Portfolio API",
@@ -57,6 +57,7 @@ app.include_router(quotes.router, prefix="/api/quotes", tags=["quotes"])
 app.include_router(historical.router, prefix="/api/historical-prices", tags=["historical"])
 app.include_router(system.router, prefix="/api/system", tags=["system"])
 app.include_router(strategy.router, prefix="/api/strategy", tags=["strategy"])
+app.include_router(influencers.router, prefix="/api", tags=["influencers"])
 
 @app.get("/health")
 def health_check():

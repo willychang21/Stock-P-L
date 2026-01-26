@@ -85,6 +85,31 @@ def init_db():
             );
         """)
 
+        # Influencers Table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS influencers (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                platform TEXT,
+                url TEXT,
+                created_at TIMESTAMP NOT NULL
+            );
+        """)
+
+        # Influencer Recommendations Table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS influencer_recommendations (
+                id TEXT PRIMARY KEY,
+                influencer_id TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                recommendation_date DATE NOT NULL,
+                initial_price DOUBLE,
+                note TEXT,
+                created_at TIMESTAMP NOT NULL,
+                FOREIGN KEY (influencer_id) REFERENCES influencers(id)
+            );
+        """)
+
         print("✅ Database initialized successfully.")
     except Exception as e:
         print(f"❌ Database initialization failed: {e}")

@@ -141,31 +141,45 @@ class PriceCacheService:
         conn = self._db.get_connection()
         
         try:
-            for quote in quotes:
-                symbol = quote.get("symbol", "").upper()
-                if not symbol:
-                    continue
-                
-                conn.execute(
-                    """
-                    INSERT INTO prices (symbol, price, change, change_percent, updated_at, quote_type)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    ON CONFLICT (symbol) DO UPDATE SET
-                        price = excluded.price,
-                        change = excluded.change,
-                        change_percent = excluded.change_percent,
-                        updated_at = excluded.updated_at,
-                        quote_type = excluded.quote_type
-                    """,
-                    [
-                        symbol,
-                        float(quote.get("regularMarketPrice", 0)),
-                        float(quote.get("regularMarketChange", 0)),
-                        float(quote.get("regularMarketChangePercent", 0)),
-                        now,
-                        quote.get("quoteType", "EQUITY"),
-                    ],
-                )
+            # We wrap cache updates in a basic retry mechanism to handle potential DuckDB write conflicts
+            import time
+            import random
+            
+            for attempt in range(3):
+                try:
+                    for quote in quotes:
+                        symbol = quote.get("symbol", "").upper()
+                        if not symbol:
+                            continue
+                        
+                        conn.execute(
+                            """
+                            INSERT INTO prices (symbol, price, change, change_percent, updated_at, quote_type)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                            ON CONFLICT (symbol) DO UPDATE SET
+                                price = excluded.price,
+                                change = excluded.change,
+                                change_percent = excluded.change_percent,
+                                updated_at = excluded.updated_at,
+                                quote_type = excluded.quote_type
+                            """,
+                            [
+                                symbol,
+                                float(quote.get("regularMarketPrice", 0)),
+                                float(quote.get("regularMarketChange", 0)),
+                                float(quote.get("regularMarketChangePercent", 0)),
+                                now,
+                                quote.get("quoteType", "EQUITY"),
+                            ],
+                        )
+                    # If successful, break retry loop
+                    break
+                except Exception as e:
+                    # Check for conflict error string if exact exception type isn't easily imported
+                    if "Conflict on update" in str(e) and attempt < 2:
+                        time.sleep(0.1 + random.random() * 0.2)
+                        continue
+                    raise e
         finally:
             pass
     
