@@ -25,11 +25,13 @@ import {
 } from 'recharts';
 import { plService } from '@application/services/PLService';
 import { BehavioralAnalytics as AnalyticsData } from '@infrastructure/api/client';
+import { useTranslation } from 'react-i18next';
 
 export const BehavioralAnalytics: React.FC = () => {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     plService
@@ -50,25 +52,25 @@ export const BehavioralAnalytics: React.FC = () => {
   // 1. Holding Time Data
   const holdingData = [
     {
-      name: 'Winners (Closed)',
+      name: t('behavioral.winnersClosed'),
       days: data.metrics.avgHoldingDaysWinners,
       count: data.metrics.totalWinners,
       color: '#4caf50',
     },
     {
-      name: 'Losers (Closed)',
+      name: t('behavioral.losersClosed'),
       days: data.metrics.avgHoldingDaysLosers,
       count: data.metrics.totalLosers,
       color: '#f44336',
     },
     {
-      name: 'Winners (Holding)',
+      name: t('behavioral.winnersHolding'),
       days: data.metrics.avgHoldingDaysWinnersOpen,
       count: data.metrics.openWinners,
       color: '#81c784', // Lighter green
     },
     {
-      name: 'Losers (Holding)',
+      name: t('behavioral.losersHolding'),
       days: data.metrics.avgHoldingDaysLosersOpen,
       count: data.metrics.openLosers,
       color: '#e57373', // Lighter red
@@ -151,13 +153,13 @@ export const BehavioralAnalytics: React.FC = () => {
         gutterBottom
         sx={{ fontWeight: 700, color: 'text.primary', mt: 6, mb: 3 }}
       >
-        Behavioral Analytics{' '}
+        {t('behavioral.title')}{' '}
         <Typography
           component="span"
           variant="h6"
           sx={{ color: 'text.secondary', fontWeight: 400 }}
         >
-          (Psychology Check)
+          {t('behavioral.subtitle')}
         </Typography>
       </Typography>
 
@@ -178,7 +180,7 @@ export const BehavioralAnalytics: React.FC = () => {
                 gutterBottom
                 sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}
               >
-                Holding Time Ratio
+                {t('behavioral.holdingTimeRatio')}
               </Typography>
               <Box
                 sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}
@@ -198,9 +200,10 @@ export const BehavioralAnalytics: React.FC = () => {
               </Box>
 
               <Typography variant="body2" sx={{ color: '#cbd5e1', mb: 2 }}>
-                You hold winners{' '}
-                <strong>{data.metrics.avgHoldingDaysWinnersOpen}d</strong> vs
-                losers <strong>{data.metrics.avgHoldingDaysLosers}d</strong>
+                {t('behavioral.holdingTime', {
+                  winnerDays: data.metrics.avgHoldingDaysWinnersOpen,
+                  loserDays: data.metrics.avgHoldingDaysLosers,
+                })}
               </Typography>
 
               <Alert
@@ -214,8 +217,8 @@ export const BehavioralAnalytics: React.FC = () => {
                 }}
               >
                 {ratio > 2
-                  ? 'Excellent! You allow winners to run.'
-                  : 'Action: Cut losers faster or hold winners longer.'}
+                  ? t('behavioral.excellent')
+                  : t('behavioral.actionNeeded')}
               </Alert>
             </CardContent>
           </Card>
@@ -237,7 +240,7 @@ export const BehavioralAnalytics: React.FC = () => {
                 gutterBottom
                 sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}
               >
-                Outcome Extremes
+                {t('behavioral.outcomeExtremes')}
               </Typography>
 
               <Box
@@ -245,7 +248,7 @@ export const BehavioralAnalytics: React.FC = () => {
               >
                 <Box>
                   <Typography variant="body2" color="#94a3b8">
-                    Max Unrealized Gain (Open)
+                    {t('behavioral.maxUnrealizedGain')}
                   </Typography>
                   <Typography
                     variant="h5"
@@ -266,7 +269,7 @@ export const BehavioralAnalytics: React.FC = () => {
                 </Box>
                 <Box>
                   <Typography variant="body2" color="#94a3b8">
-                    Max Realized Loss (Closed)
+                    {t('behavioral.maxRealizedLoss')}
                   </Typography>
                   <Typography
                     variant="h5"
@@ -304,7 +307,7 @@ export const BehavioralAnalytics: React.FC = () => {
                 gutterBottom
                 sx={{ fontWeight: 700, color: 'text.primary' }}
               >
-                Average Holding Time (Days)
+                {t('behavioral.avgHoldingTime')}
               </Typography>
               <ResponsiveContainer width="100%" height={350}>
                 <BarChart
@@ -335,7 +338,11 @@ export const BehavioralAnalytics: React.FC = () => {
                       color: '#fafafa',
                     }}
                   />
-                  <Bar dataKey="days" name="Days Held" radius={[0, 4, 4, 0]}>
+                  <Bar
+                    dataKey="days"
+                    name={t('behavioral.daysHeld')}
+                    radius={[0, 4, 4, 0]}
+                  >
                     {holdingData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
@@ -360,7 +367,7 @@ export const BehavioralAnalytics: React.FC = () => {
                 gutterBottom
                 sx={{ fontWeight: 700, color: 'text.primary' }}
               >
-                P/L Distribution
+                {t('behavioral.plDistribution')}
               </Typography>
               <ResponsiveContainer width="100%" height={350}>
                 <BarChart
@@ -399,14 +406,14 @@ export const BehavioralAnalytics: React.FC = () => {
                   <Legend wrapperStyle={{ color: '#a1a1aa' }} />
                   <Bar
                     dataKey="closedCount"
-                    name="Closed"
+                    name={t('behavioral.closed')}
                     stackId="a"
                     fill="#818cf8" // Indigo 400
                     radius={[4, 4, 0, 0]}
                   />
                   <Bar
                     dataKey="openCount"
-                    name="Open (Paper)"
+                    name={t('behavioral.openPaper')}
                     stackId="a"
                     fill="#34d399" // Emerald 400
                     radius={[4, 4, 0, 0]}
@@ -432,11 +439,10 @@ export const BehavioralAnalytics: React.FC = () => {
                 gutterBottom
                 sx={{ fontWeight: 700, color: 'text.primary' }}
               >
-                Execution Quality: MFE vs. MAE
+                {t('behavioral.executionQuality')}
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                Are you leaving money on the table? MFE (Max Favorable
-                Excursion) vs MAE (Max Adverse Excursion).
+                {t('behavioral.executionDesc')}
               </Typography>
               <ResponsiveContainer width="100%" height={400}>
                 <ScatterChart
@@ -454,7 +460,7 @@ export const BehavioralAnalytics: React.FC = () => {
                     tickFormatter={val => (val * 100).toFixed(0)}
                     stroke="#a1a1aa"
                     label={{
-                      value: 'Drawdown (MAE)',
+                      value: t('behavioral.charts.drawdownLabel'),
                       position: 'insideBottom',
                       offset: -10,
                       fill: '#a1a1aa',
@@ -468,7 +474,7 @@ export const BehavioralAnalytics: React.FC = () => {
                     tickFormatter={val => (val * 100).toFixed(0)}
                     stroke="#a1a1aa"
                     label={{
-                      value: 'Max Potential Gain (MFE)',
+                      value: t('behavioral.charts.potentialGainLabel'),
                       angle: -90,
                       position: 'insideLeft',
                       fill: '#a1a1aa',
@@ -516,7 +522,9 @@ export const BehavioralAnalytics: React.FC = () => {
                               fontSize: '0.875rem',
                             }}
                           >
-                            <span style={{ color: '#94a3b8' }}>MFE:</span>
+                            <span style={{ color: '#94a3b8' }}>
+                              {t('behavioral.charts.mfe')}:
+                            </span>
                             <span
                               style={{
                                 fontFamily: 'monospace',
@@ -526,7 +534,9 @@ export const BehavioralAnalytics: React.FC = () => {
                               {(data.mfe * 100).toFixed(2)}%
                             </span>
 
-                            <span style={{ color: '#94a3b8' }}>MAE:</span>
+                            <span style={{ color: '#94a3b8' }}>
+                              {t('behavioral.charts.mae')}:
+                            </span>
                             <span
                               style={{
                                 fontFamily: 'monospace',
@@ -537,7 +547,7 @@ export const BehavioralAnalytics: React.FC = () => {
                             </span>
 
                             <span style={{ color: '#94a3b8' }}>
-                              Efficiency:
+                              {t('behavioral.efficiency')}:
                             </span>
                             <span
                               style={{
@@ -548,7 +558,9 @@ export const BehavioralAnalytics: React.FC = () => {
                               {(data.efficiency * 100).toFixed(1)}%
                             </span>
 
-                            <span style={{ color: '#94a3b8' }}>P/L:</span>
+                            <span style={{ color: '#94a3b8' }}>
+                              {t('behavioral.charts.pl')}:
+                            </span>
                             <span
                               style={{
                                 fontFamily: 'monospace',
@@ -570,14 +582,14 @@ export const BehavioralAnalytics: React.FC = () => {
                     height={36}
                   />
                   <Scatter
-                    name="Winning Trades"
+                    name={t('behavioral.charts.winningTrades')}
                     data={data.trades.filter(t => t.realizedPl > 0)}
                     fill="#4ade80"
                     fillOpacity={0.7}
                     stroke="#22c55e"
                   />
                   <Scatter
-                    name="Losing Trades"
+                    name={t('behavioral.charts.losingTrades')}
                     data={data.trades.filter(t => t.realizedPl <= 0)}
                     fill="#f87171"
                     fillOpacity={0.7}
@@ -591,8 +603,7 @@ export const BehavioralAnalytics: React.FC = () => {
                 align="center"
                 sx={{ mt: 2, color: 'text.secondary', fontStyle: 'italic' }}
               >
-                High MFE + Low Efficiency = You properly found a winner but sold
-                too late.
+                {t('behavioral.insight')}
               </Typography>
             </CardContent>
           </Card>

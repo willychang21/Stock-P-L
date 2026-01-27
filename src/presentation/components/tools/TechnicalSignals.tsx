@@ -17,6 +17,7 @@ import {
   TrendingDown,
   RemoveCircleOutline,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 // Simple inline interface for the Strategy Response
 interface StrategyResponse {
@@ -46,7 +47,7 @@ const fetchSignals = async (symbol: string): Promise<StrategyResponse> => {
   const res = await fetch(
     `http://localhost:3001/api/strategy/signals/${symbol}`
   );
-  if (!res.ok) throw new Error('Failed to fetch signals');
+  if (!res.ok) throw new Error('failedToFetch');
   return res.json();
 };
 
@@ -55,6 +56,7 @@ export function TechnicalSignals() {
   const [data, setData] = useState<StrategyResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   // Reuse symbol list from store if available or just let user type
   // For MVP, user types or we fetch list. Let's use a hardcoded list or fetch unique from transactions if possible.
@@ -108,6 +110,36 @@ export function TechnicalSignals() {
     return 'text.primary';
   };
 
+  const getTranslatedReason = (reason: string) => {
+    if (!reason) return reason;
+    if (
+      reason === 'Neutral conditions. WAIT' ||
+      reason === 'Neutral conditions.'
+    )
+      return t('tools.signals.messages.neutral');
+    if (
+      reason ===
+      'Price pulled back to short-term average in a long-term uptrend.'
+    )
+      return t('tools.signals.messages.pullback');
+    if (reason === 'Confirmed uptrend with room to run.')
+      return t('tools.signals.messages.uptrend');
+    if (reason === 'Price below 200-day moving average. Bearish territory.')
+      return t('tools.signals.messages.bearish');
+    if (
+      reason.includes('RSI is') &&
+      reason.includes('Market may be overheated')
+    ) {
+      const match = reason.match(/RSI is ([\d.]+)/);
+      if (match) {
+        return t('tools.signals.messages.overheated', {
+          rsi: match[1],
+        });
+      }
+    }
+    return reason;
+  };
+
   return (
     <Card
       sx={{
@@ -119,7 +151,7 @@ export function TechnicalSignals() {
     >
       <CardContent>
         <Typography variant="h6" fontWeight="bold" gutterBottom>
-          Technical Signals
+          {t('tools.signals.title')}
         </Typography>
 
         <Box sx={{ mb: 3 }}>
@@ -131,7 +163,7 @@ export function TechnicalSignals() {
             renderInput={params => (
               <TextField
                 {...params}
-                label="Search Symbol (e.g. AAPL)"
+                label={t('tools.signals.searchPlaceholder')}
                 variant="outlined"
                 size="small"
                 fullWidth
@@ -149,7 +181,9 @@ export function TechnicalSignals() {
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+            {error === 'failedToFetch'
+              ? t('tools.signals.failedToFetch')
+              : error}
           </Alert>
         )}
 
@@ -170,7 +204,7 @@ export function TechnicalSignals() {
                     ${data.price.toFixed(2)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Current Price
+                    {t('tools.signals.currentPrice')}
                   </Typography>
                 </Box>
                 <Chip
@@ -193,7 +227,7 @@ export function TechnicalSignals() {
                 }
                 sx={{ mb: 2 }}
               >
-                {data.analysis.reason}
+                {getTranslatedReason(data.analysis.reason)}
               </Alert>
             </Grid>
 
@@ -207,7 +241,7 @@ export function TechnicalSignals() {
                 }}
               >
                 <Typography variant="caption" color="text.secondary">
-                  RSI (14)
+                  {t('tools.signals.rsi')}
                 </Typography>
                 <Typography
                   variant="h6"
@@ -221,10 +255,10 @@ export function TechnicalSignals() {
                   sx={{ display: 'block', mt: 0.5, opacity: 0.7 }}
                 >
                   {data.indicators.rsi < 30
-                    ? 'OVERSOLD'
+                    ? t('tools.signals.oversold')
                     : data.indicators.rsi > 70
-                      ? 'OVERBOUGHT'
-                      : 'NEUTRAL'}
+                      ? t('tools.signals.overbought')
+                      : t('tools.signals.neutral')}
                 </Typography>
               </Box>
             </Grid>
@@ -237,7 +271,7 @@ export function TechnicalSignals() {
                 }}
               >
                 <Typography variant="caption" color="text.secondary">
-                  Trend (200 SMA)
+                  {t('tools.signals.trend200')}
                 </Typography>
                 <Typography variant="h6" fontWeight="bold">
                   ${data.indicators.sma200}
@@ -252,8 +286,8 @@ export function TechnicalSignals() {
                   }}
                 >
                   {data.price > data.indicators.sma200
-                    ? 'ABOVE (Bullish)'
-                    : 'BELOW (Bearish)'}
+                    ? t('tools.signals.aboveBullish')
+                    : t('tools.signals.belowBearish')}
                 </Typography>
               </Box>
             </Grid>
@@ -267,13 +301,13 @@ export function TechnicalSignals() {
                 }}
               >
                 <Typography variant="caption" color="text.secondary">
-                  Short Term (20 SMA)
+                  {t('tools.signals.shortTerm')}
                 </Typography>
                 <Typography variant="body1" fontWeight="bold">
                   ${data.indicators.sma20}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Medium Term (50 SMA)
+                  {t('tools.signals.mediumTerm')}
                 </Typography>
                 <Typography variant="body1" fontWeight="bold">
                   ${data.indicators.sma50}

@@ -23,6 +23,7 @@ import {
   TimePerformanceReport,
 } from '../../application/services/PLService';
 import { useStore } from '../../application/store/useStore';
+import { useTranslation } from 'react-i18next';
 import { TimePeriodChart, ChartType } from '../components/TimePeriodChart';
 import { TimePeriodTable } from '../components/TimePeriodTable';
 import { BehavioralAnalytics } from '../components/BehavioralAnalytics';
@@ -44,6 +45,7 @@ export const PerformanceAnalysis: React.FC = () => {
 
   const lastRefresh = useStore(state => state.lastRefresh);
   const costBasisMethod = useStore(state => state.costBasisMethod);
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadData();
@@ -128,7 +130,7 @@ export const PerformanceAnalysis: React.FC = () => {
             color: 'text.primary',
           }}
         >
-          Analysis & Research
+          {t('analysis.title')}
         </Typography>
       </Box>
 
@@ -139,7 +141,10 @@ export const PerformanceAnalysis: React.FC = () => {
           onChange={handleViewChange}
           aria-label="analysis tabs"
         >
-          <Tab label="Trade Performance" sx={{ fontWeight: 600 }} />
+          <Tab
+            label={t('analysis.tradePerformance')}
+            sx={{ fontWeight: 600 }}
+          />
         </Tabs>
       </Box>
 
@@ -166,9 +171,21 @@ export const PerformanceAnalysis: React.FC = () => {
                   '& .MuiTabs-indicator': { backgroundColor: 'primary.main' },
                 }}
               >
-                <Tab label="Overall" value="ALL" sx={{ fontWeight: 600 }} />
-                <Tab label="Stocks" value="EQUITY" sx={{ fontWeight: 600 }} />
-                <Tab label="ETFs" value="ETF" sx={{ fontWeight: 600 }} />
+                <Tab
+                  label={t('analysis.overall')}
+                  value="ALL"
+                  sx={{ fontWeight: 600 }}
+                />
+                <Tab
+                  label={t('analysis.stocks')}
+                  value="EQUITY"
+                  sx={{ fontWeight: 600 }}
+                />
+                <Tab
+                  label={t('analysis.etfs')}
+                  value="ETF"
+                  sx={{ fontWeight: 600 }}
+                />
               </Tabs>
             </CardContent>
           </Card>
@@ -177,28 +194,31 @@ export const PerformanceAnalysis: React.FC = () => {
           <Grid container spacing={3} sx={{ mb: 4 }}>
             {[
               {
-                title: 'Win Rate',
+                title: t('analysis.winRate'),
                 value: `${stats.winRate.toFixed(1)}%`,
-                subtext: `${stats.winCount} Wins / ${stats.lossCount} Losses`,
+                subtext: t('analysis.winsLosses', {
+                  wins: stats.winCount,
+                  losses: stats.lossCount,
+                }),
                 color: stats.winRate >= 50 ? '#4ade80' : '#f87171', // Green 400 : Red 400
-                trend: 'High Win Rate',
+                trend: t('analysis.trends.highWinRate'),
               },
               {
-                title: 'Total Realized P/L',
+                title: t('analysis.totalRealizedPL'),
                 value: `$${stats.totalRealized.toFixed(2)}`,
-                subtext: `From ${totalTrades} closed trades`,
+                subtext: t('analysis.fromClosedTrades', { count: totalTrades }),
                 color: stats.totalRealized.gte(0) ? '#4ade80' : '#f87171',
-                trend: 'Net Profit',
+                trend: t('analysis.trends.netProfit'),
               },
               {
-                title: 'Profit Factor',
+                title: t('analysis.profitFactor'),
                 value:
                   stats.profitFactor === Infinity
                     ? '∞'
                     : stats.profitFactor.toFixed(2),
-                subtext: 'Total Win / Total Loss',
+                subtext: t('analysis.cards.profitFactorSubtext'),
                 color: '#38bdf8', // Sky 400
-                trend: 'Risk/Reward',
+                trend: t('analysis.trends.riskReward'),
               },
             ].map((card, index) => (
               <Grid item xs={12} md={4} key={index}>
@@ -271,7 +291,7 @@ export const PerformanceAnalysis: React.FC = () => {
                   variant="h6"
                   sx={{ fontWeight: 700, color: 'text.primary' }}
                 >
-                  Performance by Period
+                  {t('analysis.performanceByPeriod')}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <ToggleButtonGroup
@@ -291,9 +311,15 @@ export const PerformanceAnalysis: React.FC = () => {
                       },
                     }}
                   >
-                    <ToggleButton value="yearly">Yearly</ToggleButton>
-                    <ToggleButton value="quarterly">Quarterly</ToggleButton>
-                    <ToggleButton value="monthly">Monthly</ToggleButton>
+                    <ToggleButton value="yearly">
+                      {t('analysis.yearly')}
+                    </ToggleButton>
+                    <ToggleButton value="quarterly">
+                      {t('analysis.quarterly')}
+                    </ToggleButton>
+                    <ToggleButton value="monthly">
+                      {t('analysis.monthly')}
+                    </ToggleButton>
                   </ToggleButtonGroup>
 
                   <ToggleButtonGroup
@@ -347,7 +373,7 @@ export const PerformanceAnalysis: React.FC = () => {
                 gutterBottom
                 sx={{ fontWeight: 700, color: 'text.primary' }}
               >
-                Period Details
+                {t('analysis.periodDetails')}
               </Typography>
               <TimePeriodTable data={timeReport?.periods || []} />
             </CardContent>
@@ -371,7 +397,7 @@ export const PerformanceAnalysis: React.FC = () => {
                     gutterBottom
                     sx={{ fontWeight: 700, color: 'text.primary' }}
                   >
-                    Average Performance
+                    {t('analysis.averagePerformance')}
                   </Typography>
                   <Divider
                     sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }}
@@ -383,7 +409,9 @@ export const PerformanceAnalysis: React.FC = () => {
                       mb: 2,
                     }}
                   >
-                    <Typography color="#94a3b8">Average Win</Typography>
+                    <Typography color="#94a3b8">
+                      {t('analysis.averageWin')}
+                    </Typography>
                     <Typography
                       sx={{
                         color: '#4ade80',
@@ -397,7 +425,9 @@ export const PerformanceAnalysis: React.FC = () => {
                   <Box
                     sx={{ display: 'flex', justifyContent: 'space-between' }}
                   >
-                    <Typography color="#94a3b8">Average Loss</Typography>
+                    <Typography color="#94a3b8">
+                      {t('analysis.averageLoss')}
+                    </Typography>
                     <Typography
                       sx={{
                         color: '#f87171',
@@ -428,7 +458,7 @@ export const PerformanceAnalysis: React.FC = () => {
                     gutterBottom
                     sx={{ fontWeight: 700, color: 'text.primary' }}
                   >
-                    Totals
+                    {t('analysis.totals')}
                   </Typography>
                   <Divider
                     sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }}
@@ -440,7 +470,9 @@ export const PerformanceAnalysis: React.FC = () => {
                       mb: 2,
                     }}
                   >
-                    <Typography color="text.secondary">Gross Profit</Typography>
+                    <Typography color="text.secondary">
+                      {t('analysis.grossProfit')}
+                    </Typography>
                     <Typography
                       sx={{
                         color: '#4ade80',
@@ -454,7 +486,9 @@ export const PerformanceAnalysis: React.FC = () => {
                   <Box
                     sx={{ display: 'flex', justifyContent: 'space-between' }}
                   >
-                    <Typography color="text.secondary">Gross Loss</Typography>
+                    <Typography color="text.secondary">
+                      {t('analysis.grossLoss')}
+                    </Typography>
                     <Typography
                       sx={{
                         color: '#f87171',

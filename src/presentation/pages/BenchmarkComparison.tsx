@@ -24,6 +24,7 @@ import {
   DCABenchmarkResult,
 } from '@application/services/BenchmarkService';
 import { useStore } from '@application/store/useStore';
+import { useTranslation } from 'react-i18next';
 import { CumulativeReturnChart } from '../components/CumulativeReturnChart';
 import { PerformanceMetricsTable } from '../components/PerformanceMetricsTable';
 import { DCASettingsPanel } from '../components/DCASettingsPanel';
@@ -38,6 +39,7 @@ export const BenchmarkComparison: React.FC = () => {
     BenchmarkSelection[]
   >(['QQQ', 'SPY']);
   const lastRefresh = useStore(state => state.lastRefresh);
+  const { t } = useTranslation();
 
   // DCA Simulator State
   const [dcaSettings, setDcaSettings] = useState<DCASettings>({
@@ -121,11 +123,9 @@ export const BenchmarkComparison: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>
-          Portfolio vs Benchmark
+          {t('benchmark.title')}
         </Typography>
-        <Alert severity="info">
-          No portfolio data available. Please import transactions first.
-        </Alert>
+        <Alert severity="info">{t('benchmark.noData')}</Alert>
       </Box>
     );
   }
@@ -144,7 +144,7 @@ export const BenchmarkComparison: React.FC = () => {
           gap: 2,
         }}
       >
-        <Typography variant="h4">Portfolio vs Benchmark</Typography>
+        <Typography variant="h4">{t('benchmark.title')}</Typography>
         <ToggleButtonGroup
           value={selectedBenchmarks}
           onChange={handleBenchmarkChange}
@@ -169,7 +169,7 @@ export const BenchmarkComparison: React.FC = () => {
         <Card>
           <CardContent>
             <Typography color="text.secondary" variant="caption">
-              Your Portfolio (TWR)
+              {t('benchmark.yourPortfolio')}
             </Typography>
             <Typography
               variant="h4"
@@ -205,7 +205,7 @@ export const BenchmarkComparison: React.FC = () => {
         <Card>
           <CardContent>
             <Typography color="text.secondary" variant="caption">
-              Alpha (Outperformance)
+              {t('benchmark.alpha')}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography
@@ -216,7 +216,11 @@ export const BenchmarkComparison: React.FC = () => {
                 {(data.alpha * 100).toFixed(2)}%
               </Typography>
               <Chip
-                label={isOutperforming ? 'Beat Market' : 'Underperformed'}
+                label={
+                  isOutperforming
+                    ? t('benchmark.beatMarket')
+                    : t('benchmark.underperformed')
+                }
                 size="small"
                 color={isOutperforming ? 'success' : 'error'}
               />
@@ -228,7 +232,7 @@ export const BenchmarkComparison: React.FC = () => {
         <Card>
           <CardContent>
             <Typography color="text.secondary" variant="caption">
-              Total P/L
+              {t('benchmark.totalPL')}
             </Typography>
             <Typography
               variant="h4"
@@ -247,7 +251,7 @@ export const BenchmarkComparison: React.FC = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Cumulative Return Over Time
+            {t('benchmark.cumulativeReturn')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {data.periodStart} → {data.periodEnd}
@@ -263,7 +267,7 @@ export const BenchmarkComparison: React.FC = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Performance Metrics
+            {t('benchmark.performanceMetrics')}
           </Typography>
           <PerformanceMetricsTable data={data} />
         </CardContent>
@@ -282,12 +286,15 @@ export const BenchmarkComparison: React.FC = () => {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              📊 DCA Simulation Results
+              📊 {t('benchmark.dcaSimulation')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              If you invested ${dcaSettings.amountPerInvestment}{' '}
-              {dcaSettings.frequency} from {data.periodStart} to{' '}
-              {data.periodEnd}
+              {t('benchmark.dca.summary', {
+                amount: dcaSettings.amountPerInvestment,
+                frequency: dcaSettings.frequency,
+                start: data.periodStart,
+                end: data.periodEnd,
+              })}
             </Typography>
             <Box
               sx={{
@@ -303,10 +310,12 @@ export const BenchmarkComparison: React.FC = () => {
                       {result.symbol}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Total Invested: ${result.totalInvested.toLocaleString()}
+                      {t('benchmark.totalInvested')}: $
+                      {result.totalInvested.toLocaleString()}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Final Value: ${result.finalValue.toLocaleString()}
+                      {t('benchmark.finalValue')}: $
+                      {result.finalValue.toLocaleString()}
                     </Typography>
                     <Typography
                       variant="h5"

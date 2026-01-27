@@ -10,6 +10,7 @@ import { BenchmarkComparison } from './presentation/pages/BenchmarkComparison';
 import { Strategy } from './presentation/pages/Strategy';
 import { InfluencerTrackerPage } from './presentation/pages/InfluencerTrackerPage';
 import { Settings } from './presentation/pages/Settings';
+import './infrastructure/i18n/config';
 import './index.css';
 
 // Create dark theme with distinctive typography per frontend-design skill

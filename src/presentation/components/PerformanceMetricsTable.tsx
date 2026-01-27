@@ -16,6 +16,7 @@ import {
   Chip,
 } from '@mui/material';
 import { BenchmarkComparisonResult } from '@application/services/BenchmarkService';
+import { useTranslation } from 'react-i18next';
 
 interface PerformanceMetricsTableProps {
   data: BenchmarkComparisonResult;
@@ -24,6 +25,8 @@ interface PerformanceMetricsTableProps {
 export const PerformanceMetricsTable: React.FC<
   PerformanceMetricsTableProps
 > = ({ data }) => {
+  const { t } = useTranslation();
+
   const formatPercent = (value: number): string => {
     const pct = value * 100;
     const sign = pct > 0 ? '+' : '';
@@ -40,8 +43,10 @@ export const PerformanceMetricsTable: React.FC<
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>Metric</TableCell>
-            <TableCell align="right">Your Portfolio</TableCell>
+            <TableCell>{t('benchmark.metrics.metric')}</TableCell>
+            <TableCell align="right">
+              {t('benchmark.metrics.yourPortfolio')}
+            </TableCell>
             {data.benchmarks.map(b => (
               <TableCell key={b.symbol} align="right">
                 {b.symbol}
@@ -53,9 +58,11 @@ export const PerformanceMetricsTable: React.FC<
           {/* TWR Return */}
           <TableRow>
             <TableCell>
-              <Typography fontWeight="medium">TWR Return</Typography>
+              <Typography fontWeight="medium">
+                {t('benchmark.metrics.twrReturn')}
+              </Typography>
               <Typography variant="caption" color="text.secondary">
-                Time-Weighted Return (GIPS Standard)
+                {t('benchmark.metrics.twrDesc')}
               </Typography>
             </TableCell>
             <TableCell align="right">
@@ -73,7 +80,7 @@ export const PerformanceMetricsTable: React.FC<
                   {formatPercent(b.twr)}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Lump Sum
+                  {t('benchmark.metrics.lumpSum')}
                 </Typography>
               </TableCell>
             ))}
@@ -82,9 +89,11 @@ export const PerformanceMetricsTable: React.FC<
           {/* Cash-Flow Weighted Return - NEW! */}
           <TableRow sx={{ backgroundColor: 'rgba(99, 102, 241, 0.05)' }}>
             <TableCell>
-              <Typography fontWeight="medium">Same Timing Return</Typography>
+              <Typography fontWeight="medium">
+                {t('benchmark.metrics.sameTimingReturn')}
+              </Typography>
               <Typography variant="caption" color="text.secondary">
-                If you invested in benchmark with same timing
+                {t('benchmark.metrics.sameTimingDesc')}
               </Typography>
             </TableCell>
             <TableCell align="right">
@@ -113,7 +122,7 @@ export const PerformanceMetricsTable: React.FC<
                   {formatPercent(b.cashFlowWeightedReturn || 0)}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Same Timing
+                  {t('benchmark.metrics.sameTiming')}
                 </Typography>
               </TableCell>
             ))}
@@ -122,9 +131,13 @@ export const PerformanceMetricsTable: React.FC<
           {/* Alpha (Lump Sum) */}
           <TableRow>
             <TableCell>
-              <Typography fontWeight="medium">Alpha (Lump Sum)</Typography>
+              <Typography fontWeight="medium">
+                {t('benchmark.metrics.alphaLumpSum')}
+              </Typography>
               <Typography variant="caption" color="text.secondary">
-                TWR vs {data.benchmarks[0]?.symbol || 'benchmark'} lump sum
+                {t('benchmark.metrics.alphaLumpSumDesc', {
+                  benchmark: data.benchmarks[0]?.symbol || 'benchmark',
+                })}
               </Typography>
             </TableCell>
             <TableCell align="right">
@@ -145,10 +158,13 @@ export const PerformanceMetricsTable: React.FC<
           {/* Alpha (Same Timing) - NEW! */}
           <TableRow sx={{ backgroundColor: 'rgba(99, 102, 241, 0.05)' }}>
             <TableCell>
-              <Typography fontWeight="medium">Alpha (Same Timing)</Typography>
+              <Typography fontWeight="medium">
+                {t('benchmark.metrics.alphaSameTiming')}
+              </Typography>
               <Typography variant="caption" color="text.secondary">
-                Your return vs {data.benchmarks[0]?.symbol || 'benchmark'} same
-                timing
+                {t('benchmark.metrics.alphaSameTimingDesc', {
+                  benchmark: data.benchmarks[0]?.symbol || 'benchmark',
+                })}
               </Typography>
             </TableCell>
             <TableCell align="right">
@@ -171,9 +187,11 @@ export const PerformanceMetricsTable: React.FC<
           {/* Simple Return */}
           <TableRow>
             <TableCell>
-              <Typography fontWeight="medium">Simple Return</Typography>
+              <Typography fontWeight="medium">
+                {t('benchmark.metrics.simpleReturn')}
+              </Typography>
               <Typography variant="caption" color="text.secondary">
-                Including investment timing
+                {t('benchmark.metrics.simpleReturnDesc')}
               </Typography>
             </TableCell>
             <TableCell align="right">
@@ -197,9 +215,11 @@ export const PerformanceMetricsTable: React.FC<
           {/* Realized P/L */}
           <TableRow>
             <TableCell>
-              <Typography fontWeight="medium">Realized P/L</Typography>
+              <Typography fontWeight="medium">
+                {t('benchmark.metrics.realizedPL')}
+              </Typography>
               <Typography variant="caption" color="text.secondary">
-                Profit/Loss from closed trades
+                {t('benchmark.metrics.realizedPLDesc')}
               </Typography>
             </TableCell>
             <TableCell align="right">
@@ -224,9 +244,11 @@ export const PerformanceMetricsTable: React.FC<
           {/* Unrealized P/L */}
           <TableRow>
             <TableCell>
-              <Typography fontWeight="medium">Unrealized P/L</Typography>
+              <Typography fontWeight="medium">
+                {t('benchmark.metrics.unrealizedPL')}
+              </Typography>
               <Typography variant="caption" color="text.secondary">
-                Paper value change of open positions
+                {t('benchmark.metrics.unrealizedPLDesc')}
               </Typography>
             </TableCell>
             <TableCell align="right">
@@ -251,9 +273,11 @@ export const PerformanceMetricsTable: React.FC<
           {/* Total P/L */}
           <TableRow>
             <TableCell>
-              <Typography fontWeight="medium">Total P/L</Typography>
+              <Typography fontWeight="medium">
+                {t('benchmark.metrics.totalPL')}
+              </Typography>
               <Typography variant="caption" color="text.secondary">
-                Dollar amount gained/lost
+                {t('benchmark.metrics.totalPLDesc')}
               </Typography>
             </TableCell>
             <TableCell align="right">
@@ -276,7 +300,9 @@ export const PerformanceMetricsTable: React.FC<
           {/* Period */}
           <TableRow>
             <TableCell>
-              <Typography fontWeight="medium">Period</Typography>
+              <Typography fontWeight="medium">
+                {t('benchmark.metrics.period')}
+              </Typography>
             </TableCell>
             <TableCell align="right" colSpan={data.benchmarks.length + 1}>
               <Typography variant="body2" color="text.secondary">

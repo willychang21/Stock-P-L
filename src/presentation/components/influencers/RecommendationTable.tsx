@@ -16,6 +16,7 @@ import {
 import { Delete as DeleteIcon, OpenInNew } from '@mui/icons-material';
 import { Recommendation, Influencer } from '@domain/models/Influencer';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface RecommendationTableProps {
   recommendations: Recommendation[];
@@ -33,6 +34,7 @@ export function RecommendationTable({
 }: RecommendationTableProps) {
   const [order, setOrder] = useState<Order>('desc');
   const [orderBy, setOrderBy] = useState<SortField>('date');
+  const { t } = useTranslation();
 
   const handleRequestSort = (property: SortField) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -93,8 +95,7 @@ export function RecommendationTable({
     return (
       <Paper sx={{ p: 4, textAlign: 'center' }}>
         <Typography color="text.secondary">
-          No recommendations tracked yet. Select an influencer and add a stock
-          pick!
+          {t('influencers.table.empty')}
         </Typography>
       </Paper>
     );
@@ -113,7 +114,7 @@ export function RecommendationTable({
                 direction={orderBy === 'date' ? order : 'asc'}
                 onClick={() => handleRequestSort('date')}
               >
-                Date
+                {t('influencers.table.date')}
               </TableSortLabel>
             </TableCell>
             <TableCell sortDirection={orderBy === 'influencer' ? order : false}>
@@ -122,7 +123,7 @@ export function RecommendationTable({
                 direction={orderBy === 'influencer' ? order : 'asc'}
                 onClick={() => handleRequestSort('influencer')}
               >
-                Influencer
+                {t('influencers.table.influencer')}
               </TableSortLabel>
             </TableCell>
             <TableCell sortDirection={orderBy === 'symbol' ? order : false}>
@@ -131,11 +132,15 @@ export function RecommendationTable({
                 direction={orderBy === 'symbol' ? order : 'asc'}
                 onClick={() => handleRequestSort('symbol')}
               >
-                Symbol
+                {t('influencers.table.symbol')}
               </TableSortLabel>
             </TableCell>
-            <TableCell align="right">Initial Price</TableCell>
-            <TableCell align="right">Current Price</TableCell>
+            <TableCell align="right">
+              {t('influencers.table.initialPrice')}
+            </TableCell>
+            <TableCell align="right">
+              {t('influencers.table.currentPrice')}
+            </TableCell>
             <TableCell
               align="right"
               sortDirection={orderBy === 'return' ? order : false}
@@ -145,11 +150,13 @@ export function RecommendationTable({
                 direction={orderBy === 'return' ? order : 'asc'}
                 onClick={() => handleRequestSort('return')}
               >
-                Return
+                {t('influencers.table.return')}
               </TableSortLabel>
             </TableCell>
-            <TableCell>Note</TableCell>
-            <TableCell align="right">Actions</TableCell>
+            <TableCell>{t('influencers.table.note')}</TableCell>
+            <TableCell align="right">
+              {t('influencers.table.actions')}
+            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

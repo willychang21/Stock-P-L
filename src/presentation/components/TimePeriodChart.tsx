@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { Box, Typography } from '@mui/material';
 import { PeriodStats } from '@application/services/PLService';
+import { useTranslation } from 'react-i18next';
 
 export type ChartType = 'bar' | 'line' | 'area';
 
@@ -35,6 +36,7 @@ export const TimePeriodChart: React.FC<TimePeriodChartProps> = ({
   data,
   chartType,
 }) => {
+  const { t } = useTranslation();
   // Convert PeriodStats to chart-friendly format
   const chartData: ChartData[] = data.map(d => ({
     period: d.period,
@@ -54,7 +56,7 @@ export const TimePeriodChart: React.FC<TimePeriodChartProps> = ({
         }}
       >
         <Typography color="text.secondary">
-          No data available for the selected period
+          {t('analysis.chart.noData')}
         </Typography>
       </Box>
     );
@@ -94,13 +96,13 @@ export const TimePeriodChart: React.FC<TimePeriodChartProps> = ({
               }}
               formatter={(value: number) => [
                 `$${value.toFixed(2)}`,
-                'Realized P/L',
+                t('analysis.chart.realizedPL'),
               ]}
             />
             <Legend wrapperStyle={{ color: '#a1a1aa' }} />
             <Bar
               dataKey="realizedPL"
-              name="Realized P/L"
+              name={t('analysis.chart.realizedPL')}
               fill="#818cf8"
               radius={[4, 4, 0, 0]}
             />
@@ -134,14 +136,14 @@ export const TimePeriodChart: React.FC<TimePeriodChartProps> = ({
               }}
               formatter={(value: number) => [
                 `$${value.toFixed(2)}`,
-                'Realized P/L',
+                t('analysis.chart.realizedPL'),
               ]}
             />
             <Legend wrapperStyle={{ color: '#a1a1aa' }} />
             <Line
               type="monotone"
               dataKey="realizedPL"
-              name="Realized P/L"
+              name={t('analysis.chart.realizedPL')}
               stroke="#818cf8"
               strokeWidth={2}
               dot={{ fill: '#818cf8' }}
@@ -176,14 +178,14 @@ export const TimePeriodChart: React.FC<TimePeriodChartProps> = ({
               }}
               formatter={(value: number) => [
                 `$${value.toFixed(2)}`,
-                'Realized P/L',
+                t('analysis.chart.realizedPL'),
               ]}
             />
             <Legend wrapperStyle={{ color: '#a1a1aa' }} />
             <Area
               type="monotone"
               dataKey="realizedPL"
-              name="Realized P/L"
+              name={t('analysis.chart.realizedPL')}
               stroke="#818cf8"
               fill="#818cf8"
               fillOpacity={0.3}

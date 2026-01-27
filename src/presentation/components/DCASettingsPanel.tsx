@@ -16,6 +16,7 @@ import {
   InputAdornment,
 } from '@mui/material';
 import { PlayArrow } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import {
   DCAFrequency,
   DCASettings,
@@ -34,6 +35,8 @@ export const DCASettingsPanel: React.FC<DCASettingsPanelProps> = ({
   onSimulate,
   loading = false,
 }) => {
+  const { t } = useTranslation();
+
   const handleFrequencyChange = (
     _: React.MouseEvent<HTMLElement>,
     newFrequency: DCAFrequency | null
@@ -56,10 +59,10 @@ export const DCASettingsPanel: React.FC<DCASettingsPanelProps> = ({
           gutterBottom
           sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
         >
-          📊 DCA Simulator
+          📊 {t('benchmark.dca.title')}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Compare with a Dollar Cost Averaging strategy
+          {t('benchmark.dca.subtitle')}
         </Typography>
 
         <Box
@@ -77,7 +80,7 @@ export const DCASettingsPanel: React.FC<DCASettingsPanelProps> = ({
               color="text.secondary"
               sx={{ mb: 1, display: 'block' }}
             >
-              Investment Frequency
+              {t('benchmark.dca.frequency')}
             </Typography>
             <ToggleButtonGroup
               value={settings.frequency}
@@ -85,9 +88,15 @@ export const DCASettingsPanel: React.FC<DCASettingsPanelProps> = ({
               onChange={handleFrequencyChange}
               size="small"
             >
-              <ToggleButton value="weekly">Weekly</ToggleButton>
-              <ToggleButton value="biweekly">Bi-weekly</ToggleButton>
-              <ToggleButton value="monthly">Monthly</ToggleButton>
+              <ToggleButton value="weekly">
+                {t('benchmark.dca.weekly')}
+              </ToggleButton>
+              <ToggleButton value="biweekly">
+                {t('benchmark.dca.biweekly')}
+              </ToggleButton>
+              <ToggleButton value="monthly">
+                {t('benchmark.dca.monthly')}
+              </ToggleButton>
             </ToggleButtonGroup>
           </Box>
 
@@ -98,7 +107,7 @@ export const DCASettingsPanel: React.FC<DCASettingsPanelProps> = ({
               color="text.secondary"
               sx={{ mb: 1, display: 'block' }}
             >
-              Amount per Investment
+              {t('benchmark.dca.amount')}
             </Typography>
             <TextField
               type="number"
@@ -122,7 +131,9 @@ export const DCASettingsPanel: React.FC<DCASettingsPanelProps> = ({
             startIcon={<PlayArrow />}
             sx={{ height: 40 }}
           >
-            {loading ? 'Simulating...' : 'Simulate'}
+            {loading
+              ? t('benchmark.dca.simulating')
+              : t('benchmark.dca.simulate')}
           </Button>
         </Box>
       </CardContent>

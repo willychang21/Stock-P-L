@@ -21,6 +21,7 @@ import { SymbolTransactionHistory } from './SymbolTransactionHistory';
 import { plService } from '@application/services/PLService';
 import { TransactionWithPL } from '@domain/models/SymbolTransactionSummary';
 import { useStore } from '@application/store/useStore';
+import { useTranslation } from 'react-i18next';
 
 type SortField =
   | 'symbol'
@@ -55,6 +56,7 @@ function HoldingRow({
   const [transactions, setTransactions] = useState<TransactionWithPL[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const costBasisMethod = useStore(state => state.costBasisMethod);
+  const { t } = useTranslation();
 
   const returnPct = holding.costBasis.isZero()
     ? new Decimal(0)
@@ -104,15 +106,15 @@ function HoldingRow({
         </TableCell>
         <TableCell>
           <Chip
-            label={holding.assetType}
+            label={t(`types.${(holding.assetType || 'EQUITY').toLowerCase()}`, {
+              defaultValue: holding.assetType || 'Equity',
+            })}
             size="small"
             variant="filled"
             color={holding.assetType === 'ETF' ? 'primary' : 'default'}
           />
         </TableCell>
-        <TableCell align="right">
-          {formatShares(holding.quantity)}
-        </TableCell>
+        <TableCell align="right">{formatShares(holding.quantity)}</TableCell>
         <TableCell align="right">
           {formatCurrency(holding.averageCost)}
         </TableCell>
@@ -147,7 +149,7 @@ function HoldingRow({
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 1 }}>
               <Typography variant="subtitle2" gutterBottom component="div">
-                Transaction History
+                {t('holdings.transactionHistory')}
               </Typography>
               <SymbolTransactionHistory
                 transactions={transactions}
@@ -166,6 +168,7 @@ function HoldingRow({
  * Holdings table component with sorting, return % display, and expandable transaction history
  */
 export function HoldingsTable({ holdings }: HoldingsTableProps) {
+  const { t } = useTranslation();
   const [sortField, setSortField] = useState<SortField>('symbol');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
@@ -247,7 +250,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
     return (
       <Paper sx={{ p: 4, textAlign: 'center' }}>
         <Typography color="text.secondary">
-          No current holdings. Import transactions to get started.
+          {t('holdings.noHoldings')}
         </Typography>
       </Paper>
     );
@@ -265,17 +268,17 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                 direction={sortField === 'symbol' ? sortOrder : 'asc'}
                 onClick={() => handleSort('symbol')}
               >
-                Symbol
+                {t('holdings.symbol')}
               </TableSortLabel>
             </TableCell>
-            <TableCell>Type</TableCell>
+            <TableCell>{t('holdings.type')}</TableCell>
             <TableCell align="right">
               <TableSortLabel
                 active={sortField === 'shares'}
                 direction={sortField === 'shares' ? sortOrder : 'asc'}
                 onClick={() => handleSort('shares')}
               >
-                Shares
+                {t('holdings.shares')}
               </TableSortLabel>
             </TableCell>
             <TableCell align="right">
@@ -284,7 +287,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                 direction={sortField === 'avgCost' ? sortOrder : 'asc'}
                 onClick={() => handleSort('avgCost')}
               >
-                Avg Cost
+                {t('holdings.avgCost')}
               </TableSortLabel>
             </TableCell>
             <TableCell align="right">
@@ -293,7 +296,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                 direction={sortField === 'currentPrice' ? sortOrder : 'asc'}
                 onClick={() => handleSort('currentPrice')}
               >
-                Current Price
+                {t('holdings.currentPrice')}
               </TableSortLabel>
             </TableCell>
             <TableCell align="right">
@@ -302,7 +305,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                 direction={sortField === 'marketValue' ? sortOrder : 'asc'}
                 onClick={() => handleSort('marketValue')}
               >
-                Market Value
+                {t('holdings.marketValue')}
               </TableSortLabel>
             </TableCell>
             <TableCell align="right">
@@ -311,7 +314,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                 direction={sortField === 'unrealizedPL' ? sortOrder : 'asc'}
                 onClick={() => handleSort('unrealizedPL')}
               >
-                Unrealized P/L
+                {t('holdings.unrealizedPL')}
               </TableSortLabel>
             </TableCell>
             <TableCell align="right">
@@ -320,7 +323,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                 direction={sortField === 'returnPct' ? sortOrder : 'asc'}
                 onClick={() => handleSort('returnPct')}
               >
-                Return %
+                {t('holdings.returnPct')}
               </TableSortLabel>
             </TableCell>
           </TableRow>

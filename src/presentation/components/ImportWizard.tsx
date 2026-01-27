@@ -26,8 +26,9 @@ import {
 import { CloudUpload } from '@mui/icons-material';
 import { Broker } from '../../domain/models/Transaction';
 import { apiClient } from '../../infrastructure/api/client';
+import { useTranslation } from 'react-i18next';
 
-const steps = ['Upload CSV', 'Select Broker', 'Preview', 'Results'];
+// const steps = ['Upload CSV', 'Select Broker', 'Preview', 'Results'];
 
 interface ImportWizardProps {
   open: boolean;
@@ -37,22 +38,38 @@ interface ImportWizardProps {
 
 // Result interface matching Backend response
 interface APIImportResult {
-    success: boolean;
-    count: number;
-    batch_id: string;
-    message: string;
+  success: boolean;
+  count: number;
+  batch_id: string;
+  message: string;
 }
 
 /**
  * Multi-step CSV import wizard
  */
-export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardProps) {
+export function ImportWizard({
+  open,
+  onClose,
+  onImportSuccess,
+}: ImportWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedBroker, setSelectedBroker] = useState<Broker>(Broker.ROBINHOOD);
-  const [importResult, setImportResult] = useState<APIImportResult | null>(null);
+  const [selectedBroker, setSelectedBroker] = useState<Broker>(
+    Broker.ROBINHOOD
+  );
+  const [importResult, setImportResult] = useState<APIImportResult | null>(
+    null
+  );
   const [isImporting, setIsImporting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { t } = useTranslation();
+
+  const steps = [
+    t('import.steps.upload'),
+    t('import.steps.broker'),
+    t('import.steps.preview'),
+    t('import.steps.results'),
+  ];
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,7 +98,7 @@ export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardPro
       setActiveStep(3);
     } catch (error: any) {
       console.error('Import failed:', error);
-      setErrorMsg(error.message || 'Import failed');
+      setErrorMsg(error.message || t('import.failed'));
     } finally {
       setIsImporting(false);
     }
@@ -94,7 +111,7 @@ export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardPro
     setImportResult(null);
     setErrorMsg(null);
     onClose();
-    
+
     if (wasSuccessful && onImportSuccess) {
       onImportSuccess();
     }
@@ -102,12 +119,12 @@ export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardPro
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>Import CSV Transactions</DialogTitle>
+      <DialogTitle>{t('import.title')}</DialogTitle>
 
       <DialogContent>
         <Box sx={{ mb: 3 }}>
           <Stepper activeStep={activeStep}>
-            {steps.map((label) => (
+            {steps.map(label => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
               </Step>
@@ -116,7 +133,11 @@ export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardPro
         </Box>
 
         {isImporting && <LinearProgress sx={{ mb: 2 }} />}
-        {errorMsg && <Alert severity="error" sx={{ mb: 2 }}>{errorMsg}</Alert>}
+        {errorMsg && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {errorMsg}
+          </Alert>
+        )}
 
         {/* Step 0: File Upload */}
         {activeStep === 0 && (
@@ -135,11 +156,11 @@ export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardPro
                 startIcon={<CloudUpload />}
                 size="large"
               >
-                Select CSV File
+                {t('import.selectFile')}
               </Button>
             </label>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              Supports Robinhood and Charles Schwab CSV exports
+              {t('import.supportText')}
             </Typography>
           </Box>
         )}
@@ -148,19 +169,21 @@ export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardPro
         {activeStep === 1 && (
           <Box sx={{ py: 2 }}>
             <FormControl fullWidth>
-              <InputLabel>Broker</InputLabel>
+              <InputLabel>{t('import.brokerLabel')}</InputLabel>
               <Select
                 value={selectedBroker}
                 label="Broker"
-                onChange={(e) => setSelectedBroker(e.target.value as Broker)}
+                onChange={e => setSelectedBroker(e.target.value as Broker)}
               >
                 <MenuItem value={Broker.ROBINHOOD}>Robinhood</MenuItem>
                 <MenuItem value={Broker.SCHWAB}>Charles Schwab</MenuItem>
-                <MenuItem value={Broker.MANUAL}>Manual Entry</MenuItem>
+                <MenuItem value={Broker.MANUAL}>
+                  {t('import.manualEntry')}
+                </MenuItem>
               </Select>
             </FormControl>
             <Alert severity="info" sx={{ mt: 2 }}>
-              Selected file: {selectedFile?.name}
+              {t('import.fileSelected')} {selectedFile?.name}
             </Alert>
           </Box>
         )}
@@ -169,28 +192,36 @@ export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardPro
         {activeStep === 2 && (
           <Box sx={{ py: 2 }}>
             <Typography variant="h6" gutterBottom>
-              Ready to Import
+              {t('import.readyToImport')}
             </Typography>
             <TableContainer component={Paper} sx={{ mt: 2 }}>
               <Table size="small">
                 <TableBody>
                   <TableRow>
-                    <TableCell><strong>File:</strong></TableCell>
+                    <TableCell>
+                      <strong>{t('import.fileInfo')}</strong>
+                    </TableCell>
                     <TableCell>{selectedFile?.name}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell><strong>Broker:</strong></TableCell>
+                    <TableCell>
+                      <strong>{t('import.brokerInfo')}</strong>
+                    </TableCell>
                     <TableCell>{selectedBroker}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell><strong>Size:</strong></TableCell>
-                    <TableCell>{((selectedFile?.size ?? 0) / 1024).toFixed(2)} KB</TableCell>
+                    <TableCell>
+                      <strong>{t('import.sizeInfo')}</strong>
+                    </TableCell>
+                    <TableCell>
+                      {((selectedFile?.size ?? 0) / 1024).toFixed(2)} KB
+                    </TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             </TableContainer>
             <Alert severity="warning" sx={{ mt: 2 }}>
-              Duplicate transactions will be automatically skipped
+              {t('import.duplicateWarning')}
             </Alert>
           </Box>
         )}
@@ -201,27 +232,29 @@ export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardPro
             {importResult.success ? (
               <>
                 <Alert severity="success" sx={{ mb: 2 }}>
-                   {importResult.message}
+                  {importResult.message}
                 </Alert>
                 <TableContainer component={Paper}>
                   <Table size="small">
                     <TableBody>
                       <TableRow>
-                        <TableCell><strong>Imported Transactions:</strong></TableCell>
+                        <TableCell>
+                          <strong>{t('import.importedCount')}</strong>
+                        </TableCell>
                         <TableCell>{importResult.count}</TableCell>
                       </TableRow>
                       <TableRow>
-                         <TableCell><strong>Batch ID:</strong></TableCell>
-                         <TableCell>{importResult.batch_id}</TableCell>
+                        <TableCell>
+                          <strong>{t('import.batchId')}</strong>
+                        </TableCell>
+                        <TableCell>{importResult.batch_id}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
                 </TableContainer>
               </>
             ) : (
-              <Alert severity="error">
-                Import failed.
-              </Alert>
+              <Alert severity="error">{t('import.failed')}</Alert>
             )}
           </Box>
         )}
@@ -229,11 +262,11 @@ export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardPro
 
       <DialogActions>
         <Button onClick={handleClose}>
-          {activeStep === 3 ? 'Close' : 'Cancel'}
+          {activeStep === 3 ? t('import.close') : t('import.cancel')}
         </Button>
         {activeStep === 1 && (
           <Button onClick={handleBrokerSelect} variant="contained">
-            Next
+            {t('import.next')}
           </Button>
         )}
         {activeStep === 2 && (
@@ -242,7 +275,7 @@ export function ImportWizard({ open, onClose, onImportSuccess }: ImportWizardPro
             variant="contained"
             disabled={isImporting}
           >
-            Import
+            {t('import.importButton')}
           </Button>
         )}
       </DialogActions>

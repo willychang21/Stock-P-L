@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { Star, EmojiEvents } from '@mui/icons-material';
 import { Recommendation, Influencer } from '@domain/models/Influencer';
+import { useTranslation } from 'react-i18next';
 
 interface InfluencerStatsProps {
   recommendations: Recommendation[];
@@ -23,6 +24,7 @@ export function InfluencerStats({
   recommendations,
   influencers,
 }: InfluencerStatsProps) {
+  const { t } = useTranslation();
   // 1. Calculate Influencer Performance
   const influencerStats = influencers
     .map(inf => {
@@ -89,7 +91,9 @@ export function InfluencerStats({
         <Paper sx={{ p: 2, height: '100%' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
             <EmojiEvents color="warning" />
-            <Typography variant="h6">Performance Ranking</Typography>
+            <Typography variant="h6">
+              {t('influencers.performanceRanking')}
+            </Typography>
           </Box>
           <List dense>
             {influencerStats.map((stat, index) => (
@@ -127,7 +131,7 @@ export function InfluencerStats({
                         </Typography>
                       </Box>
                     }
-                    secondary={`Recs: ${stat.count} | Win Rate: ${(stat.winRate * 100).toFixed(0)}%`}
+                    secondary={`${t('influencers.recsCount')}: ${stat.count} | ${t('influencers.winRate')}: ${(stat.winRate * 100).toFixed(0)}%`}
                   />
                 </ListItem>
                 {index < influencerStats.length - 1 && (
@@ -137,7 +141,7 @@ export function InfluencerStats({
             ))}
             {influencerStats.length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-                Not enough data to rank performance.
+                {t('influencers.noData')}
               </Typography>
             )}
           </List>
@@ -149,7 +153,9 @@ export function InfluencerStats({
         <Paper sx={{ p: 2, height: '100%' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
             <Star color="primary" />
-            <Typography variant="h6">Popular Recommendations</Typography>
+            <Typography variant="h6">
+              {t('influencers.popularRecommendations')}
+            </Typography>
           </Box>
           <List dense>
             {popularStocks.map((stock, index) => (
@@ -184,7 +190,7 @@ export function InfluencerStats({
             ))}
             {popularStocks.length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-                No recommendations yet.
+                {t('influencers.noRecs')}
               </Typography>
             )}
           </List>

@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { useState, useEffect } from 'react';
 import { Add } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 interface TransactionNoteDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export function TransactionNoteDialog({
   const [rating, setRating] = useState<number | null>(initialRating);
   const [tagInput, setTagInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     setNote(initialNote || '');
@@ -76,12 +78,12 @@ export function TransactionNoteDialog({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Trade Journal</DialogTitle>
+      <DialogTitle>{t('dialog.tradeJournal')}</DialogTitle>
       <DialogContent>
         <Stack spacing={3} sx={{ mt: 1 }}>
           <Box>
             <Typography component="legend" gutterBottom>
-              Execution Rating
+              {t('dialog.executionRating')}
             </Typography>
             <Rating
               name="execution-rating"
@@ -96,7 +98,7 @@ export function TransactionNoteDialog({
               <TextField
                 size="small"
                 fullWidth
-                label="Add Tag"
+                label={t('dialog.addTag')}
                 value={tagInput}
                 onChange={e => setTagInput(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -124,7 +126,7 @@ export function TransactionNoteDialog({
 
           <TextField
             autoFocus
-            label="Notes / Thesis"
+            label={t('dialog.notesThesis')}
             type="text"
             fullWidth
             multiline
@@ -132,16 +134,16 @@ export function TransactionNoteDialog({
             variant="outlined"
             value={note}
             onChange={e => setNote(e.target.value)}
-            placeholder="Enter strategy, thesis, or reasons for this trade..."
+            placeholder={t('dialog.notesPlaceholder')}
           />
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={isSaving}>
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button onClick={handleSave} variant="contained" disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save'}
+          {isSaving ? t('dialog.saving') : t('dialog.save')}
         </Button>
       </DialogActions>
     </Dialog>

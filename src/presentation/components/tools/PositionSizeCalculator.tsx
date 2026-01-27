@@ -11,6 +11,7 @@ import {
   Button,
 } from '@mui/material';
 import { RestartAlt } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 export function PositionSizeCalculator() {
   const [accountSize, setAccountSize] = useState<string>('10000');
@@ -23,6 +24,7 @@ export function PositionSizeCalculator() {
   const [positionValue, setPositionValue] = useState<number>(0);
   const [riskAmount, setRiskAmount] = useState<number>(0);
   const [riskPerShare, setRiskPerShare] = useState<number>(0);
+  const { t } = useTranslation();
 
   useEffect(() => {
     calculate();
@@ -69,10 +71,10 @@ export function PositionSizeCalculator() {
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
           <Typography variant="h6" fontWeight="bold">
-            Position Size Calculator
+            {t('tools.calculator.title')}
           </Typography>
           <Button startIcon={<RestartAlt />} size="small" onClick={clear}>
-            Reset
+            {t('tools.calculator.reset')}
           </Button>
         </Box>
 
@@ -81,7 +83,7 @@ export function PositionSizeCalculator() {
           <Grid item xs={12} md={6}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <TextField
-                label="Account Size ($)"
+                label={t('tools.calculator.accountSize')}
                 type="number"
                 value={accountSize}
                 onChange={e => setAccountSize(e.target.value)}
@@ -94,7 +96,7 @@ export function PositionSizeCalculator() {
                 size="small"
               />
               <TextField
-                label="Max Risk per Trade (%)"
+                label={t('tools.calculator.maxRisk')}
                 type="number"
                 value={riskPercent}
                 onChange={e => setRiskPercent(e.target.value)}
@@ -108,7 +110,7 @@ export function PositionSizeCalculator() {
               />
               <Divider sx={{ my: 1 }} />
               <TextField
-                label="Entry Price"
+                label={t('tools.calculator.entryPrice')}
                 type="number"
                 value={entryPrice}
                 onChange={e => setEntryPrice(e.target.value)}
@@ -122,7 +124,7 @@ export function PositionSizeCalculator() {
                 autoFocus
               />
               <TextField
-                label="Stop Loss Price"
+                label={t('tools.calculator.stopLoss')}
                 type="number"
                 value={stopLoss}
                 onChange={e => setStopLoss(e.target.value)}
@@ -160,10 +162,13 @@ export function PositionSizeCalculator() {
             >
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Recommended Position Size
+                  {t('tools.calculator.recommendedSize')}
                 </Typography>
                 <Typography variant="h3" color="primary.main" fontWeight="bold">
-                  {shares} <span style={{ fontSize: '1rem' }}>shares</span>
+                  {shares}{' '}
+                  <span style={{ fontSize: '1rem' }}>
+                    {t('tools.calculator.shares')}
+                  </span>
                 </Typography>
               </Box>
 
@@ -171,7 +176,7 @@ export function PositionSizeCalculator() {
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body2" color="text.secondary">
-                  Total Value
+                  {t('tools.calculator.totalValue')}
                 </Typography>
                 <Typography variant="body1" fontWeight="bold">
                   ${positionValue.toLocaleString()}
@@ -180,7 +185,7 @@ export function PositionSizeCalculator() {
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body2" color="text.secondary">
-                  Capital at Risk (1R)
+                  {t('tools.calculator.capitalAtRisk')}
                 </Typography>
                 <Typography
                   variant="body1"
@@ -193,7 +198,7 @@ export function PositionSizeCalculator() {
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body2" color="text.secondary">
-                  Risk Per Share
+                  {t('tools.calculator.riskPerShare')}
                 </Typography>
                 <Typography variant="body1">
                   ${riskPerShare.toFixed(2)}

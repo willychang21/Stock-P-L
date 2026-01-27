@@ -10,16 +10,19 @@ import {
   Typography,
 } from '@mui/material';
 import { PeriodStats } from '@application/services/PLService';
+import { useTranslation } from 'react-i18next';
 
 interface TimePeriodTableProps {
   data: PeriodStats[];
 }
 
 export const TimePeriodTable: React.FC<TimePeriodTableProps> = ({ data }) => {
+  const { t } = useTranslation();
+
   if (data.length === 0) {
     return (
       <Typography color="text.secondary" sx={{ p: 2 }}>
-        No data available
+        {t('analysis.table.noData')}
       </Typography>
     );
   }
@@ -29,12 +32,14 @@ export const TimePeriodTable: React.FC<TimePeriodTableProps> = ({ data }) => {
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>Period</TableCell>
-            <TableCell align="right">Realized P/L</TableCell>
-            <TableCell align="right">Trades</TableCell>
-            <TableCell align="right">Wins</TableCell>
-            <TableCell align="right">Losses</TableCell>
-            <TableCell align="right">Win Rate</TableCell>
+            <TableCell>{t('analysis.table.period')}</TableCell>
+            <TableCell align="right">
+              {t('analysis.table.realizedPL')}
+            </TableCell>
+            <TableCell align="right">{t('analysis.table.trades')}</TableCell>
+            <TableCell align="right">{t('analysis.table.wins')}</TableCell>
+            <TableCell align="right">{t('analysis.table.losses')}</TableCell>
+            <TableCell align="right">{t('analysis.table.winRate')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

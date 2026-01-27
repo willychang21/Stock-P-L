@@ -22,11 +22,14 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import StorageIcon from '@mui/icons-material/Storage';
 import { useStore } from '@application/store/useStore';
 import { priceService } from '@application/services/PriceService';
+import { useTranslation } from 'react-i18next';
+import TranslateIcon from '@mui/icons-material/Translate';
 
 /**
  * Settings page with cost basis method selection and database management
  */
 export function Settings() {
+  const { t, i18n } = useTranslation();
   const costBasisMethod = useStore(state => state.costBasisMethod);
   const setCostBasisMethod = useStore(state => state.setCostBasisMethod);
 
@@ -67,9 +70,11 @@ export function Settings() {
         setClearSuccess(true);
         loadStats(); // Reload 0 stats
         setTimeout(() => setClearSuccess(false), 3000);
-        alert('Database cleared successfully on server.');
+        loadStats(); // Reload 0 stats
+        setTimeout(() => setClearSuccess(false), 3000);
+        alert(t('settings.alertSuccess'));
       } else {
-        alert('Failed to clear database on server');
+        alert(t('settings.alertError'));
       }
     } catch (error) {
       console.error('Failed to clear database:', error);
@@ -79,47 +84,69 @@ export function Settings() {
   return (
     <Container maxWidth="md">
       <Typography variant="h4" component="h1" gutterBottom>
-        Settings
+        {t('settings.title')}
       </Typography>
 
       {clearSuccess && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          Database cleared successfully! You can now re-import your
-          transactions.
+          {t('settings.successMessage')}
         </Alert>
       )}
 
       <Box sx={{ mt: 4 }}>
         <Card>
           <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <TranslateIcon sx={{ mr: 1 }} />
+              <Typography variant="h6">{t('settings.language')}</Typography>
+            </Box>
+            <FormControl fullWidth>
+              <InputLabel>{t('settings.selectLanguage')}</InputLabel>
+              <Select
+                value={i18n.language}
+                label={t('settings.selectLanguage')}
+                onChange={e => i18n.changeLanguage(e.target.value)}
+              >
+                <MenuItem value="en">English</MenuItem>
+                <MenuItem value="zh-TW">
+                  繁體中文 (Traditional Chinese)
+                </MenuItem>
+              </Select>
+            </FormControl>
+          </CardContent>
+        </Card>
+      </Box>
+
+      <Box sx={{ mt: 4 }}>
+        <Card>
+          <CardContent>
             <Typography variant="h6" gutterBottom>
-              Cost Basis Method
+              {t('settings.costBasisMethod')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Select the method for calculating cost basis and P/L. FIFO is
-              IRS-compliant for tax reporting.
+              {t('settings.costBasisMethodDesc')}
             </Typography>
 
             <FormControl fullWidth>
-              <InputLabel>Method</InputLabel>
+              <InputLabel>{t('settings.costBasisMethod')}</InputLabel>
               <Select
                 value={costBasisMethod}
-                label="Method"
+                label={t('settings.costBasisMethod')}
                 onChange={e =>
                   setCostBasisMethod(e.target.value as 'FIFO' | 'AVERAGE_COST')
                 }
               >
-                <MenuItem value="FIFO">FIFO (First-In-First-Out)</MenuItem>
-                <MenuItem value="AVERAGE_COST">Average Cost</MenuItem>
+                <MenuItem value="FIFO">{t('settings.fifoAndDesc')}</MenuItem>
+                <MenuItem value="AVERAGE_COST">
+                  {t('settings.averageCost')}
+                </MenuItem>
               </Select>
             </FormControl>
 
             <Box sx={{ mt: 2, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
               <Typography variant="body2">
-                <strong>Note:</strong> Changing the cost basis method will
-                recalculate all P/L values. FIFO is recommended for tax
-                reporting as it matches IRS requirements and broker 1099-B
-                forms.
+                <strong>{t('settings.note')}</strong>{' '}
+                {t('settings.costBasisWarning')}
               </Typography>
             </Box>
           </CardContent>
@@ -131,24 +158,25 @@ export function Settings() {
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <StorageIcon sx={{ mr: 1 }} />
-              <Typography variant="h6">Database Management</Typography>
+              <Typography variant="h6">
+                {t('settings.databaseManagement')}
+              </Typography>
             </Box>
 
             <Box sx={{ mb: 3 }}>
               <Typography variant="body1">
-                <strong>Transactions:</strong>{' '}
+                <strong>{t('settings.transactionsCount')}</strong>{' '}
                 {transactionCount.toLocaleString()}
               </Typography>
               <Typography variant="body1">
-                <strong>Import Batches:</strong> {batchCount}
+                <strong>{t('settings.batchesCount')}</strong> {batchCount}
               </Typography>
             </Box>
 
             <Divider sx={{ my: 2 }} />
 
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Clear all imported transactions and start fresh. This action
-              cannot be undone.
+              {t('settings.deleteWarning')}
             </Typography>
 
             <Button
@@ -158,7 +186,7 @@ export function Settings() {
               onClick={() => setConfirmOpen(true)}
               disabled={transactionCount === 0}
             >
-              Clear All Data
+              {t('settings.clearData')}
             </Button>
           </CardContent>
         </Card>
@@ -166,18 +194,16 @@ export function Settings() {
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogTitle>{t('settings.confirmDelete')}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete all{' '}
-            {transactionCount.toLocaleString()} transactions and {batchCount}{' '}
-            import batches? This action cannot be undone.
-          </DialogContentText>
+          <DialogContentText>{t('settings.deleteWarning')}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+          <Button onClick={() => setConfirmOpen(false)}>
+            {t('settings.cancel')}
+          </Button>
           <Button onClick={handleClearDatabase} color="error" autoFocus>
-            Delete All
+            {t('settings.delete')}
           </Button>
         </DialogActions>
       </Dialog>

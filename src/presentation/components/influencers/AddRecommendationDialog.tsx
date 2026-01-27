@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { useState, useEffect } from 'react';
 import { Influencer, RecommendationCreate } from '@domain/models/Influencer';
+import { useTranslation } from 'react-i18next';
 
 interface AddRecommendationDialogProps {
   open: boolean;
@@ -35,6 +36,7 @@ export function AddRecommendationDialog({
     initial_price: undefined,
     note: '',
   });
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (open) {
@@ -68,12 +70,12 @@ export function AddRecommendationDialog({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Add Stock Recommendation</DialogTitle>
+      <DialogTitle>{t('influencers.addRecDialogTitle')}</DialogTitle>
       <DialogContent
         sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}
       >
         <FormControl fullWidth margin="dense">
-          <InputLabel>Influencer</InputLabel>
+          <InputLabel>{t('influencers.influencerLabel')}</InputLabel>
           <Select
             value={influencerId || ''}
             label="Influencer"
@@ -88,7 +90,7 @@ export function AddRecommendationDialog({
         </FormControl>
 
         <TextField
-          label="Symbols (comma separated, e.g., AAPL, TSLA)"
+          label={t('influencers.symbolsLabel')}
           fullWidth
           value={formData.symbol}
           onChange={e =>
@@ -97,7 +99,7 @@ export function AddRecommendationDialog({
         />
 
         <TextField
-          label="Date"
+          label={t('influencers.dateLabel')}
           type="date"
           fullWidth
           value={formData.recommendation_date}
@@ -108,7 +110,7 @@ export function AddRecommendationDialog({
         />
 
         <TextField
-          label="Initial Price (Optional - Auto-fetched if empty)"
+          label={t('influencers.initialPriceLabel')}
           type="number"
           fullWidth
           value={formData.initial_price || ''}
@@ -120,11 +122,11 @@ export function AddRecommendationDialog({
                 : undefined,
             })
           }
-          helperText="Leave empty to automatically fetch historical close price"
+          helperText={t('influencers.initialPriceHelper')}
         />
 
         <TextField
-          label="Note (URL or Text)"
+          label={t('influencers.noteLabel')}
           fullWidth
           multiline
           rows={2}
@@ -133,13 +135,13 @@ export function AddRecommendationDialog({
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
           disabled={!influencerId || !formData.symbol}
         >
-          Add Recommendation
+          {t('influencers.addRecommendation')}
         </Button>
       </DialogActions>
     </Dialog>

@@ -23,6 +23,7 @@ import { InfluencerList } from '../components/influencers/InfluencerList';
 import { RecommendationTable } from '../components/influencers/RecommendationTable';
 import { AddRecommendationDialog } from '../components/influencers/AddRecommendationDialog';
 import { InfluencerStats } from '../components/influencers/InfluencerStats';
+import { useTranslation } from 'react-i18next';
 
 export function InfluencerTrackerPage() {
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
@@ -32,6 +33,7 @@ export function InfluencerTrackerPage() {
   >(null);
   const [isAddRecOpen, setIsAddRecOpen] = useState(false);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchData();
@@ -60,12 +62,7 @@ export function InfluencerTrackerPage() {
   };
 
   const handleDeleteInfluencer = async (id: string) => {
-    if (
-      !confirm(
-        'Are you sure based? This will delete all their recommendations too.'
-      )
-    )
-      return;
+    if (!confirm(t('influencers.deleteConfirm'))) return;
     try {
       await apiClient.deleteInfluencer(id);
       if (selectedInfluencerId === id) setSelectedInfluencerId(null);
@@ -88,7 +85,7 @@ export function InfluencerTrackerPage() {
   };
 
   const handleDeleteRecommendation = async (id: string) => {
-    if (!confirm('Remove this recommendation?')) return;
+    if (!confirm(t('influencers.deleteRecConfirm'))) return;
     try {
       await apiClient.deleteRecommendation(id);
       fetchData();
@@ -105,7 +102,7 @@ export function InfluencerTrackerPage() {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4" component="h1">
-          Influencer Tracker
+          {t('influencers.title')}
         </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
@@ -113,14 +110,14 @@ export function InfluencerTrackerPage() {
             startIcon={<Assessment />}
             onClick={() => setIsStatsOpen(true)}
           >
-            View Statistics
+            {t('influencers.viewStats')}
           </Button>
           <Button
             variant="contained"
             startIcon={<Add />}
             onClick={() => setIsAddRecOpen(true)}
           >
-            Add Recommendation
+            {t('influencers.addRecommendation')}
           </Button>
         </Box>
       </Box>
@@ -147,8 +144,8 @@ export function InfluencerTrackerPage() {
             >
               <Typography variant="h6">
                 {selectedInfluencerId
-                  ? `Recommendations by ${influencers.find(i => i.id === selectedInfluencerId)?.name || 'Unknown'}`
-                  : 'All Recommendations'}
+                  ? `${t('influencers.recsCount')} - ${influencers.find(i => i.id === selectedInfluencerId)?.name || 'Unknown'}`
+                  : t('influencers.popularRecommendations')}
               </Typography>
             </Box>
             <RecommendationTable
@@ -168,7 +165,7 @@ export function InfluencerTrackerPage() {
         fullWidth
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Assessment /> Statistics
+          <Assessment /> {t('influencers.viewStats')}
         </DialogTitle>
         <DialogContent dividers>
           <InfluencerStats
@@ -177,7 +174,9 @@ export function InfluencerTrackerPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsStatsOpen(false)}>Close</Button>
+          <Button onClick={() => setIsStatsOpen(false)}>
+            {t('common.cancel')}
+          </Button>
         </DialogActions>
       </Dialog>
 

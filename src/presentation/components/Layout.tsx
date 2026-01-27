@@ -23,31 +23,37 @@ import {
   Psychology,
   People,
 } from '@mui/icons-material';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PageTransition } from './PageTransition';
 
 const drawerWidth = 240;
 
 const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Transactions', icon: <Receipt />, path: '/transactions' },
-  { text: 'Analysis', icon: <Assessment />, path: '/analysis' },
-  { text: 'Benchmark', icon: <CompareArrows />, path: '/benchmark' },
-  { text: 'Strategy', icon: <Psychology />, path: '/strategy' },
-  { text: 'Influencers', icon: <People />, path: '/influencers' },
-  { text: 'Settings', icon: <Settings />, path: '/settings' },
+  { key: 'nav.dashboard', icon: <DashboardIcon />, path: '/' },
+  { key: 'nav.transactions', icon: <Receipt />, path: '/transactions' },
+  { key: 'nav.analysis', icon: <Assessment />, path: '/analysis' },
+  { key: 'nav.benchmark', icon: <CompareArrows />, path: '/benchmark' },
+  { key: 'nav.strategy', icon: <Psychology />, path: '/strategy' },
+  { key: 'nav.influencers', icon: <People />, path: '/influencers' },
+  { key: 'nav.settings', icon: <Settings />, path: '/settings' },
 ];
 
 /**
  * Main application layout with navigation
  */
 export function Layout() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    document.title = t('app.fullTitle');
+  }, [t]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -64,18 +70,18 @@ export function Layout() {
     <div>
       <Toolbar>
         <Typography variant="h6" noWrap component="div">
-          Portfolio Tracker
+          {t('app.title')}
         </Typography>
       </Toolbar>
       <List>
         {menuItems.map(item => (
-          <ListItem key={item.text} disablePadding>
+          <ListItem key={item.key} disablePadding>
             <ListItemButton
               selected={location.pathname === item.path}
               onClick={() => handleNavigation(item.path)}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemText primary={t(item.key)} />
             </ListItemButton>
           </ListItem>
         ))}
@@ -105,7 +111,7 @@ export function Layout() {
             </IconButton>
           )}
           <Typography variant="h6" noWrap component="div">
-            Investment Portfolio Tracker
+            {t('app.fullTitle')}
           </Typography>
         </Toolbar>
       </AppBar>

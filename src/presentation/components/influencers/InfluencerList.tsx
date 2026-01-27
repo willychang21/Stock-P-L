@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useState } from 'react';
 import { Influencer, InfluencerCreate } from '@domain/models/Influencer';
+import { useTranslation } from 'react-i18next';
 
 interface InfluencerListProps {
   influencers: Influencer[];
@@ -47,6 +48,7 @@ export function InfluencerList({
     platform: '',
     url: '',
   });
+  const { t } = useTranslation();
 
   const getIcon = (platform?: string) => {
     const p = platform?.toLowerCase() || '';
@@ -84,13 +86,13 @@ export function InfluencerList({
           borderColor: 'divider',
         }}
       >
-        <Typography variant="h6">Influencers</Typography>
+        <Typography variant="h6">{t('influencers.title')}</Typography>
         <Button
           startIcon={<AddIcon />}
           size="small"
           onClick={() => setIsAddOpen(true)}
         >
-          Add
+          {t('influencers.add')}
         </Button>
       </Box>
 
@@ -103,7 +105,7 @@ export function InfluencerList({
             <ListItemIcon>
               <Person />
             </ListItemIcon>
-            <ListItemText primary="All Influencers" />
+            <ListItemText primary={t('influencers.allInfluencers')} />
           </ListItemButton>
         </ListItem>
 
@@ -136,19 +138,19 @@ export function InfluencerList({
       </List>
 
       <Dialog open={isAddOpen} onClose={() => setIsAddOpen(false)}>
-        <DialogTitle>Add New Influencer</DialogTitle>
+        <DialogTitle>{t('influencers.addInfluencer')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Name"
+            label={t('influencers.name')}
             fullWidth
             value={formData.name}
             onChange={e => setFormData({ ...formData, name: e.target.value })}
           />
           <TextField
             margin="dense"
-            label="Platform (e.g., YouTube, Threads)"
+            label={t('influencers.platform')}
             fullWidth
             value={formData.platform}
             onChange={e =>
@@ -157,16 +159,18 @@ export function InfluencerList({
           />
           <TextField
             margin="dense"
-            label="Profile URL"
+            label={t('influencers.url')}
             fullWidth
             value={formData.url}
             onChange={e => setFormData({ ...formData, url: e.target.value })}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsAddOpen(false)}>Cancel</Button>
+          <Button onClick={() => setIsAddOpen(false)}>
+            {t('common.cancel')}
+          </Button>
           <Button onClick={handleAdd} variant="contained">
-            Add
+            {t('influencers.add')}
           </Button>
         </DialogActions>
       </Dialog>

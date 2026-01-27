@@ -33,6 +33,7 @@ import { apiClient } from '../../infrastructure/api/client';
 import { TransactionType } from '@domain/models/Transaction';
 import { useStore } from '@application/store/useStore';
 import { TransactionNoteDialog } from '../components/TransactionNoteDialog';
+import { useTranslation } from 'react-i18next';
 
 interface TransactionRow {
   id: string;
@@ -56,6 +57,7 @@ interface TransactionRow {
 type OrderBy = 'date' | 'symbol' | 'type' | 'quantity' | 'price';
 
 export function Transactions() {
+  const { t } = useTranslation();
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
@@ -350,11 +352,11 @@ export function Transactions() {
   return (
     <Container maxWidth="xl">
       <Typography variant="h4" component="h1" gutterBottom>
-        Transactions
+        {t('transactions.title')}
       </Typography>
 
       <Tabs value={tabIndex} onChange={(_, v) => setTabIndex(v)} sx={{ mb: 3 }}>
-        <Tab label="All Transactions" />
+        <Tab label={t('transactions.allTransactions')} />
       </Tabs>
 
       {tabIndex === 0 && (
@@ -365,7 +367,11 @@ export function Transactions() {
               onChange={(_, newValue) => setFilterSymbol(newValue || '')}
               options={uniqueSymbols}
               renderInput={params => (
-                <TextField {...params} label="Symbol" variant="outlined" />
+                <TextField
+                  {...params}
+                  label={t('transactions.symbol')}
+                  variant="outlined"
+                />
               )}
               sx={{ minWidth: 200 }}
               size="small"
@@ -373,11 +379,11 @@ export function Transactions() {
             />
 
             <FormControl sx={{ minWidth: 200 }} size="small">
-              <InputLabel>Type</InputLabel>
+              <InputLabel>{t('transactions.type')}</InputLabel>
               <Select
                 multiple
                 value={filterType}
-                label="Type"
+                label={t('transactions.type')}
                 onChange={e => {
                   const val = e.target.value;
                   setFilterType(
@@ -392,13 +398,27 @@ export function Transactions() {
                   </Box>
                 )}
               >
-                <MenuItem value={TransactionType.BUY}>Buy</MenuItem>
-                <MenuItem value={TransactionType.SELL}>Sell</MenuItem>
-                <MenuItem value={TransactionType.DIVIDEND}>Dividend</MenuItem>
-                <MenuItem value={TransactionType.FEE}>Fee</MenuItem>
-                <MenuItem value={TransactionType.TRANSFER}>Transfer</MenuItem>
-                <MenuItem value={TransactionType.SPLIT}>Split</MenuItem>
-                <MenuItem value={TransactionType.INTEREST}>Interest</MenuItem>
+                <MenuItem value={TransactionType.BUY}>
+                  {t('types.buy')}
+                </MenuItem>
+                <MenuItem value={TransactionType.SELL}>
+                  {t('types.sell')}
+                </MenuItem>
+                <MenuItem value={TransactionType.DIVIDEND}>
+                  {t('types.dividend')}
+                </MenuItem>
+                <MenuItem value={TransactionType.FEE}>
+                  {t('types.fee')}
+                </MenuItem>
+                <MenuItem value={TransactionType.TRANSFER}>
+                  {t('types.transfer')}
+                </MenuItem>
+                <MenuItem value={TransactionType.SPLIT}>
+                  {t('types.split')}
+                </MenuItem>
+                <MenuItem value={TransactionType.INTEREST}>
+                  {t('types.interest')}
+                </MenuItem>
               </Select>
             </FormControl>
 
@@ -413,8 +433,10 @@ export function Transactions() {
               color="text.secondary"
               sx={{ ml: 'auto', alignSelf: 'center' }}
             >
-              {filteredTransactions.length} of {transactions.length}{' '}
-              transactions
+              {t('transactions.count', {
+                count: filteredTransactions.length,
+                total: transactions.length,
+              })}
             </Typography>
           </Box>
 
@@ -429,7 +451,7 @@ export function Transactions() {
                         direction={orderBy === 'date' ? order : 'asc'}
                         onClick={() => handleSort('date')}
                       >
-                        Date
+                        {t('transactions.date')}
                       </TableSortLabel>
                     </TableCell>
                     <TableCell>
@@ -438,7 +460,7 @@ export function Transactions() {
                         direction={orderBy === 'symbol' ? order : 'asc'}
                         onClick={() => handleSort('symbol')}
                       >
-                        Symbol
+                        {t('transactions.symbol')}
                       </TableSortLabel>
                     </TableCell>
                     <TableCell>
@@ -447,7 +469,7 @@ export function Transactions() {
                         direction={orderBy === 'type' ? order : 'asc'}
                         onClick={() => handleSort('type')}
                       >
-                        Type
+                        {t('transactions.type')}
                       </TableSortLabel>
                     </TableCell>
                     <TableCell align="right">
@@ -456,7 +478,7 @@ export function Transactions() {
                         direction={orderBy === 'quantity' ? order : 'asc'}
                         onClick={() => handleSort('quantity')}
                       >
-                        Quantity
+                        {t('transactions.quantity')}
                       </TableSortLabel>
                     </TableCell>
                     <TableCell align="right">
@@ -465,14 +487,20 @@ export function Transactions() {
                         direction={orderBy === 'price' ? order : 'asc'}
                         onClick={() => handleSort('price')}
                       >
-                        Price
+                        {t('transactions.price')}
                       </TableSortLabel>
                     </TableCell>
-                    <TableCell align="right">Fees</TableCell>
-                    <TableCell align="right">Total</TableCell>
-                    <TableCell align="right">Realized P/L</TableCell>
-                    <TableCell>Broker</TableCell>
-                    <TableCell>Notes</TableCell>
+                    <TableCell align="right">
+                      {t('transactions.fees')}
+                    </TableCell>
+                    <TableCell align="right">
+                      {t('transactions.total')}
+                    </TableCell>
+                    <TableCell align="right">
+                      {t('transactions.realizedPL')}
+                    </TableCell>
+                    <TableCell>{t('transactions.broker')}</TableCell>
+                    <TableCell>{t('transactions.notes')}</TableCell>
                     <TableCell></TableCell>
                   </TableRow>
                 </TableHead>
@@ -487,7 +515,9 @@ export function Transactions() {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={tx.originalAction || tx.type}
+                            label={t(`types.${tx.type.toLowerCase()}`, {
+                              defaultValue: tx.originalAction || tx.type,
+                            })}
                             color={
                               getChipColor(tx.type, tx.originalAction) as any
                             }
@@ -574,7 +604,7 @@ export function Transactions() {
                                 fontStyle: tx.notes ? 'normal' : 'italic',
                               }}
                             >
-                              {tx.notes || 'No notes'}
+                              {tx.notes || t('transactions.noNotes')}
                             </Typography>
                             <Tooltip title="Edit Note">
                               <IconButton
@@ -605,8 +635,7 @@ export function Transactions() {
                           color="text.secondary"
                           sx={{ py: 4 }}
                         >
-                          No transactions found. Import a CSV file to get
-                          started.
+                          {t('transactions.noTransactions')}
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -625,6 +654,7 @@ export function Transactions() {
                 setRowsPerPage(parseInt(e.target.value, 10));
                 setPage(0);
               }}
+              labelRowsPerPage={t('common.rowsPerPage')}
             />
           </Paper>
         </>

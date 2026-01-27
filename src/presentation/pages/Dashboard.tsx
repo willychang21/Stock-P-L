@@ -16,6 +16,7 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 import { Add, Refresh } from '@mui/icons-material';
 import { HoldingsTable } from '../components/HoldingsTable';
@@ -30,6 +31,7 @@ import Decimal from 'decimal.js';
  * Dashboard page - main landing page
  */
 export function Dashboard() {
+  const { t } = useTranslation();
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,15 +116,17 @@ export function Dashboard() {
           }}
         >
           <Typography variant="h4" component="h1">
-            Portfolio Dashboard
+            {t('dashboard.title')}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <FormControl sx={{ mr: 2, minWidth: 150 }} size="small">
-              <InputLabel id="calculator-select-label">Cost Basis</InputLabel>
+              <InputLabel id="calculator-select-label">
+                {t('dashboard.costBasis')}
+              </InputLabel>
               <Select
                 labelId="calculator-select-label"
                 value={calculatorId}
-                label="Cost Basis"
+                label={t('dashboard.costBasis')}
                 onChange={e => setCalculatorId(e.target.value)}
               >
                 <MenuItem value="fifo">FIFO</MenuItem>
@@ -135,14 +139,14 @@ export function Dashboard() {
               disabled={isLoading}
               sx={{ mr: 2 }}
             >
-              Refresh
+              {t('dashboard.refresh')}
             </Button>
             <Button
               variant="contained"
               startIcon={<Add />}
               onClick={() => setImportDialogOpen(true)}
             >
-              Import CSV
+              {t('dashboard.import')}
             </Button>
           </Box>
         </Box>
@@ -156,9 +160,9 @@ export function Dashboard() {
         {/* Filter Tabs - Disabled for MVP if backend doesn't support filtering yet */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={assetFilter} onChange={(_, val) => setAssetFilter(val)}>
-            <Tab label="All" value="ALL" />
-            <Tab label="Equity" value="EQUITY" />
-            <Tab label="ETF" value="ETF" />
+            <Tab label={t('dashboard.filterAll')} value="ALL" />
+            <Tab label={t('types.equity')} value="EQUITY" />
+            <Tab label={t('types.etf')} value="ETF" />
           </Tabs>
         </Box>
 
@@ -169,7 +173,7 @@ export function Dashboard() {
             <Card>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
-                  Total Value
+                  {t('dashboard.totalValue')}
                 </Typography>
                 <Typography variant="h6">${totalValue.toFixed(2)}</Typography>
               </CardContent>
@@ -180,7 +184,7 @@ export function Dashboard() {
             <Card>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
-                  Total Cost
+                  {t('dashboard.totalCost')}
                 </Typography>
                 <Typography variant="h6">${totalCost.toFixed(2)}</Typography>
               </CardContent>
@@ -192,7 +196,7 @@ export function Dashboard() {
             <Card>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
-                  Realized P/L
+                  {t('dashboard.realizedPL')}
                 </Typography>
                 <Typography
                   variant="h6"
@@ -209,7 +213,7 @@ export function Dashboard() {
             <Card>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
-                  Unrealized P/L
+                  {t('dashboard.unrealizedPL')}
                 </Typography>
                 <Typography
                   variant="h6"
@@ -228,7 +232,7 @@ export function Dashboard() {
             <Card>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
-                  Total P/L ($)
+                  {t('dashboard.totalPL')}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
                   <Typography
@@ -247,7 +251,7 @@ export function Dashboard() {
             <Card>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
-                  Total P/L (%)
+                  {t('dashboard.totalPLPercent')}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
                   <Typography
@@ -267,7 +271,7 @@ export function Dashboard() {
 
         {/* Holdings Table */}
         <Typography variant="h5" sx={{ mb: 2 }}>
-          Current Holdings
+          {t('dashboard.currentHoldings')}
         </Typography>
 
         {isLoading ? (

@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { Box, Typography } from '@mui/material';
 import { DailyReturn } from '@application/services/BenchmarkService';
+import { useTranslation } from 'react-i18next';
 
 interface ChartDataPoint {
   date: string;
@@ -54,6 +55,8 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
   portfolioReturns,
   benchmarks,
 }) => {
+  const { t } = useTranslation();
+
   // Merge all data points into unified chart data
   const chartData: ChartDataPoint[] = [];
   const dateMap = new Map<string, ChartDataPoint>();
@@ -105,7 +108,7 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
         }}
       >
         <Typography color="text.secondary">
-          No performance data available
+          {t('benchmark.chart.noPerformanceData')}
         </Typography>
       </Box>
     );
@@ -141,10 +144,10 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
             }}
             formatter={(value: number, name: string) => {
               const displayName = name
-                .replace('_lumpsum', ' (Lump Sum)')
-                .replace('_sametime', ' (Same Timing)')
-                .replace('portfolio', 'Your Portfolio')
-                .replace('realized', 'Realized Return');
+                .replace('_lumpsum', ` (${t('benchmark.chart.lumpSum')})`)
+                .replace('_sametime', ` (${t('benchmark.chart.sameTiming')})`)
+                .replace('portfolio', t('benchmark.chart.yourPortfolio'))
+                .replace('realized', t('benchmark.chart.realizedReturn'));
               return [`${value.toFixed(2)}%`, displayName];
             }}
             labelFormatter={label => `Date: ${label}`}
@@ -152,8 +155,8 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
           <Legend
             formatter={(value: string) => {
               return value
-                .replace('_lumpsum', ' (Lump)')
-                .replace('_sametime', ' (Same)');
+                .replace('_lumpsum', ` (${t('benchmark.chart.lump')})`)
+                .replace('_sametime', ` (${t('benchmark.chart.same')})`);
             }}
           />
 
@@ -161,7 +164,7 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
           <Line
             type="monotone"
             dataKey="portfolio"
-            name="Your Portfolio"
+            name={t('benchmark.chart.yourPortfolio')}
             stroke="#7C4DFF"
             strokeWidth={3}
             dot={false}
@@ -173,7 +176,7 @@ export const CumulativeReturnChart: React.FC<CumulativeReturnChartProps> = ({
           <Line
             type="monotone"
             dataKey="realized"
-            name="Realized Return"
+            name={t('benchmark.chart.realizedReturn')}
             stroke="#2dd4bf"
             strokeWidth={2}
             dot={false}
