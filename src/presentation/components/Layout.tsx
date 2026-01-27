@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { PageTransition } from './PageTransition';
 
 const drawerWidth = 240;
 
@@ -158,7 +159,9 @@ export function Layout() {
         }}
       >
         <Toolbar /> {/* Spacer for AppBar */}
-        <Outlet />
+        <PageTransition>
+          <Outlet />
+        </PageTransition>
       </Box>
     </Box>
   );
