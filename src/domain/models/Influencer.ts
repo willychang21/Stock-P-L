@@ -33,3 +33,16 @@ export interface RecommendationCreate {
   initial_price?: number;
   note?: string;
 }
+
+export interface InfluencerUpdate {
+  name?: string;
+  platform?: string;
+  url?: string;
+}
+
+export interface RecommendationUpdate {
+  symbol?: string;
+  recommendation_date?: string;
+  initial_price?: number;
+  note?: string;
+}

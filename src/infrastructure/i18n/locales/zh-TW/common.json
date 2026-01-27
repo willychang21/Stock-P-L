@@ -213,7 +213,14 @@
     "viewStats": "查看統計",
     "addRecommendation": "新增推薦",
     "addInfluencer": "新增網紅",
+    "editInfluencer": "編輯網紅",
+    "editRecommendation": "編輯推薦",
     "allInfluencers": "所有網紅",
+    "tabs": {
+      "latest": "最新推薦",
+      "performance": "績效排行",
+      "popular": "熱門標的"
+    },
     "name": "名稱",
     "platform": "平台",
     "url": "個人頁面連結",
@@ -239,6 +246,7 @@
       "initialPrice": "初始價格",
       "currentPrice": "現價",
       "return": "報酬率",
+      "avgReturn": "平均報酬",
       "note": "備註",
       "actions": "操作",
       "empty": "尚無追蹤推薦。請選擇一位網紅並新增股票推薦！"

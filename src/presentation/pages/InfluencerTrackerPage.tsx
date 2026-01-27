@@ -5,24 +5,26 @@ import {
   Container,
   Grid,
   Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { Add, Assessment } from '@mui/icons-material';
+import { Add } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
 import {
   Influencer,
   Recommendation,
   InfluencerCreate,
+  InfluencerUpdate,
   RecommendationCreate,
+  RecommendationUpdate,
 } from '@domain/models/Influencer';
 import { apiClient } from '@infrastructure/api/client';
 import { InfluencerList } from '../components/influencers/InfluencerList';
 import { RecommendationTable } from '../components/influencers/RecommendationTable';
 import { AddRecommendationDialog } from '../components/influencers/AddRecommendationDialog';
-import { InfluencerStats } from '../components/influencers/InfluencerStats';
+import { EditRecommendationDialog } from '../components/influencers/EditRecommendationDialog';
+import { PerformanceRanking } from '../components/influencers/PerformanceRanking';
+import { PopularStocks } from '../components/influencers/PopularStocks';
 import { useTranslation } from 'react-i18next';
 
 export function InfluencerTrackerPage() {
@@ -32,7 +34,10 @@ export function InfluencerTrackerPage() {
     string | null
   >(null);
   const [isAddRecOpen, setIsAddRecOpen] = useState(false);
-  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [isEditRecOpen, setIsEditRecOpen] = useState(false);
+  const [editingRecommendation, setEditingRecommendation] =
+    useState<Recommendation | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -61,6 +66,15 @@ export function InfluencerTrackerPage() {
     }
   };
 
+  const handleUpdateInfluencer = async (id: string, data: InfluencerUpdate) => {
+    try {
+      await apiClient.updateInfluencer(id, data);
+      fetchData();
+    } catch (error) {
+      alert('Failed to update influencer');
+    }
+  };
+
   const handleDeleteInfluencer = async (id: string) => {
     if (!confirm(t('influencers.deleteConfirm'))) return;
     try {
@@ -81,6 +95,23 @@ export function InfluencerTrackerPage() {
       fetchData();
     } catch (error) {
       alert('Failed to add recommendations');
+    }
+  };
+
+  const handleEditRecommendation = (rec: Recommendation) => {
+    setEditingRecommendation(rec);
+    setIsEditRecOpen(true);
+  };
+
+  const handleUpdateRecommendation = async (
+    id: string,
+    data: RecommendationUpdate
+  ) => {
+    try {
+      await apiClient.updateRecommendation(id, data);
+      fetchData();
+    } catch (error) {
+      alert('Failed to update recommendation');
     }
   };
 
@@ -106,13 +137,6 @@ export function InfluencerTrackerPage() {
         </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
-            variant="outlined"
-            startIcon={<Assessment />}
-            onClick={() => setIsStatsOpen(true)}
-          >
-            {t('influencers.viewStats')}
-          </Button>
-          <Button
             variant="contained"
             startIcon={<Add />}
             onClick={() => setIsAddRecOpen(true)}
@@ -129,56 +153,73 @@ export function InfluencerTrackerPage() {
             selectedId={selectedInfluencerId}
             onSelect={setSelectedInfluencerId}
             onAdd={handleAddInfluencer}
+            onUpdate={handleUpdateInfluencer}
             onDelete={handleDeleteInfluencer}
           />
         </Grid>
-        <Grid item xs={12} md={9} sx={{ height: '100%', overflow: 'auto' }}>
-          <Paper sx={{ p: 2, mb: 2 }}>
+        <Grid item xs={12} md={9} sx={{ height: '100%', overflow: 'hidden' }}>
+          <Paper
+            sx={{
+              p: 2,
+              mb: 2,
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
             <Box
               sx={{
+                borderBottom: 1,
+                borderColor: 'divider',
+                mb: 2,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                mb: 2,
               }}
             >
-              <Typography variant="h6">
-                {selectedInfluencerId
-                  ? `${t('influencers.recsCount')} - ${influencers.find(i => i.id === selectedInfluencerId)?.name || 'Unknown'}`
-                  : t('influencers.popularRecommendations')}
-              </Typography>
+              <Tabs
+                value={activeTab}
+                onChange={(_, newValue) => setActiveTab(newValue)}
+              >
+                <Tab label={t('influencers.tabs.latest')} />
+                <Tab label={t('influencers.tabs.performance')} />
+                <Tab label={t('influencers.tabs.popular')} />
+              </Tabs>
+              {activeTab === 0 && (
+                <Typography variant="subtitle1" color="text.secondary">
+                  {selectedInfluencerId
+                    ? `${t('influencers.recsCount')} - ${influencers.find(i => i.id === selectedInfluencerId)?.name || 'Unknown'}`
+                    : t('influencers.allInfluencers')}
+                </Typography>
+              )}
             </Box>
-            <RecommendationTable
-              recommendations={filteredRecommendations}
-              influencers={influencers}
-              onDelete={handleDeleteRecommendation}
-            />
+
+            <Box sx={{ flex: 1, overflow: 'auto' }}>
+              {activeTab === 0 && (
+                <RecommendationTable
+                  recommendations={filteredRecommendations}
+                  influencers={influencers}
+                  onDelete={handleDeleteRecommendation}
+                  onEdit={handleEditRecommendation}
+                />
+              )}
+              {activeTab === 1 && (
+                <PerformanceRanking
+                  recommendations={recommendations}
+                  influencers={influencers}
+                />
+              )}
+              {activeTab === 2 && (
+                <PopularStocks
+                  recommendations={recommendations}
+                  influencers={influencers}
+                />
+              )}
+            </Box>
           </Paper>
         </Grid>
       </Grid>
-
-      {/* Stats Dialog */}
-      <Dialog
-        open={isStatsOpen}
-        onClose={() => setIsStatsOpen(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Assessment /> {t('influencers.viewStats')}
-        </DialogTitle>
-        <DialogContent dividers>
-          <InfluencerStats
-            recommendations={recommendations}
-            influencers={influencers}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsStatsOpen(false)}>
-            {t('common.cancel')}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       <AddRecommendationDialog
         open={isAddRecOpen}
@@ -186,6 +227,14 @@ export function InfluencerTrackerPage() {
         onAdd={handleAddRecommendation}
         influencers={influencers}
         initialInfluencerId={selectedInfluencerId}
+      />
+
+      <EditRecommendationDialog
+        open={isEditRecOpen}
+        onClose={() => setIsEditRecOpen(false)}
+        onUpdate={handleUpdateRecommendation}
+        recommendation={editingRecommendation}
+        influencers={influencers}
       />
     </Container>
   );

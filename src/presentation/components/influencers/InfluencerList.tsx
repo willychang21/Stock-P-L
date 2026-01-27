@@ -14,6 +14,8 @@ import {
   Box,
   Typography,
   Paper,
+  Stack,
+  Avatar,
 } from '@mui/material';
 import {
   Person,
@@ -22,16 +24,24 @@ import {
   YouTube,
   Instagram,
   Language,
+  Edit as EditIcon,
+  OpenInNew,
 } from '@mui/icons-material';
 import { useState } from 'react';
-import { Influencer, InfluencerCreate } from '@domain/models/Influencer';
+import {
+  Influencer,
+  InfluencerCreate,
+  InfluencerUpdate,
+} from '@domain/models/Influencer';
 import { useTranslation } from 'react-i18next';
+import { getFaviconUrl } from '@presentation/utils/favicon';
 
 interface InfluencerListProps {
   influencers: Influencer[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onAdd: (data: InfluencerCreate) => void;
+  onUpdate: (id: string, data: InfluencerUpdate) => void;
   onDelete: (id: string) => void;
 }
 
@@ -40,9 +50,11 @@ export function InfluencerList({
   selectedId,
   onSelect,
   onAdd,
+  onUpdate,
   onDelete,
 }: InfluencerListProps) {
-  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<InfluencerCreate>({
     name: '',
     platform: '',
@@ -50,20 +62,43 @@ export function InfluencerList({
   });
   const { t } = useTranslation();
 
-  const getIcon = (platform?: string) => {
-    const p = platform?.toLowerCase() || '';
-    if (p.includes('youtube')) return <YouTube color="error" />;
-    if (p.includes('instagram') || p.includes('ig'))
+  const getIcon = (inf: Influencer) => {
+    const platform = inf.platform?.toLowerCase() || '';
+    if (platform.includes('youtube')) return <YouTube color="error" />;
+    if (platform.includes('instagram') || platform.includes('ig'))
       return <Instagram color="secondary" />;
-    if (p.includes('thread')) return <Language />; // Placeholder for Threads
+    if (platform.includes('thread')) return <Language />; // Placeholder for Threads
     return <Person />;
   };
 
-  const handleAdd = () => {
-    if (!formData.name) return;
-    onAdd(formData);
+  const handleOpenAdd = () => {
+    setEditingId(null);
     setFormData({ name: '', platform: '', url: '' });
-    setIsAddOpen(false);
+    setIsOpen(true);
+  };
+
+  const handleOpenEdit = (inf: Influencer) => {
+    setEditingId(inf.id);
+    setFormData({
+      name: inf.name,
+      platform: inf.platform || '',
+      url: inf.url || '',
+    });
+    setIsOpen(true);
+  };
+
+  const handleSubmit = () => {
+    if (!formData.name) return;
+
+    if (editingId) {
+      onUpdate(editingId, formData);
+    } else {
+      onAdd(formData);
+    }
+
+    setIsOpen(false);
+    setFormData({ name: '', platform: '', url: '' });
+    setEditingId(null);
   };
 
   return (
@@ -87,11 +122,7 @@ export function InfluencerList({
         }}
       >
         <Typography variant="h6">{t('influencers.title')}</Typography>
-        <Button
-          startIcon={<AddIcon />}
-          size="small"
-          onClick={() => setIsAddOpen(true)}
-        >
+        <Button startIcon={<AddIcon />} size="small" onClick={handleOpenAdd}>
           {t('influencers.add')}
         </Button>
       </Box>
@@ -114,31 +145,71 @@ export function InfluencerList({
             key={inf.id}
             disablePadding
             secondaryAction={
-              <IconButton
-                edge="end"
-                size="small"
-                onClick={e => {
-                  e.stopPropagation();
-                  onDelete(inf.id);
-                }}
-              >
-                <Delete fontSize="small" />
-              </IconButton>
+              <Stack direction="row" spacing={0.5} sx={{ pr: 1 }}>
+                {inf.url && (
+                  <IconButton
+                    edge="end"
+                    size="small"
+                    onClick={e => {
+                      e.stopPropagation();
+                      window.open(inf.url, '_blank');
+                    }}
+                  >
+                    <OpenInNew fontSize="small" />
+                  </IconButton>
+                )}
+                <IconButton
+                  edge="end"
+                  size="small"
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleOpenEdit(inf);
+                  }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  edge="end"
+                  size="small"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onDelete(inf.id);
+                  }}
+                >
+                  <Delete fontSize="small" />
+                </IconButton>
+              </Stack>
             }
           >
             <ListItemButton
               selected={selectedId === inf.id}
               onClick={() => onSelect(inf.id)}
             >
-              <ListItemIcon>{getIcon(inf.platform)}</ListItemIcon>
+              <ListItemIcon>
+                {inf.url ? (
+                  <Avatar
+                    src={getFaviconUrl(inf.url)}
+                    alt={inf.name}
+                    sx={{ width: 24, height: 24, bgcolor: 'transparent' }}
+                  >
+                    {getIcon(inf)}
+                  </Avatar>
+                ) : (
+                  getIcon(inf)
+                )}
+              </ListItemIcon>
               <ListItemText primary={inf.name} secondary={inf.platform} />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
 
-      <Dialog open={isAddOpen} onClose={() => setIsAddOpen(false)}>
-        <DialogTitle>{t('influencers.addInfluencer')}</DialogTitle>
+      <Dialog open={isOpen} onClose={() => setIsOpen(false)}>
+        <DialogTitle>
+          {editingId
+            ? t('influencers.editInfluencer')
+            : t('influencers.addInfluencer')}
+        </DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -166,11 +237,9 @@ export function InfluencerList({
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsAddOpen(false)}>
-            {t('common.cancel')}
-          </Button>
-          <Button onClick={handleAdd} variant="contained">
-            {t('influencers.add')}
+          <Button onClick={() => setIsOpen(false)}>{t('common.cancel')}</Button>
+          <Button onClick={handleSubmit} variant="contained">
+            {editingId ? t('common.save') : t('influencers.add')}
           </Button>
         </DialogActions>
       </Dialog>

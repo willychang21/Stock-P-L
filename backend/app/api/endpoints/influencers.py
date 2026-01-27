@@ -4,7 +4,9 @@ from datetime import datetime, timedelta
 import uuid
 from app.db.session import get_db
 from app.schemas.influencer import (
-    Influencer, InfluencerCreate, Recommendation, RecommendationCreate, InfluencerWithStats
+    Influencer, InfluencerCreate, InfluencerUpdate, 
+    Recommendation, RecommendationCreate, RecommendationUpdate,
+    InfluencerWithStats
 )
 from app.services.market_data import market_data_service
 
@@ -210,6 +212,127 @@ def get_all_recommendations(db=Depends(get_db)):
         })
         
     return results
+
+@router.put("/influencers/{influencer_id}", response_model=Influencer)
+def update_influencer(
+    influencer_id: str,
+    influencer_update: InfluencerUpdate,
+    db=Depends(get_db)
+):
+    """Update an existing influencer"""
+    current = db.execute("SELECT * FROM influencers WHERE id = ?", [influencer_id]).fetchone()
+    if not current:
+        raise HTTPException(status_code=404, detail="Influencer not found")
+    
+    # Build update query dynamically
+    updates = []
+    values = []
+    if influencer_update.name is not None:
+        updates.append("name = ?")
+        values.append(influencer_update.name)
+    if influencer_update.platform is not None:
+        updates.append("platform = ?")
+        values.append(influencer_update.platform)
+    if influencer_update.url is not None:
+        updates.append("url = ?")
+        values.append(influencer_update.url)
+        
+    if not updates:
+        # No updates provided, return current
+        return {
+            "id": current[0],
+            "name": current[1],
+            "platform": current[2],
+            "url": current[3],
+            "created_at": current[4]
+        }
+        
+    values.append(influencer_id)
+    query = f"UPDATE influencers SET {', '.join(updates)} WHERE id = ?"
+    db.execute(query, values)
+    
+    # Fetch updated
+    updated = db.execute("SELECT * FROM influencers WHERE id = ?", [influencer_id]).fetchone()
+    return {
+        "id": updated[0],
+        "name": updated[1],
+        "platform": updated[2],
+        "url": updated[3],
+        "created_at": updated[4]
+    }
+
+@router.put("/recommendations/{recommendation_id}", response_model=Recommendation)
+def update_recommendation(
+    recommendation_id: str,
+    recommendation_update: RecommendationUpdate,
+    db=Depends(get_db)
+):
+    """Update an existing recommendation"""
+    current = db.execute("SELECT * FROM influencer_recommendations WHERE id = ?", [recommendation_id]).fetchone()
+    if not current:
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+        
+    updates = []
+    values = []
+    
+    if recommendation_update.symbol is not None:
+        updates.append("symbol = ?")
+        values.append(recommendation_update.symbol)
+    if recommendation_update.recommendation_date is not None:
+        updates.append("recommendation_date = ?")
+        values.append(recommendation_update.recommendation_date)
+    if recommendation_update.initial_price is not None:
+        updates.append("initial_price = ?")
+        values.append(recommendation_update.initial_price)
+    if recommendation_update.note is not None:
+        updates.append("note = ?")
+        values.append(recommendation_update.note)
+        
+    if not updates:
+        # Return current state (need to map fields correctly matching Recommendation model)
+        return {
+            "id": current[0],
+            "influencer_id": current[1],
+            "symbol": current[2],
+            "recommendation_date": current[3],
+            "initial_price": current[4],
+            "note": current[5],
+            "created_at": current[6]
+        }
+        
+    values.append(recommendation_id)
+    query = f"UPDATE influencer_recommendations SET {', '.join(updates)} WHERE id = ?"
+    db.execute(query, values)
+    
+    updated = db.execute("SELECT * FROM influencer_recommendations WHERE id = ?", [recommendation_id]).fetchone()
+    
+    # Calculate current price / change if needed, similar to get_all_recommendations
+    # For simplicity, we just return the stored data + basic stats if available or just basic data
+    # The frontend usually refreshes the list anyway.
+    
+    # Try to fetch current price for completion
+    current_price = None
+    change_pct = None
+    try:
+        quotes = market_data_service.get_quotes([updated[2]])
+        if quotes and quotes[0].get("regularMarketPrice"):
+            current_price = quotes[0]["regularMarketPrice"]
+            if updated[4] and updated[4] > 0:
+                change_pct = (current_price - updated[4]) / updated[4]
+    except:
+        pass
+
+    return {
+        "id": updated[0],
+        "influencer_id": updated[1],
+        "symbol": updated[2],
+        "recommendation_date": updated[3],
+        "initial_price": updated[4],
+        "note": updated[5],
+        "created_at": updated[6],
+        "current_price": current_price,
+        "price_change_percent": change_pct
+    }
 
 @router.delete("/influencers/{influencer_id}")
 def delete_influencer(influencer_id: str, db=Depends(get_db)):

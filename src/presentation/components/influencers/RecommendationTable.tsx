@@ -12,16 +12,24 @@ import {
   Link,
   Tooltip,
   TableSortLabel,
+  Stack,
+  Avatar,
 } from '@mui/material';
-import { Delete as DeleteIcon, OpenInNew } from '@mui/icons-material';
+import {
+  Delete as DeleteIcon,
+  OpenInNew,
+  Edit as EditIcon,
+} from '@mui/icons-material';
 import { Recommendation, Influencer } from '@domain/models/Influencer';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getFaviconUrl } from '@presentation/utils/favicon';
 
 interface RecommendationTableProps {
   recommendations: Recommendation[];
   influencers: Influencer[];
   onDelete: (id: string) => void;
+  onEdit: (rec: Recommendation) => void;
 }
 
 type Order = 'asc' | 'desc';
@@ -31,6 +39,7 @@ export function RecommendationTable({
   recommendations,
   influencers,
   onDelete,
+  onEdit,
 }: RecommendationTableProps) {
   const [order, setOrder] = useState<Order>('desc');
   const [orderBy, setOrderBy] = useState<SortField>('date');
@@ -170,9 +179,20 @@ export function RecommendationTable({
                 <TableCell>{rec.recommendation_date}</TableCell>
                 <TableCell>
                   <Chip
+                    avatar={
+                      <Avatar
+                        src={getFaviconUrl(
+                          influencers.find(i => i.id === rec.influencer_id)?.url
+                        )}
+                        alt={getInfluencerName(rec.influencer_id)}
+                      />
+                    }
                     label={getInfluencerName(rec.influencer_id)}
                     size="small"
                     variant="outlined"
+                    onClick={() => {
+                      // Optional: Filter by influencer
+                    }}
                   />
                 </TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>{rec.symbol}</TableCell>
@@ -214,13 +234,18 @@ export function RecommendationTable({
                   )}
                 </TableCell>
                 <TableCell align="right">
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => onDelete(rec.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                  <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                    <IconButton size="small" onClick={() => onEdit(rec)}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => onDelete(rec.id)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
                 </TableCell>
               </TableRow>
             );

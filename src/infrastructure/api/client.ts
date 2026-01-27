@@ -3,8 +3,10 @@ import { Portfolio } from '../../domain/models/Portfolio';
 import {
   Influencer,
   InfluencerCreate,
+  InfluencerUpdate,
   Recommendation,
   RecommendationCreate,
+  RecommendationUpdate,
 } from '../../domain/models/Influencer';
 import Decimal from 'decimal.js';
 
@@ -173,6 +175,30 @@ export const apiClient = {
       method: 'DELETE',
     });
     await handleResponse(response);
+  },
+
+  updateInfluencer: async (
+    id: string,
+    data: InfluencerUpdate
+  ): Promise<Influencer> => {
+    const response = await fetch(`${API_BASE_URL}/influencers/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  updateRecommendation: async (
+    id: string,
+    data: RecommendationUpdate
+  ): Promise<Recommendation> => {
+    const response = await fetch(`${API_BASE_URL}/recommendations/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
   },
 };
 

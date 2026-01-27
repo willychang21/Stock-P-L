@@ -215,6 +215,11 @@
     "addRecommendation": "Add Recommendation",
     "addInfluencer": "Add Influencer",
     "allInfluencers": "All Influencers",
+    "tabs": {
+      "latest": "Latest Recommendations",
+      "performance": "Performance Ranking",
+      "popular": "Popular Stocks"
+    },
     "name": "Name",
     "platform": "Platform",
     "url": "Profile URL",
@@ -240,6 +245,7 @@
       "initialPrice": "Initial Price",
       "currentPrice": "Current Price",
       "return": "Return",
+      "avgReturn": "Avg Return",
       "note": "Note",
       "actions": "Actions",
       "empty": "No recommendations tracked yet. Select an influencer and add a stock pick!"
