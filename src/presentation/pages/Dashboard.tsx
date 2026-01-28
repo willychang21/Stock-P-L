@@ -98,10 +98,22 @@ export function Dashboard() {
       };
     }, [filteredHoldings]);
 
+  // If showing ALL, we should include Cash in Total Value for accuracy.
+  // The local calculation above sums *holdings only*.
+  // Let's modify totalValue only if filter is ALL to include cashBalance
+  let displayTotalValue = totalValue;
+  if (assetFilter === 'ALL' && portfolio?.cashBalance) {
+    displayTotalValue = displayTotalValue.plus(portfolio.cashBalance);
+  }
+
   const totalPL = totalUnrealizedPL.plus(totalRealizedPL);
 
   const totalPLPercent = !totalCost.isZero()
     ? totalPL.div(totalCost).times(100)
+    : new Decimal(0);
+
+  const totalROAPercent = !displayTotalValue.isZero()
+    ? totalPL.div(displayTotalValue).times(100)
     : new Decimal(0);
 
   return (
@@ -168,32 +180,84 @@ export function Dashboard() {
 
         {/* Portfolio Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          {/* Total Value & Cost */}
+          {/* 1. Total Value */}
           <Grid item xs={6} sm={4} md={2}>
-            <Card>
+            <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
                   {t('dashboard.totalValue')}
                 </Typography>
-                <Typography variant="h6">${totalValue.toFixed(2)}</Typography>
+                <Typography variant="h6">
+                  ${displayTotalValue.toFixed(2)}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
 
+          {/* 2. Invested Value (Renamed from Total Cost) */}
           <Grid item xs={6} sm={4} md={2}>
-            <Card>
+            <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
-                  {t('dashboard.totalCost')}
+                  {t('dashboard.investedValue')}
                 </Typography>
                 <Typography variant="h6">${totalCost.toFixed(2)}</Typography>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Realized P/L */}
+          {/* 3. Cash Balance */}
           <Grid item xs={6} sm={4} md={2}>
-            <Card>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography color="text.secondary" variant="caption">
+                  {t('dashboard.cashBalance')}
+                </Typography>
+                <Typography variant="h6">
+                  $
+                  {portfolio?.cashBalance
+                    ? portfolio.cashBalance.toFixed(2)
+                    : '0.00'}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* 4. Total Return ($ and %) */}
+          <Grid item xs={6} sm={4} md={2}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography color="text.secondary" variant="caption">
+                  {t('dashboard.totalReturn')}
+                </Typography>
+                <Box>
+                  <Typography
+                    variant="h6"
+                    component="div"
+                    color={totalPL.gte(0) ? 'success.main' : 'error.main'}
+                  >
+                    ${totalPL.toFixed(2)}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    component="div"
+                    color={
+                      totalPLPercent.gte(0) ? 'success.main' : 'error.main'
+                    }
+                  >
+                    ({totalPLPercent.gte(0) ? '+' : ''}
+                    {totalPLPercent.toFixed(2)}% /{' '}
+                    {totalROAPercent.gte(0) ? '+' : ''}
+                    {totalROAPercent.toFixed(2)}%)
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* 6. Realized P/L */}
+          <Grid item xs={6} sm={4} md={2}>
+            <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
                   {t('dashboard.realizedPL')}
@@ -208,9 +272,9 @@ export function Dashboard() {
             </Card>
           </Grid>
 
-          {/* Unrealized P/L */}
+          {/* 7. Unrealized P/L */}
           <Grid item xs={6} sm={4} md={2}>
-            <Card>
+            <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Typography color="text.secondary" variant="caption">
                   {t('dashboard.unrealizedPL')}
@@ -223,47 +287,6 @@ export function Dashboard() {
                 >
                   ${totalUnrealizedPL.toFixed(2)}
                 </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Total P/L ($) */}
-          <Grid item xs={6} sm={4} md={2}>
-            <Card>
-              <CardContent>
-                <Typography color="text.secondary" variant="caption">
-                  {t('dashboard.totalPL')}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                  <Typography
-                    variant="h6"
-                    color={totalPL.gte(0) ? 'success.main' : 'error.main'}
-                  >
-                    ${totalPL.toFixed(2)}
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Total P/L % */}
-          <Grid item xs={6} sm={4} md={2}>
-            <Card>
-              <CardContent>
-                <Typography color="text.secondary" variant="caption">
-                  {t('dashboard.totalPLPercent')}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                  <Typography
-                    variant="h6"
-                    color={
-                      totalPLPercent.gte(0) ? 'success.main' : 'error.main'
-                    }
-                  >
-                    {totalPLPercent.gte(0) ? '+' : ''}
-                    {totalPLPercent.toFixed(2)}%
-                  </Typography>
-                </Box>
               </CardContent>
             </Card>
           </Grid>

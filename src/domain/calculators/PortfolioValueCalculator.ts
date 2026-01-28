@@ -13,8 +13,10 @@ export interface DailyPortfolioValue {
   date: string;
   marketValue: Decimal;
   cashFlow: Decimal;
+  transferCashFlow: Decimal; // Only TRANSFER transactions (deposits/withdrawals)
   costBasis: Decimal;
   realizedPL: Decimal;
+  cashBalance: Decimal;
 }
 
 export class PortfolioValueCalculator {
@@ -79,6 +81,7 @@ export class PortfolioValueCalculator {
       return symbolCalculators.get(symbol)!;
     };
 
+    let currentCashBalance = new Decimal(0);
     let txIndex = 0;
     const dailyValues: DailyPortfolioValue[] = [];
     const transactionDates = this.getTransactionDates(allTransactions);
@@ -87,6 +90,7 @@ export class PortfolioValueCalculator {
     for (const date of transactionDates) {
       // Calculate daily cash flow for this specific date
       let dailyCashFlow = new Decimal(0);
+      let dailyTransferCashFlow = new Decimal(0); // Only TRANSFER transactions
 
       // Process all transactions up to/on this date
       while (
@@ -95,31 +99,73 @@ export class PortfolioValueCalculator {
       ) {
         const tx = allTransactions[txIndex]!;
         const sym = tx.symbol.toUpperCase();
-        const calculator = getCalculator(sym);
 
-        // Update daily cash flow
-        // Standard definition:
-        // BUY: Cash OUT of pocket (-), into strategy. But for "Net Invested" tracking, we usually sum INFLOWS as positive.
-        // Let's stick to the previous BenchmarkService logic:
-        // "Net Invested" = Sum of CashFlows.
-        // Buy = Positive Investment.
-        // Sell = Negative Investment (Capital Returned).
-        // total_amount is derived in some places, but Transaction domain might not have it.
-        // Transaction domain: quantity, price, fees.
-        const amount = tx.quantity.mul(tx.price).plus(tx.fees).abs();
+        // Skip calculator processing for pure cash transactions (USD)
+        // But we MUST process them for Cash Balance
+        const isCashOnly = sym === 'USD';
 
-        if (tx.type === TransactionType.BUY) {
-          dailyCashFlow = dailyCashFlow.plus(amount);
-        } else if (tx.type === TransactionType.SELL) {
-          dailyCashFlow = dailyCashFlow.minus(amount);
+        // --- 1. Update Cash Balance ---
+        // Exception: For Transfers/Interest/Divs, 'price' might be the full amount if quantity is 0 or 1.
+        // Let's rely on a helper or the logic used in adapters.
+        // Adapters put total amount in 'price' if quantity is 0 for Div/Interest.
+        // Standardize amount calculation (Respect Sign for Transfers):
+        let txAmount = new Decimal(0);
+        if (tx.quantity.isZero() && !tx.price.isZero()) {
+          txAmount = tx.price;
+        } else {
+          txAmount = tx.quantity.times(tx.price);
         }
 
-        // Process transaction in calculator
-        // This updates the internal lots and realized P/L
-        try {
-          calculator.processTransaction(tx);
-        } catch (e) {
-          console.warn(`⚠️ Error processing transaction for ${sym}:`, e);
+        // Adjust for valid cash flows
+        switch (tx.type) {
+          case TransactionType.BUY:
+            // Buying stock reduces cash (Cost + Fees)
+            // Cost = Q * P. Total outflow = Cost + Fees.
+            // Note: 'tx.price' is usually share price.
+            currentCashBalance = currentCashBalance
+              .minus(tx.quantity.times(tx.price))
+              .minus(tx.fees);
+            dailyCashFlow = dailyCashFlow.plus(
+              tx.quantity.times(tx.price).plus(tx.fees)
+            ); // Net Invested increases
+            break;
+          case TransactionType.SELL:
+            // Selling stock increases cash (Revenue - Fees)
+            currentCashBalance = currentCashBalance
+              .plus(tx.quantity.times(tx.price))
+              .minus(tx.fees);
+            dailyCashFlow = dailyCashFlow.minus(
+              tx.quantity.times(tx.price).minus(tx.fees)
+            ); // Net Invested decreases
+            break;
+          case TransactionType.DIVIDEND:
+          case TransactionType.INTEREST:
+            // Cash Inflow
+            currentCashBalance = currentCashBalance.plus(txAmount);
+            // Dividends/Interest are usually NOT considered "Net Invested" capital contributions from user,
+            // but internal portfolio growth. So dailyCashFlow (Net Invested) remains 0.
+            break;
+          case TransactionType.FEE:
+            // Cash Outflow
+            currentCashBalance = currentCashBalance.minus(txAmount);
+            break;
+          case TransactionType.TRANSFER:
+            // Deposit or Withdrawal
+            // Use signed amount directly
+            currentCashBalance = currentCashBalance.plus(txAmount);
+            dailyCashFlow = dailyCashFlow.plus(txAmount);
+            dailyTransferCashFlow = dailyTransferCashFlow.plus(txAmount); // Track transfers separately
+            break;
+        }
+
+        // --- 2. Process Symmbol Logic (Holdings) ---
+        if (!isCashOnly) {
+          const calculator = getCalculator(sym);
+          try {
+            calculator.processTransaction(tx);
+          } catch (e) {
+            console.warn(`⚠️ Error processing transaction for ${sym}:`, e);
+          }
         }
 
         txIndex++;
@@ -136,8 +182,6 @@ export class PortfolioValueCalculator {
 
         // Accumulate specific metrics from FIFO logic
         totalCostBasis = totalCostBasis.plus(calculator.getTotalCostBasis());
-        // FIFOCalculator doesn't have getTotalRealizedPL yet, let's check its implementation.
-        // I'll add it.
         cumulativeRealizedPL = cumulativeRealizedPL.plus(
           calculator.getTotalRealizedPL()
         );
@@ -162,12 +206,19 @@ export class PortfolioValueCalculator {
         marketValue = marketValue.plus(quantity.times(price));
       }
 
+      // Add Cash to Market Value for Total Account Value ?
+      // Usually "Portfolio Value" = Market Value of Securities + Cash.
+      // Let's add it.
+      marketValue = marketValue.plus(currentCashBalance);
+
       dailyValues.push({
         date,
-        marketValue,
+        marketValue, // Now includes Cash
         cashFlow: dailyCashFlow,
+        transferCashFlow: dailyTransferCashFlow, // Only deposits/withdrawals
         costBasis: totalCostBasis,
         realizedPL: cumulativeRealizedPL,
+        cashBalance: currentCashBalance,
       });
     }
 

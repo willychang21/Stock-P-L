@@ -15,6 +15,7 @@ export interface DailyReturn {
   date: string;
   cumulativeReturn: number; // e.g., 0.15 = 15%
   realizedReturn?: number; // e.g., 0.05 = 5% (realized portion)
+  deposit?: number; // Cash deposit amount on this date (for chart markers)
 }
 
 // DCA (Dollar Cost Averaging) Types
@@ -114,21 +115,22 @@ class BenchmarkService {
     const realizedPL = perfReport.overall.totalRealized;
     const totalPL = unrealizedPL.plus(realizedPL);
 
-    // 4. Calculate Max Net Invested Capital
-    let netInvested = new Decimal(0);
-    let maxInvested = new Decimal(0);
+    // 4. Calculate Total Deposits (only TRANSFER transactions)
+    let totalDeposits = new Decimal(0);
 
     for (const val of dailyValues) {
-      netInvested = netInvested.plus(val.cashFlow);
-      if (netInvested.gt(maxInvested)) {
-        maxInvested = netInvested;
-      }
+      totalDeposits = totalDeposits.plus(val.transferCashFlow);
     }
 
-    // Simple Return = Total P/L / Max Invested Capital
-    const simpleReturn = maxInvested.isZero()
-      ? 0
-      : totalPL.div(maxInvested).toNumber();
+    // Simple Return = Total P/L / Total Deposits
+    // This is the most intuitive return metric: for every dollar deposited, how much did you gain/lose?
+    const lastValue = dailyValues[dailyValues.length - 1];
+    const finalMarketValue = lastValue ? lastValue.marketValue : new Decimal(0);
+    const portfolioPL = finalMarketValue.minus(totalDeposits);
+    const simpleReturn =
+      totalDeposits.isZero() || totalDeposits.lt(0)
+        ? 0
+        : portfolioPL.div(totalDeposits).toNumber();
 
     // 5. Calculate portfolio daily cumulative returns for chart
     const portfolioDailyReturns =
@@ -272,7 +274,8 @@ class BenchmarkService {
     const cfDailyReturns: DailyReturn[] = [];
 
     for (const val of dailyValues) {
-      const cashFlow = val.cashFlow;
+      // Use ONLY transfer cash flows (deposits/withdrawals), not buy/sell timing
+      const cashFlow = val.transferCashFlow;
       const price = getPrice(val.date);
 
       if (price > 0 && !cashFlow.isZero()) {
@@ -316,53 +319,41 @@ class BenchmarkService {
 
   /**
    * Calculate daily cumulative returns from portfolio values.
-   * Uses Gross Invested Capital (Total Capital Deployed) to stabilize the return curve.
+   * Uses simple return: (MarketValue - TotalDeposits) / TotalDeposits
+   * This measures: for every dollar you deposited, how much did you gain/lose?
    */
   private calculateDailyCumulativeReturns(
     values: DailyPortfolioValue[]
   ): DailyReturn[] {
     if (values.length === 0) return [];
 
-    // Use Return on Max Net Invested Capital (Total PL / Max Invested)
-    // This correctly handles reinvestment without diluting returns
     const returns: DailyReturn[] = [];
 
-    let netInvested = new Decimal(0);
-    let maxInvested = new Decimal(0);
+    // Track total cash deposits (TRANSFER only)
+    let totalDeposits = new Decimal(0);
 
-    // Iterate ALL values to build cumulative history from start
     for (const val of values) {
-      // Net Invested accumulates all flows (+/-)
-      // BUY = Positive Flow (into strategy)
-      // SELL = Negative Flow (out of strategy)
-      // BenchmarkService assumes val.cashFlow handles this directionality appropriately
-      // But typically buying increases invested capital, selling decreases it.
-      // DailyPortfolioValue.cashFlow:
-      // BUY: +amount (Investment)
-      // SELL: -amount (Divestment)
-      netInvested = netInvested.plus(val.cashFlow);
-
-      // Track High Water Mark of Invested Capital
-      if (netInvested.gt(maxInvested)) {
-        maxInvested = netInvested;
-      }
+      // Only count actual cash transfers (deposits/withdrawals)
+      totalDeposits = totalDeposits.plus(val.transferCashFlow);
 
       let cumulativeReturn = 0;
       let realizedReturnVal = 0;
 
-      // Calculate return based on Total P/L against Max Capital Deployed
-      if (!maxInvested.isZero()) {
-        const unrealizedPL = val.marketValue.minus(val.costBasis);
-        const totalPL = unrealizedPL.plus(val.realizedPL);
-
-        cumulativeReturn = totalPL.div(maxInvested).toNumber();
-        realizedReturnVal = val.realizedPL.div(maxInvested).toNumber();
+      // Simple Return = (MarketValue - TotalDeposits) / TotalDeposits
+      // This is stable and matches what the user expects to see
+      if (!totalDeposits.isZero() && totalDeposits.gt(0)) {
+        const totalPL = val.marketValue.minus(totalDeposits);
+        cumulativeReturn = totalPL.div(totalDeposits).toNumber();
+        realizedReturnVal = val.realizedPL.div(totalDeposits).toNumber();
       }
 
       returns.push({
         date: val.date,
         cumulativeReturn,
         realizedReturn: realizedReturnVal,
+        deposit: !val.transferCashFlow.isZero()
+          ? val.transferCashFlow.toNumber()
+          : undefined,
       });
     }
 
@@ -400,34 +391,32 @@ class BenchmarkService {
       // => (MV_end - CashFlow) / MV_start = 1 + r
       // => r = (MV_end - CashFlow) / MV_start - 1
 
-      // On Day 1, Start Value is effectively the initial CashFlow (deposit)
-      // So r = (MV_end - CF) / 0 ... undefined?
-      // Standard approach for Day 1:
-      // If it's the very first deposit, the return is just (MV_end - Deposit) / Deposit?
-      // Or we can treat the "Start Value" as 0, and the CashFlow establishes the baseline.
-      // If Previous MV is 0, we can't calculate a return percentage from 0.
-      // We essentially skip the return calculation for the exact moment of initial deposit
-      // and start tracking from the next period?
-      // BETTER:
-      // Period 1: Deposit $100. End of Day $110.
-      // MV_start = 0. CashFlow = 100. MV_end = 110.
-      // Adjusted End = 110 - 100 = 10.
-      // Return on 0 is undefined.
-      // This implies the return happened ON the $100.
-      // Modification for Day 1:
-      // Denominator should be (PrevMV + CashFlow) if we assume cash flow happened at valid start?
-      // GIPS often assumes Modified Dietz or specific timing.
-      // Simplified Geometric:
-      // Denominator = PrevMV + WeightedCashFlow.
-      // If we assume Cash Flow happens at START of day:
-      // Denominator = PrevMV + CashFlow.
-      // r = (MV_end) / (PrevMV + CashFlow) - 1.
+      // CRITICAL FIX: On Day 1, prevMarketValue is 0.
+      // Denominator = 0 + CashFlow = CashFlow.
+      // If endMarketValue differs from CashFlow due to price movement or timing,
+      // we get a return. BUT if cashFlow is the only capital and there's no prior
+      // baseline, this can produce extreme values.
+      //
+      // Standard TWR approach: Skip the first period if there's no pre-existing value.
+      // The first cash flow *establishes* the baseline; we measure return FROM that point.
 
       const denominator = prevMarketValue.plus(cashFlow);
       let dailyReturn = 0;
 
-      if (!denominator.isZero()) {
+      // Skip if this is effectively Day 1 with no prior value, OR if denominator is too small
+      const isInitialDeposit = prevMarketValue.isZero() && !cashFlow.isZero();
+      const isDenominatorTooSmall = denominator.abs().lt(1); // Less than $1
+
+      if (
+        !isInitialDeposit &&
+        !isDenominatorTooSmall &&
+        !denominator.isZero()
+      ) {
         dailyReturn = endMarketValue.div(denominator).minus(1).toNumber();
+
+        // Clamp extreme daily returns to prevent compounding errors
+        // A single day should rarely exceed +/- 50% in a diversified portfolio
+        dailyReturn = Math.max(-0.5, Math.min(0.5, dailyReturn));
       }
 
       // Chain the return

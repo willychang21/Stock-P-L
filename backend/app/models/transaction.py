@@ -10,6 +10,7 @@ class TransactionType(str, Enum):
     DIVIDEND = "DIVIDEND"
     INTEREST = "INTEREST"
     TRANSFER = "TRANSFER"
+    FEE = "FEE"
     # Add other types as needed
 
 class ImportBatchBase(BaseModel):

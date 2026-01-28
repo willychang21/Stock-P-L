@@ -40,6 +40,8 @@
     "metrics": {
       "metric": "指標",
       "yourPortfolio": "您的投資組合",
+      "returnComparison": "投資報酬率",
+      "returnComparisonDesc": "您的報酬 vs 大盤 (同時間投入)",
       "twrReturn": "TWR 報酬率",
       "twrDesc": "時間加權報酬率 (GIPS 標準)",
       "sameTimingReturn": "同時間投入報酬率",
@@ -123,6 +125,9 @@
     "import": "匯入 CSV",
     "costBasis": "成本計算",
     "totalValue": "總市值",
+    "investedValue": "投入成本",
+    "cashBalance": "現金餘額",
+    "totalReturn": "總報酬",
     "totalCost": "總成本",
     "realizedPL": "已實現損益",
     "unrealizedPL": "未實現損益",

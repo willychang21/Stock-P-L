@@ -55,7 +55,7 @@ export const PerformanceMetricsTable: React.FC<
           </TableRow>
         </TableHead>
         <TableBody>
-          {/* TWR Return */}
+          {/* TWR Return - HIDDEN: Calculation has known issues with historical price data gaps
           <TableRow>
             <TableCell>
               <Typography fontWeight="medium">
@@ -85,15 +85,15 @@ export const PerformanceMetricsTable: React.FC<
               </TableCell>
             ))}
           </TableRow>
-
-          {/* Cash-Flow Weighted Return - NEW! */}
+          */}
+          {/* Main Return Comparison - Portfolio vs Benchmarks */}
           <TableRow sx={{ backgroundColor: 'rgba(99, 102, 241, 0.05)' }}>
             <TableCell>
               <Typography fontWeight="medium">
-                {t('benchmark.metrics.sameTimingReturn')}
+                {t('benchmark.metrics.returnComparison')}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {t('benchmark.metrics.sameTimingDesc')}
+                {t('benchmark.metrics.returnComparisonDesc')}
               </Typography>
             </TableCell>
             <TableCell align="right">
@@ -107,6 +107,9 @@ export const PerformanceMetricsTable: React.FC<
                 fontSize="1.1rem"
               >
                 {formatPercent(data.portfolio.simpleReturn)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Total P/L / Invested
               </Typography>
             </TableCell>
             {data.benchmarks.map(b => (
@@ -128,7 +131,7 @@ export const PerformanceMetricsTable: React.FC<
             ))}
           </TableRow>
 
-          {/* Alpha (Lump Sum) */}
+          {/* Alpha (Lump Sum) - HIDDEN: Depends on TWR which has calculation issues
           <TableRow>
             <TableCell>
               <Typography fontWeight="medium">
@@ -154,6 +157,7 @@ export const PerformanceMetricsTable: React.FC<
               </TableCell>
             ))}
           </TableRow>
+          */}
 
           {/* Alpha (Same Timing) - NEW! */}
           <TableRow sx={{ backgroundColor: 'rgba(99, 102, 241, 0.05)' }}>
@@ -184,7 +188,7 @@ export const PerformanceMetricsTable: React.FC<
             ))}
           </TableRow>
 
-          {/* Simple Return */}
+          {/* Simple Return - HIDDEN: Already shown in main comparison row above
           <TableRow>
             <TableCell>
               <Typography fontWeight="medium">
@@ -211,6 +215,7 @@ export const PerformanceMetricsTable: React.FC<
               </TableCell>
             ))}
           </TableRow>
+          */}
 
           {/* Realized P/L */}
           <TableRow>

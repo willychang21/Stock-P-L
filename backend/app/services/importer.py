@@ -80,30 +80,44 @@ class ImporterService:
                     elif action_raw == 'SELL': tx_type = TransactionType.SELL
                     elif action_raw in ['CDIV', 'DIV']: tx_type = TransactionType.DIVIDEND
                     elif action_raw == 'INT': tx_type = TransactionType.INTEREST
-                    elif action_raw == 'ACH': tx_type = TransactionType.TRANSFER
+                    elif action_raw in ['ACH', 'RTP', 'CFRI', 'CFIR', 'MTCH']: tx_type = TransactionType.TRANSFER
+                    elif action_raw in ['GOLD', 'DTAX']: tx_type = TransactionType.FEE
                     else: tx_type = TransactionType.TRANSFER # Default/Other
                     
                     quantity = self._clean_number(row.get('Quantity'))
                     price = self._clean_currency(row.get('Price'))
                     amount = self._clean_currency(row.get('Amount'))
+                    
+                    # Fix for Robinhood Transfers where Quantity/Price are 0 but Amount has value
+                    if quantity == 0.0 and price == 0.0 and amount != 0.0:
+                        price = amount
+                        
                     fees = 0.0 
                     
                 # --- Schwab Logic ---
                 elif 'Action' in df.columns and ('Symbol' in df.columns or 'Ticker' in df.columns):
                     symbol = str(row.get('Symbol', ''))
-                    if pd.isna(symbol) or symbol == 'nan' or symbol == '':
-                         symbol = 'CASH' 
+                    action_raw = str(row.get('Action', '')).lower()
                     
+                    # Handle Cash Actions (Journal, Bank Interest, etc) -> Symbol USD
+                    is_cash_action = any(k in action_raw for k in ['journal', 'bank interest', 'wire', 'transfer', 'ach', 'deposit', 'withdrawal'])
+                    if (pd.isna(symbol) or symbol == 'nan' or symbol == '') and is_cash_action:
+                         symbol = 'USD'
+                    
+                    if pd.isna(symbol) or symbol == 'nan' or symbol == '':
+                         # If still empty and not cash action, likely junk row
+                         # But let's verify if Reinvest?
+                         pass 
+                         
                     date_val = str(row.get('Date', ''))
                     if ' as of ' in date_val:
                         date_str = date_val.split(' as of ')[0]
                     else:
                         date_str = date_val
                         
-                    action_raw = str(row.get('Action', '')).lower()
-                    if 'buy' in action_raw: tx_type = TransactionType.BUY
+                    if 'buy' in action_raw or 'reinvest shares' in action_raw: tx_type = TransactionType.BUY
                     elif 'sell' in action_raw: tx_type = TransactionType.SELL
-                    elif 'dividend' in action_raw or 'reinvest' in action_raw: tx_type = TransactionType.DIVIDEND
+                    elif 'dividend' in action_raw or 'reinvest dividend' in action_raw: tx_type = TransactionType.DIVIDEND
                     elif 'interest' in action_raw: tx_type = TransactionType.INTEREST
                     elif 'journal' in action_raw or 'deposit' in action_raw: tx_type = TransactionType.TRANSFER
                     else: tx_type = TransactionType.TRANSFER
@@ -115,6 +129,14 @@ class ImporterService:
                     fees = self._clean_currency(row.get(fees_col)) if fees_col else 0.0
                     
                     amount = self._clean_currency(row.get('Amount'))
+                    
+                    # Fallback Price from Amount for Cash actions if Price is 0
+                    if tx_type in [TransactionType.DIVIDEND, TransactionType.INTEREST, TransactionType.TRANSFER, TransactionType.FEE]:
+                        if price == 0.0 and amount != 0.0:
+                            if tx_type == TransactionType.FEE:
+                                price = abs(amount) # Fees are magnitude
+                            else:
+                                price = amount # Keep sign for Transfer/Interest
 
                 # --- Generic/Fallback Logic ---
                 else:
@@ -161,7 +183,13 @@ class ImporterService:
                         transaction_type=tx_type,
                         transaction_date=safe_date,
                         quantity=abs(safe_qty),
-                        price=abs(safe_price),
+                        # Allow signed price for Transfers/Interest to support cash flow direction if needed
+                        # But standard is abs(price) and using TransactionType to infer direction?
+                        # Wait, Calculator uses Price * Qty. 
+                        # For Cash Transactions where Q=0, we put Amount into Price.
+                        # IF we enforce abs(safe_price) here, we LOSE the negative sign from 'Journal' withdrawals!
+                        # We must preserve sign for Price IF it's a Transfer/Interest/Dividend where we used Amount as Price.
+                        price=safe_price if abs(safe_qty) < 0.000001 else abs(safe_price),
                         fees=abs(safe_fees),
                         total_amount=safe_amount, 
                         broker=str(broker),

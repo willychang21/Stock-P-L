@@ -198,7 +198,19 @@ export function InfluencerList({
                   getIcon(inf)
                 )}
               </ListItemIcon>
-              <ListItemText primary={inf.name} secondary={inf.platform} />
+              <ListItemText
+                primary={inf.name}
+                secondary={inf.platform}
+                sx={{ pr: 12 }} // Reserve space for secondary actions (3 buttons)
+                primaryTypographyProps={{
+                  noWrap: true,
+                  component: 'div',
+                }}
+                secondaryTypographyProps={{
+                  noWrap: true,
+                  component: 'div',
+                }}
+              />
             </ListItemButton>
           </ListItem>
         ))}

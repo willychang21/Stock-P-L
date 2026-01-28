@@ -130,7 +130,7 @@ export const BenchmarkComparison: React.FC = () => {
     );
   }
 
-  const isOutperforming = data.alpha > 0;
+  // Alpha now uses cashFlowWeightedAlpha for fair comparison
 
   return (
     <Box sx={{ p: 3 }}>
@@ -165,7 +165,7 @@ export const BenchmarkComparison: React.FC = () => {
           mb: 3,
         }}
       >
-        {/* Portfolio TWR */}
+        {/* Portfolio Return (Using Simple Return - Same Timing) */}
         <Card>
           <CardContent>
             <Typography color="text.secondary" variant="caption">
@@ -173,16 +173,22 @@ export const BenchmarkComparison: React.FC = () => {
             </Typography>
             <Typography
               variant="h4"
-              color={data.portfolio.twr >= 0 ? 'success.main' : 'error.main'}
+              color={
+                data.portfolio.simpleReturn >= 0 ? 'success.main' : 'error.main'
+              }
               sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
             >
-              {data.portfolio.twr >= 0 ? <TrendingUp /> : <TrendingDown />}
-              {(data.portfolio.twr * 100).toFixed(2)}%
+              {data.portfolio.simpleReturn >= 0 ? (
+                <TrendingUp />
+              ) : (
+                <TrendingDown />
+              )}
+              {(data.portfolio.simpleReturn * 100).toFixed(2)}%
             </Typography>
           </CardContent>
         </Card>
 
-        {/* Primary Benchmark */}
+        {/* Primary Benchmark (Cash-Flow Weighted for fair comparison) */}
         {data.benchmarks[0] && (
           <Card>
             <CardContent>
@@ -192,37 +198,43 @@ export const BenchmarkComparison: React.FC = () => {
               <Typography
                 variant="h4"
                 color={
-                  data.benchmarks[0].twr >= 0 ? 'success.main' : 'error.main'
+                  data.benchmarks[0].cashFlowWeightedReturn >= 0
+                    ? 'success.main'
+                    : 'error.main'
                 }
               >
-                {(data.benchmarks[0].twr * 100).toFixed(2)}%
+                {(data.benchmarks[0].cashFlowWeightedReturn * 100).toFixed(2)}%
               </Typography>
             </CardContent>
           </Card>
         )}
 
-        {/* Alpha */}
+        {/* Alpha (Cash-Flow Weighted) */}
         <Card>
           <CardContent>
             <Typography color="text.secondary" variant="caption">
-              {t('benchmark.alpha')}
+              {t('benchmark.alpha')} (同時間)
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography
                 variant="h4"
-                color={isOutperforming ? 'success.main' : 'error.main'}
+                color={
+                  data.cashFlowWeightedAlpha >= 0
+                    ? 'success.main'
+                    : 'error.main'
+                }
               >
-                {data.alpha >= 0 ? '+' : ''}
-                {(data.alpha * 100).toFixed(2)}%
+                {data.cashFlowWeightedAlpha >= 0 ? '+' : ''}
+                {(data.cashFlowWeightedAlpha * 100).toFixed(2)}%
               </Typography>
               <Chip
                 label={
-                  isOutperforming
+                  data.cashFlowWeightedAlpha >= 0
                     ? t('benchmark.beatMarket')
                     : t('benchmark.underperformed')
                 }
                 size="small"
-                color={isOutperforming ? 'success' : 'error'}
+                color={data.cashFlowWeightedAlpha >= 0 ? 'success' : 'error'}
               />
             </Box>
           </CardContent>

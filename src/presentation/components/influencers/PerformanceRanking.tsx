@@ -94,11 +94,22 @@ export function PerformanceRanking({
                   <TableCell>
                     <Avatar
                       sx={{
-                        bgcolor: index === 0 ? 'gold' : 'action.selected',
-                        color: index === 0 ? 'black' : 'inherit',
+                        bgcolor:
+                          index === 0
+                            ? '#FFD700' // Gold
+                            : index === 1
+                              ? '#C0C0C0' // Silver
+                              : index === 2
+                                ? '#CD7F32' // Bronze
+                                : 'action.selected',
+                        color:
+                          index === 0 || index === 1
+                            ? 'black' // Dark text for Gold/Silver
+                            : 'inherit', // White/Inherit for Bronze/Others
                         width: 24,
                         height: 24,
                         fontSize: 12,
+                        fontWeight: index < 3 ? 'bold' : 'normal',
                       }}
                     >
                       {index + 1}

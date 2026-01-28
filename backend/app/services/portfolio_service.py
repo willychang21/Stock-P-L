@@ -117,12 +117,16 @@ class PortfolioService:
                     asset_type=asset_type
                 ))
         
+        # Calculate Cash Balance by summing total_amount of all transactions
+        # total_amount is signed (negative for outflows, positive for inflows)
+        cash_balance = sum((t.total_amount for t in transactions), Decimal(0))
+
         return Portfolio(
             holdings=holdings,
             total_market_value=total_value,
             total_unrealized_pl=total_value - total_cost,
             total_realized_pl=total_realized_pl,
-            cash_balance=Decimal(0)
+            cash_balance=cash_balance
         )
 
     def _get_all_transactions(self) -> List[Transaction]:
@@ -152,7 +156,8 @@ class PortfolioService:
                     quantity=Decimal(str(row_dict['quantity'])),
                     price=Decimal(str(row_dict['price'])),
                     fees=Decimal(str(row_dict['fees'])),
-                    currency=row_dict.get('currency', 'USD')
+                    currency=row_dict.get('currency', 'USD'),
+                    total_amount=Decimal(str(row_dict.get('total_amount', 0) or 0))
                 ))
             return transactions
         finally:

@@ -189,7 +189,7 @@ export function InfluencerTrackerPage() {
               {activeTab === 0 && (
                 <Typography variant="subtitle1" color="text.secondary">
                   {selectedInfluencerId
-                    ? `${t('influencers.recsCount')} - ${influencers.find(i => i.id === selectedInfluencerId)?.name || 'Unknown'}`
+                    ? `${influencers.find(i => i.id === selectedInfluencerId)?.name || 'Unknown'} (${filteredRecommendations.length} ${t('influencers.recsCount')})`
                     : t('influencers.allInfluencers')}
                 </Typography>
               )}

@@ -22,6 +22,7 @@ class Transaction(BaseModel):
     price: Decimal
     fees: Decimal
     currency: str = "USD"
+    total_amount: Decimal = Decimal(0)
 
 class Holding(BaseModel):
     symbol: str
