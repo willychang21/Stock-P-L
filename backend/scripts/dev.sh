@@ -19,9 +19,14 @@ if [ -L "$VENV_PATH" ] && [ ! -d "$VENV_PATH" ]; then
 fi
 
 # Ensure real venv exists and is populated
-if [ ! -d "$REAL_VENV_PATH" ]; then
+if [ ! -d "$REAL_VENV_PATH" ] || [ ! -f "$REAL_VENV_PATH/bin/pip" ]; then
     echo "Creating virtual environment in $REAL_VENV_PATH..."
+    rm -rf "$REAL_VENV_PATH"
     python3 -m venv "$REAL_VENV_PATH"
+fi
+
+# Ensure dependencies are installed if uvicorn is missing
+if [ ! -f "$REAL_VENV_PATH/bin/uvicorn" ]; then
     echo "Installing dependencies..."
     "$REAL_VENV_PATH/bin/pip" install --upgrade pip
     "$REAL_VENV_PATH/bin/pip" install -r requirements.txt
