@@ -14,13 +14,25 @@ import {
   TableSortLabel,
   Stack,
   Avatar,
+  Box,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
   OpenInNew,
   Edit as EditIcon,
+  TrendingUp,
+  TrendingDown,
+  TrendingFlat,
+  CheckCircle,
+  Cancel,
 } from '@mui/icons-material';
-import { Recommendation, Influencer } from '@domain/models/Influencer';
+import {
+  Recommendation,
+  Influencer,
+  getSignalLabel,
+  getTimeframeLabel,
+  getStatusLabel,
+} from '@domain/models/Influencer';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getFaviconUrl } from '@presentation/utils/favicon';
@@ -33,7 +45,7 @@ interface RecommendationTableProps {
 }
 
 type Order = 'asc' | 'desc';
-type SortField = 'date' | 'influencer' | 'symbol' | 'return';
+type SortField = 'date' | 'influencer' | 'symbol' | 'return' | 'signal';
 
 export function RecommendationTable({
   recommendations,
@@ -66,6 +78,58 @@ export function RecommendationTable({
     return `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`;
   };
 
+  const getSignalIcon = (signal: string) => {
+    switch (signal) {
+      case 'BUY':
+        return <TrendingUp fontSize="small" color="success" />;
+      case 'SELL':
+        return <TrendingDown fontSize="small" color="error" />;
+      default:
+        return <TrendingFlat fontSize="small" color="disabled" />;
+    }
+  };
+
+  const getSignalColor = (signal: string): 'success' | 'error' | 'default' => {
+    switch (signal) {
+      case 'BUY':
+        return 'success';
+      case 'SELL':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const getTimeframeColor = (
+    timeframe: string
+  ): 'default' | 'primary' | 'secondary' => {
+    switch (timeframe) {
+      case 'SHORT':
+        return 'secondary';
+      case 'LONG':
+        return 'primary';
+      default:
+        return 'default';
+    }
+  };
+
+  const getStatusColor = (
+    status: string
+  ): 'default' | 'success' | 'warning' | 'error' => {
+    switch (status) {
+      case 'ACTIVE':
+        return 'success';
+      case 'EXPIRED':
+        return 'warning';
+      case 'CLOSED_WIN':
+        return 'success';
+      case 'CLOSED_LOSS':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
   const sortRecommendations = (recs: Recommendation[]) => {
     return [...recs].sort((a, b) => {
       let valA: any = '';
@@ -85,8 +149,12 @@ export function RecommendationTable({
           valB = b.symbol;
           break;
         case 'return':
-          valA = a.price_change_percent || -999;
-          valB = b.price_change_percent || -999;
+          valA = a.unrealized_return || -999;
+          valB = b.unrealized_return || -999;
+          break;
+        case 'signal':
+          valA = a.signal;
+          valB = b.signal;
           break;
       }
 
@@ -114,7 +182,7 @@ export function RecommendationTable({
 
   return (
     <TableContainer component={Paper}>
-      <Table>
+      <Table size="small">
         <TableHead>
           <TableRow>
             <TableCell sortDirection={orderBy === 'date' ? order : false}>
@@ -123,7 +191,7 @@ export function RecommendationTable({
                 direction={orderBy === 'date' ? order : 'asc'}
                 onClick={() => handleRequestSort('date')}
               >
-                {t('influencers.table.date')}
+                日期
               </TableSortLabel>
             </TableCell>
             <TableCell sortDirection={orderBy === 'influencer' ? order : false}>
@@ -132,7 +200,7 @@ export function RecommendationTable({
                 direction={orderBy === 'influencer' ? order : 'asc'}
                 onClick={() => handleRequestSort('influencer')}
               >
-                {t('influencers.table.influencer')}
+                網紅
               </TableSortLabel>
             </TableCell>
             <TableCell sortDirection={orderBy === 'symbol' ? order : false}>
@@ -141,15 +209,22 @@ export function RecommendationTable({
                 direction={orderBy === 'symbol' ? order : 'asc'}
                 onClick={() => handleRequestSort('symbol')}
               >
-                {t('influencers.table.symbol')}
+                標的
               </TableSortLabel>
             </TableCell>
-            <TableCell align="right">
-              {t('influencers.table.initialPrice')}
+            <TableCell sortDirection={orderBy === 'signal' ? order : false}>
+              <TableSortLabel
+                active={orderBy === 'signal'}
+                direction={orderBy === 'signal' ? order : 'asc'}
+                onClick={() => handleRequestSort('signal')}
+              >
+                方向
+              </TableSortLabel>
             </TableCell>
-            <TableCell align="right">
-              {t('influencers.table.currentPrice')}
-            </TableCell>
+            <TableCell>期限</TableCell>
+            <TableCell align="right">進場價</TableCell>
+            <TableCell align="right">目標/止損</TableCell>
+            <TableCell align="right">現價</TableCell>
             <TableCell
               align="right"
               sortDirection={orderBy === 'return' ? order : false}
@@ -159,24 +234,26 @@ export function RecommendationTable({
                 direction={orderBy === 'return' ? order : 'asc'}
                 onClick={() => handleRequestSort('return')}
               >
-                {t('influencers.table.return')}
+                報酬
               </TableSortLabel>
             </TableCell>
-            <TableCell>{t('influencers.table.note')}</TableCell>
-            <TableCell align="right">
-              {t('influencers.table.actions')}
-            </TableCell>
+            <TableCell>狀態</TableCell>
+            <TableCell align="right">操作</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {sortedRecs.map(rec => {
             const isPositive =
-              rec.price_change_percent && rec.price_change_percent >= 0;
+              rec.unrealized_return && rec.unrealized_return >= 0;
             const noteIsUrl = rec.note?.startsWith('http');
 
             return (
               <TableRow key={rec.id} hover>
-                <TableCell>{rec.recommendation_date}</TableCell>
+                <TableCell>
+                  <Typography variant="body2" noWrap>
+                    {rec.recommendation_date}
+                  </Typography>
+                </TableCell>
                 <TableCell>
                   <Chip
                     avatar={
@@ -190,51 +267,116 @@ export function RecommendationTable({
                     label={getInfluencerName(rec.influencer_id)}
                     size="small"
                     variant="outlined"
-                    onClick={() => {
-                      // Optional: Filter by influencer
-                    }}
                   />
                 </TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>{rec.symbol}</TableCell>
+                <TableCell>
+                  <Typography fontWeight="bold">{rec.symbol}</Typography>
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    icon={getSignalIcon(rec.signal)}
+                    label={getSignalLabel(rec.signal)}
+                    size="small"
+                    color={getSignalColor(rec.signal)}
+                    variant="outlined"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={getTimeframeLabel(rec.timeframe)}
+                    size="small"
+                    color={getTimeframeColor(rec.timeframe)}
+                    variant="outlined"
+                  />
+                </TableCell>
                 <TableCell align="right">
-                  {formatCurrency(rec.initial_price)}
+                  {formatCurrency(rec.entry_price)}
+                </TableCell>
+                <TableCell align="right">
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-end',
+                    }}
+                  >
+                    {rec.target_price && (
+                      <Tooltip title="目標價">
+                        <Typography variant="caption" color="success.main">
+                          🎯 {formatCurrency(rec.target_price)}
+                        </Typography>
+                      </Tooltip>
+                    )}
+                    {rec.stop_loss && (
+                      <Tooltip title="止損價">
+                        <Typography variant="caption" color="error.main">
+                          🛑 {formatCurrency(rec.stop_loss)}
+                        </Typography>
+                      </Tooltip>
+                    )}
+                    {!rec.target_price && !rec.stop_loss && '—'}
+                  </Box>
                 </TableCell>
                 <TableCell align="right">
                   {formatCurrency(rec.current_price)}
                 </TableCell>
                 <TableCell align="right">
-                  <Typography
-                    variant="body2"
-                    color={isPositive ? 'success.main' : 'error.main'}
-                    fontWeight="bold"
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                      gap: 0.5,
+                    }}
                   >
-                    {formatPct(rec.price_change_percent)}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={{ maxWidth: 200 }}>
-                  {rec.note ? (
-                    noteIsUrl ? (
-                      <Link
-                        href={rec.note}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-                      >
-                        Link <OpenInNew fontSize="small" />
-                      </Link>
-                    ) : (
-                      <Tooltip title={rec.note}>
-                        <Typography noWrap variant="body2">
-                          {rec.note}
-                        </Typography>
+                    {rec.hit_target && (
+                      <Tooltip title="達標">
+                        <CheckCircle fontSize="small" color="success" />
                       </Tooltip>
-                    )
-                  ) : (
-                    '—'
-                  )}
+                    )}
+                    {rec.hit_stop_loss && (
+                      <Tooltip title="觸止損">
+                        <Cancel fontSize="small" color="error" />
+                      </Tooltip>
+                    )}
+                    <Typography
+                      variant="body2"
+                      color={isPositive ? 'success.main' : 'error.main'}
+                      fontWeight="bold"
+                    >
+                      {formatPct(rec.unrealized_return)}
+                    </Typography>
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={getStatusLabel(rec.status)}
+                    size="small"
+                    color={getStatusColor(rec.status)}
+                    variant="filled"
+                  />
                 </TableCell>
                 <TableCell align="right">
-                  <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                  <Stack direction="row" justifyContent="flex-end" spacing={0}>
+                    {rec.note &&
+                      (noteIsUrl ? (
+                        <Tooltip title="查看連結">
+                          <IconButton
+                            size="small"
+                            href={rec.note}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <OpenInNew fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip title={rec.note}>
+                          <IconButton size="small" disabled>
+                            <OpenInNew fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      ))}
                     <IconButton size="small" onClick={() => onEdit(rec)}>
                       <EditIcon fontSize="small" />
                     </IconButton>

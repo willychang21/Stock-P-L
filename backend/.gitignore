@@ -1,0 +1,6 @@
+.env.threads
+data/
+
+# Temporary debug/repro scripts (prevent sprawl)
+repro_*.py
+debug_*.py

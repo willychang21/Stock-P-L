@@ -200,6 +200,48 @@ export const apiClient = {
     });
     return handleResponse(response);
   },
+
+  // Auto-Tracking API
+  triggerAutoTrack: async (
+    influencerId: string,
+    platform: string = 'threads',
+    limit: number = 5
+  ): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/auto-track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ influencer_id: influencerId, platform, limit }),
+    });
+    return handleResponse(response);
+  },
+
+  getPendingReviews: async (influencerId?: string): Promise<any[]> => {
+    const params = influencerId ? `?influencer_id=${influencerId}` : '';
+    const response = await fetch(`${API_BASE_URL}/pending-reviews${params}`);
+    return handleResponse(response);
+  },
+
+  approvePendingReview: async (reviewId: string, data: any): Promise<any> => {
+    const response = await fetch(
+      `${API_BASE_URL}/pending-reviews/${reviewId}/approve`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }
+    );
+    return handleResponse(response);
+  },
+
+  rejectPendingReview: async (reviewId: string): Promise<any> => {
+    const response = await fetch(
+      `${API_BASE_URL}/pending-reviews/${reviewId}/reject`,
+      {
+        method: 'POST',
+      }
+    );
+    return handleResponse(response);
+  },
 };
 
 export interface BehavioralAnalytics {

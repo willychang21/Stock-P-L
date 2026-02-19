@@ -4,6 +4,7 @@
 cd "$(dirname "$0")/.."
 
 # Logic to handle venv in /tmp due to path issues with ":"
+export TMPDIR="/tmp"
 VENV_PATH="venv"
 REAL_VENV_PATH="/tmp/stock_pl_venv"
 

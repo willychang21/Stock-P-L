@@ -1,16 +1,25 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List
-from datetime import datetime, timedelta
+from typing import List, Optional
+from datetime import datetime, timedelta, date
 import uuid
 from app.db.session import get_db
 from app.schemas.influencer import (
     Influencer, InfluencerCreate, InfluencerUpdate, 
     Recommendation, RecommendationCreate, RecommendationUpdate,
-    InfluencerWithStats
+    InfluencerWithStats, SignalType, TimeframeType, SourceType, RecommendationStatus
 )
 from app.services.market_data import market_data_service
 
 router = APIRouter()
+
+def calculate_expiry_date(rec_date: date, timeframe: TimeframeType) -> date:
+    """Calculate expiry date based on timeframe"""
+    if timeframe == TimeframeType.SHORT:
+        return rec_date + timedelta(days=7)  # 1 week
+    elif timeframe == TimeframeType.MID:
+        return rec_date + timedelta(days=28)  # 4 weeks
+    else:  # LONG
+        return rec_date + timedelta(days=90)  # 3 months
 
 @router.get("/influencers", response_model=List[InfluencerWithStats])
 def get_influencers(db=Depends(get_db)):
@@ -85,10 +94,10 @@ def create_recommendations_batch(
     now = datetime.now()
     
     for rec in recommendations:
-        initial_price = rec.initial_price
+        entry_price = rec.entry_price if hasattr(rec, 'entry_price') else None
         
         # Auto-fetch if missing
-        if initial_price is None or initial_price == 0:
+        if entry_price is None or entry_price == 0:
             try:
                 # Search window: Date - 4 days to Date + 4 days to find nearest
                 # But typically we look for the exact date, or if weekend, the previous Friday or next Monday.
@@ -145,16 +154,29 @@ def create_recommendations_batch(
         
         rec_id = str(uuid.uuid4())
         
+        # Use provided values or defaults
+        signal = rec.signal if hasattr(rec, 'signal') and rec.signal else SignalType.BUY
+        timeframe = rec.timeframe if hasattr(rec, 'timeframe') and rec.timeframe else TimeframeType.MID
+        source = rec.source if hasattr(rec, 'source') and rec.source else SourceType.MANUAL
+        source_url = rec.source_url if hasattr(rec, 'source_url') else None
+        target_price = rec.target_price if hasattr(rec, 'target_price') else None
+        stop_loss = rec.stop_loss if hasattr(rec, 'stop_loss') else None
+        
+        # Calculate expiry date
+        expiry_date = rec.expiry_date if hasattr(rec, 'expiry_date') and rec.expiry_date else calculate_expiry_date(rec.recommendation_date, timeframe)
+        
         db.execute(
             """
             INSERT INTO influencer_recommendations 
-            (id, influencer_id, symbol, recommendation_date, initial_price, note, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (id, influencer_id, symbol, signal, timeframe, recommendation_date, 
+             entry_price, target_price, stop_loss, expiry_date, source, source_url, note, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
-                rec_id, influencer_id, rec.symbol, 
-                rec.recommendation_date, initial_price, 
-                rec.note, now
+                rec_id, influencer_id, rec.symbol, signal.value, timeframe.value,
+                rec.recommendation_date, entry_price, target_price, stop_loss,
+                expiry_date, source.value, source_url, rec.note, 
+                RecommendationStatus.ACTIVE.value, now
             ]
         )
         
@@ -162,22 +184,48 @@ def create_recommendations_batch(
             "id": rec_id,
             "influencer_id": influencer_id,
             "symbol": rec.symbol,
+            "signal": signal,
+            "timeframe": timeframe,
             "recommendation_date": rec.recommendation_date,
-            "initial_price": initial_price,
+            "entry_price": entry_price,
+            "target_price": target_price,
+            "stop_loss": stop_loss,
+            "expiry_date": expiry_date,
+            "source": source,
+            "source_url": source_url,
             "note": rec.note,
+            "status": RecommendationStatus.ACTIVE,
             "created_at": now
         })
         
     return results
 
 @router.get("/recommendations", response_model=List[Recommendation])
-def get_all_recommendations(db=Depends(get_db)):
-    """Get all recommendations with live performance metrics"""
-    recs = db.execute("""
-        SELECT id, influencer_id, symbol, recommendation_date, initial_price, note, created_at 
-        FROM influencer_recommendations 
-        ORDER BY recommendation_date DESC
-    """).fetchall()
+def get_all_recommendations(
+    status: Optional[RecommendationStatus] = None,
+    timeframe: Optional[TimeframeType] = None,
+    db=Depends(get_db)
+):
+    """Get all recommendations with live performance metrics. Supports filtering."""
+    query = """
+        SELECT id, influencer_id, symbol, signal, timeframe, recommendation_date,
+               entry_price, target_price, stop_loss, expiry_date, source, source_url,
+               note, status, final_price, final_return, created_at
+        FROM influencer_recommendations
+        WHERE 1=1
+    """
+    params = []
+    
+    if status:
+        query += " AND status = ?"
+        params.append(status.value)
+    if timeframe:
+        query += " AND timeframe = ?"
+        params.append(timeframe.value)
+        
+    query += " ORDER BY recommendation_date DESC"
+    
+    recs = db.execute(query, params).fetchall()
     
     if not recs:
         return []
@@ -190,25 +238,70 @@ def get_all_recommendations(db=Depends(get_db)):
     price_map = {q['symbol']: q['regularMarketPrice'] for q in quotes}
     
     results = []
+    today = datetime.now().date()
+    
     for r in recs:
         sym = r[2]
-        initial = r[4]
+        entry = r[6]
         current = price_map.get(sym)
+        rec_status = r[13]
+        expiry = r[9]
         
-        change_pct = None
-        if initial and current and initial > 0:
-            change_pct = (current - initial) / initial
+        # Calculate unrealized return
+        unrealized_ret = None
+        if entry and current and entry > 0:
+            signal_val = r[3]
+            if signal_val == 'SELL':
+                # For SELL signals, profit when price goes down
+                unrealized_ret = (entry - current) / entry
+            else:
+                unrealized_ret = (current - entry) / entry
+        
+        # Check if should auto-expire
+        if rec_status == 'ACTIVE' and expiry and expiry < today:
+            # Mark as expired (would need to update DB, but just return expired status for now)
+            rec_status = 'EXPIRED'
+        
+        # Check hit_target / hit_stop_loss
+        hit_target = False
+        hit_stop_loss = False
+        target = r[7]
+        stop = r[8]
+        signal_val = r[3]
+        
+        if current and target:
+            if signal_val == 'BUY' and current >= target:
+                hit_target = True
+            elif signal_val == 'SELL' and current <= target:
+                hit_target = True
+                
+        if current and stop:
+            if signal_val == 'BUY' and current <= stop:
+                hit_stop_loss = True
+            elif signal_val == 'SELL' and current >= stop:
+                hit_stop_loss = True
             
         results.append({
             "id": r[0],
             "influencer_id": r[1],
             "symbol": sym,
-            "recommendation_date": r[3],
-            "initial_price": initial,
-            "note": r[5],
-            "created_at": r[6],
+            "signal": r[3],
+            "timeframe": r[4],
+            "recommendation_date": r[5],
+            "entry_price": entry,
+            "target_price": target,
+            "stop_loss": stop,
+            "expiry_date": expiry,
+            "source": r[10],
+            "source_url": r[11],
+            "note": r[12],
+            "status": rec_status,
+            "created_at": r[16],
             "current_price": current,
-            "price_change_percent": change_pct
+            "unrealized_return": unrealized_ret,
+            "final_return": r[15],
+            "hit_target": hit_target,
+            "hit_stop_loss": hit_stop_loss
         })
         
     return results
