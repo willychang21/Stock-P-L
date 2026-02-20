@@ -23,24 +23,90 @@ def calculate_expiry_date(rec_date: date, timeframe: TimeframeType) -> date:
 
 @router.get("/influencers", response_model=List[InfluencerWithStats])
 def get_influencers(db=Depends(get_db)):
-    """List all influencers with basic stats"""
+    """List all influencers with performance stats"""
     influencers = db.execute("SELECT * FROM influencers ORDER BY name").fetchall()
+    
+    # Get ALL recommendations to calculate stats
+    all_recs = db.execute("""
+        SELECT influencer_id, symbol, signal, entry_price, target_price, stop_loss, status
+        FROM influencer_recommendations
+    """).fetchall()
+    
+    # Group recs by influencer
+    recs_by_inf = {}
+    symbols = set()
+    for r in all_recs:
+        recs_by_inf.setdefault(r[0], []).append(r)
+        symbols.add(r[1])
+    
+    # Batch fetch live prices
+    price_map = {}
+    if symbols:
+        try:
+            quotes = market_data_service.get_quotes(list(symbols))
+            price_map = {q['symbol']: q['regularMarketPrice'] for q in quotes if q.get('regularMarketPrice')}
+        except Exception:
+            pass
     
     results = []
     for inf in influencers:
-        # Get count of recommendations
-        count = db.execute(
-            "SELECT COUNT(*) FROM influencer_recommendations WHERE influencer_id = ?", 
-            [inf[0]]
-        ).fetchone()[0]
+        inf_id = inf[0]
+        recs = recs_by_inf.get(inf_id, [])
+        
+        total = len(recs)
+        active = sum(1 for r in recs if r[6] == 'ACTIVE')
+        expired = sum(1 for r in recs if r[6] in ('EXPIRED', 'CLOSED'))
+        
+        # Calculate performance metrics
+        win_rate = None
+        avg_return = None
+        hit_target_rate = None
+        
+        returns = []
+        target_hits = 0
+        target_checkable = 0
+        
+        for r in recs:
+            sym, signal, entry, target, stop, status = r[1], r[2], r[3], r[4], r[5], r[6]
+            current = price_map.get(sym)
+            
+            # Skip non-directional signals from performance calculation
+            if signal in ('HEDGE', 'WATCH'):
+                continue
+            
+            if entry and current and entry > 0:
+                if signal == 'SELL':
+                    ret = (entry - current) / entry
+                else:
+                    ret = (current - entry) / entry
+                returns.append(ret)
+            
+            # Hit target check
+            if target and current:
+                target_checkable += 1
+                if signal == 'BUY' and current >= target:
+                    target_hits += 1
+                elif signal == 'SELL' and current <= target:
+                    target_hits += 1
+        
+        if returns:
+            avg_return = sum(returns) / len(returns)
+            win_rate = sum(1 for r in returns if r > 0) / len(returns)
+        if target_checkable > 0:
+            hit_target_rate = target_hits / target_checkable
         
         results.append({
-            "id": inf[0],
+            "id": inf_id,
             "name": inf[1],
             "platform": inf[2],
             "url": inf[3],
             "created_at": inf[4],
-            "recommendation_count": count
+            "recommendation_count": total,
+            "active_count": active,
+            "expired_count": expired,
+            "win_rate": win_rate,
+            "avg_return": avg_return,
+            "hit_target_rate": hit_target_rate,
         })
     return results
 
@@ -129,8 +195,8 @@ def create_recommendations_batch(
                             best_match = p
                     
                     if best_match:
-                        initial_price = float(best_match["close"])
-                        print(f"Best match for {rec.symbol} is {best_match['date']} at {initial_price}")
+                        entry_price = float(best_match["close"])
+                        print(f"Best match for {rec.symbol} is {best_match['date']} at {entry_price}")
                     else:
                         print(f"No best match found for {rec.symbol}")
                 else:
@@ -139,7 +205,7 @@ def create_recommendations_batch(
                 print(f"Failed to fetch initial price for {rec.symbol}: {e}")
             
             # Fallback: If still None and date is recent (within last 3 days or future), try current price
-            if initial_price is None:
+            if entry_price is None or entry_price == 0:
                 try:
                     # check if rec_date is recent
                     diff = (now.date() - rec.recommendation_date).days
@@ -147,8 +213,8 @@ def create_recommendations_batch(
                         # Try Current Price
                         quotes = market_data_service.get_quotes([rec.symbol])
                         if quotes and quotes[0].get("regularMarketPrice"):
-                             initial_price = quotes[0]["regularMarketPrice"]
-                             print(f"Fetched live price as fallback for {rec.symbol}: {initial_price}")
+                             entry_price = quotes[0]["regularMarketPrice"]
+                             print(f"Fetched live price as fallback for {rec.symbol}: {entry_price}")
                 except Exception as e:
                     print(f"Failed to fetch live fallback for {rec.symbol}: {e}")
         
@@ -432,6 +498,12 @@ def delete_influencer(influencer_id: str, db=Depends(get_db)):
     """Delete an influencer and their recommendations"""
     # Delete recommendations first
     db.execute("DELETE FROM influencer_recommendations WHERE influencer_id = ?", [influencer_id])
+    
+    # Delete pending reviews
+    db.execute("DELETE FROM pending_reviews WHERE influencer_id = ?", [influencer_id])
+    
+    # Delete scraped posts history
+    db.execute("DELETE FROM scraped_posts WHERE influencer_id = ?", [influencer_id])
     
     # Delete influencer
     res = db.execute("DELETE FROM influencers WHERE id = ?", [influencer_id])

@@ -1,6 +1,124 @@
-from app.db.session import db
+import os
+import shutil
+from datetime import datetime
+from app.db.session import db, DATA_DIR
+
+BACKUP_DIR = os.path.join(DATA_DIR, "backups")
+MAX_BACKUPS = 5
+
+
+def _backup_database():
+    """Auto-backup the database file before any migration."""
+    db_path = os.path.join(DATA_DIR, "portfolio.duckdb")
+    if not os.path.exists(db_path):
+        return
+    
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = os.path.join(BACKUP_DIR, f"portfolio_{timestamp}.duckdb")
+    
+    try:
+        shutil.copy2(db_path, backup_path)
+        size_mb = os.path.getsize(backup_path) / (1024 * 1024)
+        print(f"  💾 Database backed up: {backup_path} ({size_mb:.1f} MB)")
+    except Exception as e:
+        print(f"  ⚠️ Backup failed: {e}")
+        return
+    
+    # Clean up old backups, keep only MAX_BACKUPS
+    backups = sorted([
+        f for f in os.listdir(BACKUP_DIR)
+        if f.startswith("portfolio_") and f.endswith(".duckdb")
+    ])
+    while len(backups) > MAX_BACKUPS:
+        old = backups.pop(0)
+        os.remove(os.path.join(BACKUP_DIR, old))
+        print(f"  🗑️ Removed old backup: {old}")
+
+
+def _safe_add_column(conn, table: str, column: str, col_type: str, default=None):
+    """Safely add a column to a table. No-op if column already exists."""
+    try:
+        default_clause = f" DEFAULT {default}" if default is not None else ""
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}{default_clause}")
+        print(f"  ↳ Added column {column} to {table}")
+    except Exception:
+        pass  # Column already exists
+
+
+# ═══════════════════════════════════════════
+# Versioned Migrations
+# Each tuple: (version, description, SQL)
+# ⚠️ NEVER use DROP TABLE or DELETE FROM here!
+# ═══════════════════════════════════════════
+MIGRATIONS = [
+    ("001", "Add content_hash to pending_reviews",
+     "ALTER TABLE pending_reviews ADD COLUMN content_hash TEXT"),
+    ("002", "Add post_date to pending_reviews",
+     "ALTER TABLE pending_reviews ADD COLUMN post_date DATE"),
+]
+
+
+def _run_migrations(conn):
+    """Run only new migrations that haven't been applied yet."""
+    # Create migration tracking table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            version TEXT PRIMARY KEY,
+            description TEXT,
+            applied_at TIMESTAMP NOT NULL
+        )
+    """)
+    
+    # Get already applied versions
+    applied = set()
+    try:
+        rows = conn.execute("SELECT version FROM schema_migrations").fetchall()
+        applied = {r[0] for r in rows}
+    except Exception:
+        pass
+    
+    # Apply new migrations
+    new_count = 0
+    for version, description, sql in MIGRATIONS:
+        if version in applied:
+            continue
+        
+        # Safety check: block destructive operations
+        sql_upper = sql.upper()
+        if any(kw in sql_upper for kw in ["DROP TABLE", "DELETE FROM", "TRUNCATE"]):
+            print(f"  ❌ Migration {version} BLOCKED: destructive operation detected!")
+            continue
+        
+        try:
+            conn.execute(sql)
+            conn.execute(
+                "INSERT INTO schema_migrations (version, description, applied_at) VALUES (?, ?, ?)",
+                [version, description, datetime.now()]
+            )
+            print(f"  ✅ Migration {version}: {description}")
+            new_count += 1
+        except Exception as e:
+            # Column/table already exists — record as applied
+            if "already exists" in str(e).lower() or "duplicate" in str(e).lower():
+                conn.execute(
+                    "INSERT INTO schema_migrations (version, description, applied_at) VALUES (?, ?, ?)",
+                    [version, f"{description} (pre-existing)", datetime.now()]
+                )
+                print(f"  ⏭️ Migration {version}: already applied ({description})")
+            else:
+                print(f"  ⚠️ Migration {version} failed: {e}")
+    
+    if new_count > 0:
+        print(f"  📦 Applied {new_count} new migration(s)")
+    else:
+        print(f"  📦 All migrations up to date")
+
 
 def init_db():
+    # Step 0: Backup before anything else
+    _backup_database()
+    
     conn = db.get_connection()
     try:
         # Transactions Table
@@ -161,12 +279,8 @@ def init_db():
             ON scraped_posts(influencer_id, content_hash);
         """)
 
-        # --- Migrations: add columns to existing tables ---
-        try:
-            conn.execute("ALTER TABLE pending_reviews ADD COLUMN content_hash TEXT")
-            print("  ↳ Added content_hash to pending_reviews")
-        except Exception:
-            pass  # Column already exists
+        # --- Run versioned migrations ---
+        _run_migrations(conn)
 
         print("✅ Database initialized successfully.")
     except Exception as e:

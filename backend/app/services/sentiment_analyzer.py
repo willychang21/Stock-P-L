@@ -1,13 +1,20 @@
 """
-Enhanced Sentiment Analyzer Service - Two-Phase Analysis Pipeline
+Enhanced Sentiment Analyzer Service — Two-Phase Analysis Pipeline
 
 Phase 1: Quick classification — is this post investment-related?
 Phase 2: Deep extraction — extract all assets with individual signals.
+
+Signal Types: BUY, SELL, HEDGE, WATCH, CLOSED
 """
 
 import requests
 import json
 from typing import Dict, Any, List
+
+# ────────────────────────────────────────────
+# Signal & Post-Type Constants
+# ────────────────────────────────────────────
+VALID_SIGNALS = {"BUY", "SELL", "HEDGE", "WATCH", "CLOSED"}
 
 
 class SentimentAnalyzerService:
@@ -23,7 +30,10 @@ class SentimentAnalyzerService:
         Quickly classifies whether a post contains investment-related content.
         Returns: {"is_investment": bool, "post_type": str, "reason": str}
         """
-        prompt = f"""You are a financial content classifier. Determine whether the following social media post contains any investment-related content (stock picks, portfolio updates, market analysis, buy/sell signals, etc.).
+        prompt = f"""You are a bilingual financial content classifier fluent in English and Traditional Chinese (繁體中文).
+Your job is to determine whether a social media post contains ACTIONABLE investment content — meaning it references a specific trade, holding, recommendation, or exit.
+
+PRECISION-FIRST RULE: If the intent is ambiguous or you are unsure, classify as NOT investment-related. It is far better to miss a borderline post than to incorrectly flag a non-investment post.
 
 Post:
 \"\"\"{post_content}\"\"\"
@@ -31,16 +41,26 @@ Post:
 Respond ONLY in valid JSON:
 {{
   "is_investment": true or false,
-  "post_type": "single_pick" | "portfolio_update" | "market_commentary" | "lifestyle" | "other",
+  "post_type": "<type>",
   "reason": "Brief explanation in English"
 }}
 
-Guidelines:
-- "single_pick": Post focuses on one stock/asset
-- "portfolio_update": Post mentions multiple stocks (e.g., "持股更新", listing symbols)
-- "market_commentary": General market views without specific tickers
-- "lifestyle" / "other": Not investment-related
-- If ANY stock ticker or investment term is mentioned, set is_investment to true"""
+Post type definitions (pick the BEST match):
+- "single_pick": Post recommends or analyzes ONE specific stock/asset with a directional view.
+- "portfolio_update": Post lists multiple current holdings or position changes (e.g., "持股更新", "Weekly portfolio").
+- "trade_journal": Post recounts a specific completed or ongoing trade (e.g., "今天買了 NVDA", "已停損 AAPL").
+- "earnings_review": Post is analyzing an earnings report or a company's financial results.
+- "company_analysis": Post provides fundamentals-driven analysis of a specific company.
+- "market_commentary": General macro/market views (Fed, CPI, index levels) WITHOUT specific ticker actions.
+- "educational": Post teaches a concept (options, charting, DCA) and any tickers are hypothetical examples only.
+- "lifestyle" / "other": Not investment-related.
+
+Classification rules:
+- is_investment = true ONLY if there is a real trade, holding, recommendation, or exit involving a specific ticker.
+- If tickers appear ONLY as illustrative examples in educational content, set is_investment = false.
+- If the post is purely macro commentary with no specific ticker action, set is_investment = false.
+- A post that says "我覺得 X 不錯" (implicit bullishness) IS investment-related.
+- A post that says "什麼是看跌期權？用 TSLA 舉例..." is NOT investment-related."""
 
         result = self._call_model(prompt)
         if "error" in result:
@@ -57,23 +77,62 @@ Guidelines:
     # ────────────────────────────────────────────
     def extract_assets(self, post_content: str, post_type: str = "portfolio_update") -> Dict[str, Any]:
         """
-        Deep analysis: extract ALL mentioned assets with individual buy/sell signals.
+        Deep analysis: extract ALL mentioned assets with individual signals.
         Each asset gets its own independent signal determination.
         """
-        prompt = f"""Role: You are an expert Financial Analyst. Your job is to extract EVERY stock/asset mentioned in this post with its individual investment signal.
+        prompt = f"""Role: You are an expert Bilingual Financial Analyst fluent in English and Traditional Chinese (繁體中文).
+Task: Extract EVERY stock/asset from this post that represents a REAL trade, holding, recommendation, or exit. Assign each asset an independent signal.
 
-CRITICAL RULES:
-1. Respond ONLY in valid JSON
-2. Extract EVERY ticker mentioned (NVDA, TSLA, MU, QQQ, BTC, etc.)
-3. Each asset gets its OWN signal — a single post can have BOTH buys AND sells
-4. Signal mapping:
-   - BUY = 看多, 持有, 加碼, 買入, long, bullish, holding
-   - SELL = 看空, 減持, 賣出, 對沖, put, short, hedge, bearish
-   - HOLD = 觀望, 中性, watching
-5. For portfolio updates listing stocks by category, default signal is BUY (they are holdings)
-6. If a hedge/put/short is mentioned (e.g., "QQQ spread put"), signal is SELL
-7. Summary should be in Traditional Chinese (繁體中文)
-8. Convert non-US stocks appropriately (e.g., "群聯" → symbol: "8299.TW", market: "TW")
+═══════════════════════════════════
+ SIGNAL DEFINITIONS (5 types)
+═══════════════════════════════════
+
+BUY — Author is bullish or has taken / plans to take a long position.
+  Keywords: 看多, 持有, 加碼, 買入, long, bullish, holding, 看好, 建議買
+
+SELL — Author is bearish or recommends reducing / shorting.
+  Keywords: 看空, 減持, 賣出, short, bearish, 不看好, 建議賣
+  NOTE: SELL means a directional bearish view. Do NOT use SELL for protective hedges.
+
+HEDGE — Author is hedging an existing portfolio for protection, NOT expressing a bearish view.
+  Keywords: 對沖, 避險, hedge, protective put, spread put, collar
+  Example: "買 QQQ put 保護部位" → HEDGE (protecting, not shorting QQQ)
+  Distinction: "我覺得 QQQ 要跌所以做空" → SELL (directional bearish view)
+
+WATCH — Author is monitoring / interested but has NOT taken a position.
+  Keywords: 觀察, 關注, 留意, on my radar, watching, 觀望, 值得注意
+  Example: "最近在觀察 PLTR" → WATCH
+
+CLOSED — Author has exited a position (profit or loss).
+  Keywords: 已出場, 停損, 獲利了結, took profit, stopped out, 已賣, 平倉, 出清
+  Example: "AAPL 已經在 $180 停損了" → CLOSED
+
+═══════════════════════════════════
+ CRITICAL RULES
+═══════════════════════════════════
+
+1. Respond ONLY in valid JSON.
+2. Extract ONLY tickers that represent ACTUAL trades, holdings, recommendations, or exits.
+3. DO NOT extract tickers used as hypothetical/educational examples.
+4. Each asset gets its OWN signal based on context — one post can mix BUY, SELL, HEDGE, etc.
+5. For portfolio updates listing stocks by category, default signal is BUY (they are current holdings).
+6. If a post mentions both entering AND exiting the same stock, use the MOST RECENT action.
+7. Convert non-US stocks appropriately (e.g., "群聯" → "8299.TW", market: "TW").
+8. If unsure about a ticker's intent, OMIT it. Precision over recall.
+
+═══════════════════════════════════
+ CONFIDENCE SCORING RUBRIC
+═══════════════════════════════════
+
+0.9 - 1.0: Explicit trade action with ticker ("加碼 NVDA", "bought TSLA at $250")
+0.7 - 0.8: Clear directional view ("看好 PLTR 未來成長")
+0.5 - 0.6: Implicit or vague mention ("NVDA 還不錯", listing in portfolio without commentary)
+0.3 - 0.4: Ambiguous — ticker mentioned but intent unclear
+Below 0.3: Do not extract (too uncertain)
+
+═══════════════════════════════════
+ OUTPUT FORMAT
+═══════════════════════════════════
 
 Post:
 \"\"\"{post_content}\"\"\"
@@ -83,21 +142,23 @@ JSON Output:
   "assets": [
     {{
       "symbol": "TICKER",
-      "category": "Sector or theme (optional)",
-      "signal": "BUY" | "SELL" | "HOLD",
+      "category": "Sector or theme",
+      "signal": "BUY" | "SELL" | "HEDGE" | "WATCH" | "CLOSED",
       "market": "US" | "TW" | "JP" | "CRYPTO" | "OTHER",
-      "note": "Specific context for this asset"
+      "note": "Brief context for this specific asset"
     }}
   ],
   "overall_sentiment": "Bullish" | "Bearish" | "Mixed" | "Neutral",
   "confidence": 0.0-1.0,
-  "summary": "Brief analysis summary in Traditional Chinese",
+  "summary": "One-sentence analysis summary in Traditional Chinese (繁體中文)",
   "key_points": ["point 1", "point 2"]
 }}
 
-EXAMPLES:
+═══════════════════════════════════
+ EXAMPLES
+═══════════════════════════════════
 
-Example 1 — Portfolio update:
+Example 1 — Portfolio update with hedge:
 "持股更新 Physical AI & Cloud: NVDA、TSLA、Meta  Storage: MU、STX  對沖: QQQ spread put"
 → assets: [
     {{"symbol":"NVDA","category":"Physical AI & Cloud","signal":"BUY","market":"US"}},
@@ -105,19 +166,50 @@ Example 1 — Portfolio update:
     {{"symbol":"META","category":"Physical AI & Cloud","signal":"BUY","market":"US"}},
     {{"symbol":"MU","category":"Storage","signal":"BUY","market":"US"}},
     {{"symbol":"STX","category":"Storage","signal":"BUY","market":"US"}},
-    {{"symbol":"QQQ","category":"Hedge","signal":"SELL","market":"US","note":"spread put hedge"}}
+    {{"symbol":"QQQ","category":"Hedge","signal":"HEDGE","market":"US","note":"spread put, portfolio protection"}}
   ]
+  confidence: 0.9
 
-Example 2 — Single pick:
+Example 2 — Single pick with target:
 "看好 PLTR 雲端業務成長，目標價 $85"
 → assets: [{{"symbol":"PLTR","signal":"BUY","market":"US","note":"target $85"}}]
+  confidence: 0.8
 
 Example 3 — Mixed signals:
 "加碼 NVDA，但覺得 AAPL 短期風險大建議先減持"
 → assets: [
     {{"symbol":"NVDA","signal":"BUY","market":"US"}},
-    {{"symbol":"AAPL","signal":"SELL","market":"US","note":"short-term risk"}}
-  ]"""
+    {{"symbol":"AAPL","signal":"SELL","market":"US","note":"short-term risk, reduce position"}}
+  ]
+  confidence: 0.9
+
+Example 4 — Watching / on radar:
+"最近在觀察 PLTR 和 CRWD，等拉回再考慮進場"
+→ assets: [
+    {{"symbol":"PLTR","signal":"WATCH","market":"US","note":"waiting for pullback"}},
+    {{"symbol":"CRWD","signal":"WATCH","market":"US","note":"waiting for pullback"}}
+  ]
+  confidence: 0.6
+
+Example 5 — Position closed:
+"上週 AAPL 已經在 $180 停損出場了，小虧 3%"
+→ assets: [{{"symbol":"AAPL","signal":"CLOSED","market":"US","note":"stopped out at $180, -3%"}}]
+  confidence: 0.95
+
+Example 6 — Earnings review:
+"NVDA 財報超預期，營收 YoY +120%，AI 需求依然強勁，繼續持有"
+→ assets: [{{"symbol":"NVDA","signal":"BUY","market":"US","category":"AI","note":"earnings beat, +120% YoY revenue, strong AI demand"}}]
+  confidence: 0.8
+
+Example 7 — Educational (empty result):
+"教學文：什麼是 Call Option？比如你看好 TSLA 和 NVDA，你可以買入 Call..."
+→ assets: []
+  confidence: 0
+
+Example 8 — Macro commentary without specific action (empty result):
+"Fed 可能降息，市場偏多，但短期震盪難免"
+→ assets: []
+  confidence: 0"""
 
         result = self._call_model(prompt)
         if "error" in result:
@@ -128,15 +220,19 @@ Example 3 — Mixed signals:
         if not isinstance(assets, list):
             assets = [assets] if assets else []
         
-        # Filter out invalid assets
+        # Filter out invalid assets and normalize signals
         valid_assets = []
         for a in assets:
             sym = a.get("symbol", "")
             if sym and sym not in ["None", "N/A", "", "null"]:
-                # Normalize signal
-                signal = a.get("signal", "HOLD").upper()
-                if signal not in ["BUY", "SELL", "HOLD"]:
-                    signal = "HOLD"
+                # Normalize signal to valid set
+                signal = a.get("signal", "BUY").upper()
+                if signal not in VALID_SIGNALS:
+                    # Map legacy HOLD → WATCH for better semantics
+                    if signal == "HOLD":
+                        signal = "WATCH"
+                    else:
+                        signal = "BUY"
                 a["signal"] = signal
                 valid_assets.append(a)
         

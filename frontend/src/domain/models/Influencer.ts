@@ -1,5 +1,5 @@
 // Enums for structured data
-export type SignalType = 'BUY' | 'SELL' | 'HOLD';
+export type SignalType = 'BUY' | 'SELL' | 'HOLD' | 'HEDGE' | 'WATCH' | 'CLOSED';
 export type TimeframeType = 'SHORT' | 'MID' | 'LONG';
 export type SourceType = 'MANUAL' | 'AUTO_THREADS' | 'AUTO_SUBSTACK';
 export type RecommendationStatus = 'PENDING' | 'ACTIVE' | 'EXPIRED' | 'CLOSED';
@@ -80,8 +80,8 @@ export interface RecommendationUpdate {
 }
 
 export interface InfluencerWithStats extends Influencer {
-  active_count: number;
-  expired_count: number;
+  active_count?: number;
+  expired_count?: number;
   win_rate?: number;
   avg_return?: number;
   hit_target_rate?: number;
@@ -124,6 +124,12 @@ export const getSignalLabel = (signal: SignalType): string => {
       return '看空 📉';
     case 'HOLD':
       return '觀望 ⏸️';
+    case 'HEDGE':
+      return '避險 🛡️';
+    case 'WATCH':
+      return '觀察 👀';
+    case 'CLOSED':
+      return '已平倉 ✅';
     default:
       return signal;
   }

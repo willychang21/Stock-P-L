@@ -29,15 +29,17 @@ export function PerformanceRanking({
   const influencerStats = influencers
     .map(inf => {
       const recs = recommendations.filter(r => r.influencer_id === inf.id);
-      const withReturn = recs.filter(r => r.price_change_percent !== null);
+      const withReturn = recs.filter(
+        r => r.unrealized_return !== undefined && r.unrealized_return !== null
+      );
       if (withReturn.length === 0) return null;
 
       const avgReturn =
-        withReturn.reduce((sum, r) => sum + (r.price_change_percent || 0), 0) /
+        withReturn.reduce((sum, r) => sum + (r.unrealized_return || 0), 0) /
         withReturn.length;
 
       const winCount = withReturn.filter(
-        r => (r.price_change_percent || 0) > 0
+        r => (r.unrealized_return || 0) > 0
       ).length;
       const winRate = winCount / withReturn.length;
 

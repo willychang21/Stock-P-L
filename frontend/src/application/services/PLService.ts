@@ -183,8 +183,14 @@ export class PLService {
         let costBasisForSell = new Decimal(0);
         if (result.matchedLots) {
           for (const match of result.matchedLots) {
+            // FIFOCalculator uses camelCase `costBasisPerShare`, Lot interface uses snake_case
+            const lot = match.lot as any;
+            const cbps =
+              lot.costBasisPerShare ??
+              lot.cost_basis_per_share ??
+              new Decimal(0);
             costBasisForSell = costBasisForSell.plus(
-              match.quantitySold.times(match.lot.cost_basis_per_share)
+              match.quantitySold.times(cbps)
             );
           }
         }

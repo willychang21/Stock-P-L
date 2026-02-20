@@ -9,7 +9,6 @@ import {
   Typography,
   Chip,
   IconButton,
-  Link,
   Tooltip,
   TableSortLabel,
   Stack,
@@ -25,6 +24,8 @@ import {
   TrendingFlat,
   CheckCircle,
   Cancel,
+  Shield,
+  Visibility,
 } from '@mui/icons-material';
 import {
   Recommendation,
@@ -40,8 +41,9 @@ import { getFaviconUrl } from '@presentation/utils/favicon';
 interface RecommendationTableProps {
   recommendations: Recommendation[];
   influencers: Influencer[];
-  onDelete: (id: string) => void;
-  onEdit: (rec: Recommendation) => void;
+  onDelete?: (id: string) => void;
+  onEdit?: (rec: Recommendation) => void;
+  readOnly?: boolean;
 }
 
 type Order = 'asc' | 'desc';
@@ -52,6 +54,7 @@ export function RecommendationTable({
   influencers,
   onDelete,
   onEdit,
+  readOnly = false,
 }: RecommendationTableProps) {
   const [order, setOrder] = useState<Order>('desc');
   const [orderBy, setOrderBy] = useState<SortField>('date');
@@ -84,17 +87,31 @@ export function RecommendationTable({
         return <TrendingUp fontSize="small" color="success" />;
       case 'SELL':
         return <TrendingDown fontSize="small" color="error" />;
+      case 'HEDGE':
+        return <Shield fontSize="small" sx={{ color: '#ff9800' }} />;
+      case 'WATCH':
+        return <Visibility fontSize="small" color="info" />;
+      case 'CLOSED':
+        return <CheckCircle fontSize="small" sx={{ color: '#9e9e9e' }} />;
       default:
         return <TrendingFlat fontSize="small" color="disabled" />;
     }
   };
 
-  const getSignalColor = (signal: string): 'success' | 'error' | 'default' => {
+  const getSignalColor = (
+    signal: string
+  ): 'success' | 'error' | 'warning' | 'info' | 'default' => {
     switch (signal) {
       case 'BUY':
         return 'success';
       case 'SELL':
         return 'error';
+      case 'HEDGE':
+        return 'warning';
+      case 'WATCH':
+        return 'info';
+      case 'CLOSED':
+        return 'default';
       default:
         return 'default';
     }
@@ -238,7 +255,8 @@ export function RecommendationTable({
               </TableSortLabel>
             </TableCell>
             <TableCell>狀態</TableCell>
-            <TableCell align="right">操作</TableCell>
+            <TableCell>原文</TableCell>
+            {!readOnly && <TableCell align="right">操作</TableCell>}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -356,39 +374,87 @@ export function RecommendationTable({
                     variant="filled"
                   />
                 </TableCell>
-                <TableCell align="right">
-                  <Stack direction="row" justifyContent="flex-end" spacing={0}>
-                    {rec.note &&
-                      (noteIsUrl ? (
-                        <Tooltip title="查看連結">
-                          <IconButton
-                            size="small"
-                            href={rec.note}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                <TableCell>
+                  <Stack direction="row" spacing={0} alignItems="center">
+                    {rec.source_url && (
+                      <Tooltip title="開啟原文連結">
+                        <IconButton
+                          size="small"
+                          href={rec.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        >
+                          <OpenInNew fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {rec.note && !rec.note.startsWith('http') && (
+                      <Tooltip
+                        title={
+                          <Typography
+                            variant="body2"
+                            sx={{ whiteSpace: 'pre-wrap', maxWidth: 400 }}
                           >
-                            <OpenInNew fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      ) : (
-                        <Tooltip title={rec.note}>
-                          <IconButton size="small" disabled>
-                            <OpenInNew fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      ))}
-                    <IconButton size="small" onClick={() => onEdit(rec)}>
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => onDelete(rec.id)}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+                            {rec.note}
+                          </Typography>
+                        }
+                        arrow
+                      >
+                        <Chip
+                          label="📝"
+                          size="small"
+                          variant="outlined"
+                          sx={{ cursor: 'pointer' }}
+                        />
+                      </Tooltip>
+                    )}
+                    {!rec.source_url && !rec.note && '—'}
                   </Stack>
                 </TableCell>
+                {!readOnly && (
+                  <TableCell align="right">
+                    <Stack
+                      direction="row"
+                      justifyContent="flex-end"
+                      spacing={0}
+                    >
+                      {rec.note &&
+                        (noteIsUrl ? (
+                          <Tooltip title="查看連結">
+                            <IconButton
+                              size="small"
+                              href={rec.note}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <OpenInNew fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip title={rec.note}>
+                            <IconButton size="small" disabled>
+                              <OpenInNew fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        ))}
+                      {onEdit && (
+                        <IconButton size="small" onClick={() => onEdit(rec)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                      {onDelete && (
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => onDelete(rec.id)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Stack>
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}

@@ -32,12 +32,13 @@ import {
   Influencer,
   InfluencerCreate,
   InfluencerUpdate,
+  InfluencerWithStats,
 } from '@domain/models/Influencer';
 import { useTranslation } from 'react-i18next';
 import { getFaviconUrl } from '@presentation/utils/favicon';
 
 interface InfluencerListProps {
-  influencers: Influencer[];
+  influencers: InfluencerWithStats[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onAdd: (data: InfluencerCreate) => void;
@@ -200,7 +201,42 @@ export function InfluencerList({
               </ListItemIcon>
               <ListItemText
                 primary={inf.name}
-                secondary={inf.platform}
+                secondary={
+                  <Box
+                    component="span"
+                    sx={{ display: 'flex', gap: 1, alignItems: 'center' }}
+                  >
+                    <span>{inf.platform || ''}</span>
+                    {inf.win_rate !== undefined && inf.win_rate !== null && (
+                      <Typography
+                        component="span"
+                        variant="caption"
+                        color={
+                          inf.win_rate >= 0.5
+                            ? 'success.main'
+                            : 'text.secondary'
+                        }
+                        sx={{ fontWeight: 'bold' }}
+                      >
+                        {(inf.win_rate * 100).toFixed(0)}%勝率
+                      </Typography>
+                    )}
+                    {inf.avg_return !== undefined &&
+                      inf.avg_return !== null && (
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          color={
+                            inf.avg_return >= 0 ? 'success.main' : 'error.main'
+                          }
+                          sx={{ fontWeight: 'bold' }}
+                        >
+                          {inf.avg_return >= 0 ? '+' : ''}
+                          {(inf.avg_return * 100).toFixed(1)}%
+                        </Typography>
+                      )}
+                  </Box>
+                }
                 sx={{ pr: 12 }} // Reserve space for secondary actions (3 buttons)
                 primaryTypographyProps={{
                   noWrap: true,

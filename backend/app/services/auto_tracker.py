@@ -55,8 +55,8 @@ class AutoTrackerService:
             content_hash = post.get("content_hash") or hashlib.md5(content.encode()).hexdigest()
             
             try:
-                # Phase 1: Quick classify
-                analysis = sentiment_analyzer.analyze_post(content)
+                # Phase 1: Quick classify using background thread to avoid blocking event loop
+                analysis = await asyncio.to_thread(sentiment_analyzer.analyze_post, content)
                 results["posts_analyzed"] += 1
                 
                 # Check for errors
@@ -104,7 +104,8 @@ class AutoTrackerService:
                         ai_analysis=asset_analysis,
                         suggested_symbol=symbol,
                         suggested_signal=asset.get("signal", "HOLD"),
-                        content_hash=content_hash
+                        content_hash=content_hash,
+                        post_date=post.get("date")
                     )
                     
                     if pending_id:
@@ -212,7 +213,8 @@ class AutoTrackerService:
         ai_analysis: Dict,
         suggested_symbol: Optional[str] = None,
         suggested_signal: Optional[str] = None,
-        content_hash: Optional[str] = None
+        content_hash: Optional[str] = None,
+        post_date: Optional[str] = None
     ) -> Optional[str]:
         """Store a pending review record in the database."""
         try:
@@ -229,8 +231,8 @@ class AutoTrackerService:
                 INSERT INTO pending_reviews 
                 (id, influencer_id, source, source_url, original_content, 
                  ai_analysis, suggested_symbol, suggested_signal, suggested_timeframe,
-                 confidence, status, created_at, content_hash)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?)
+                 confidence, status, created_at, content_hash, post_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)
                 """,
                 [
                     pending_id,
@@ -244,7 +246,8 @@ class AutoTrackerService:
                     "MID",
                     ai_analysis.get("confidence", 0.5),
                     now,
-                    content_hash
+                    content_hash,
+                    post_date
                 ]
             )
             

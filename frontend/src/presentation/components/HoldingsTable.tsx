@@ -29,6 +29,7 @@ type SortField =
   | 'avgCost'
   | 'currentPrice'
   | 'marketValue'
+  | 'weight'
   | 'unrealizedPL'
   | 'returnPct';
 type SortOrder = 'asc' | 'desc';
@@ -43,11 +44,13 @@ interface HoldingsTableProps {
  */
 function HoldingRow({
   holding,
+  totalMarketValue,
   formatCurrency,
   formatShares,
   formatPct,
 }: {
   holding: Holding;
+  totalMarketValue: Decimal;
   formatCurrency: (value: Decimal) => string;
   formatShares: (value: Decimal) => string;
   formatPct: (value: Decimal) => string;
@@ -62,6 +65,9 @@ function HoldingRow({
     ? new Decimal(0)
     : holding.unrealizedPL.div(holding.costBasis).times(100);
   const isPositive = returnPct.gte(0);
+  const weight = totalMarketValue.isZero()
+    ? new Decimal(0)
+    : holding.marketValue.div(totalMarketValue).times(100);
 
   // Load transactions when row is expanded
   const fetchTransactions = () => {
@@ -126,6 +132,7 @@ function HoldingRow({
         <TableCell align="right">
           {formatCurrency(holding.marketValue)}
         </TableCell>
+        <TableCell align="right">{weight.toFixed(1)}%</TableCell>
         <TableCell align="right">
           <Chip
             label={formatCurrency(holding.unrealizedPL)}
@@ -145,7 +152,7 @@ function HoldingRow({
         </TableCell>
       </TableRow>
       <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 1 }}>
               <Typography variant="subtitle2" gutterBottom component="div">
@@ -192,6 +199,18 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
     h => h.quantity && !h.quantity.isZero()
   );
 
+  // Calculate total market value for weight calculation
+  const totalMarketValue = activeHoldings.reduce(
+    (sum, h) => sum.plus(h.marketValue),
+    new Decimal(0)
+  );
+
+  // Calculate weight for sorting
+  const getWeight = (holding: Holding): Decimal => {
+    if (totalMarketValue.isZero()) return new Decimal(0);
+    return holding.marketValue.div(totalMarketValue).times(100);
+  };
+
   const sortedHoldings = [...activeHoldings].sort((a, b) => {
     let aVal: string | Decimal;
     let bVal: string | Decimal;
@@ -216,6 +235,10 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
       case 'marketValue':
         aVal = a.marketValue;
         bVal = b.marketValue;
+        break;
+      case 'weight':
+        aVal = getWeight(a);
+        bVal = getWeight(b);
         break;
       case 'unrealizedPL':
         aVal = a.unrealizedPL;
@@ -310,6 +333,15 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
             </TableCell>
             <TableCell align="right">
               <TableSortLabel
+                active={sortField === 'weight'}
+                direction={sortField === 'weight' ? sortOrder : 'asc'}
+                onClick={() => handleSort('weight')}
+              >
+                比重
+              </TableSortLabel>
+            </TableCell>
+            <TableCell align="right">
+              <TableSortLabel
                 active={sortField === 'unrealizedPL'}
                 direction={sortField === 'unrealizedPL' ? sortOrder : 'asc'}
                 onClick={() => handleSort('unrealizedPL')}
@@ -333,6 +365,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
             <HoldingRow
               key={holding.symbol}
               holding={holding}
+              totalMarketValue={totalMarketValue}
               formatCurrency={formatCurrency}
               formatShares={formatShares}
               formatPct={formatPct}

@@ -7,7 +7,10 @@ from enum import Enum
 class SignalType(str, Enum):
     BUY = "BUY"
     SELL = "SELL"
-    HOLD = "HOLD"
+    HOLD = "HOLD"       # Legacy — mapped to WATCH in new prompts
+    HEDGE = "HEDGE"
+    WATCH = "WATCH"
+    CLOSED = "CLOSED"
 
 class TimeframeType(str, Enum):
     SHORT = "SHORT"   # < 1 week
@@ -53,16 +56,16 @@ class RecommendationBase(BaseModel):
     target_price: Optional[float] = None
     stop_loss: Optional[float] = None
     expiry_date: Optional[date] = None
-    source: SourceType = SourceType.MANUAL
     source_url: Optional[str] = None
     note: Optional[str] = None
 
 class RecommendationCreate(RecommendationBase):
-    pass
+    source: SourceType = SourceType.MANUAL
 
 class Recommendation(RecommendationBase):
     id: str
     influencer_id: str
+    source: Optional[str] = None  # str instead of enum to tolerate legacy data
     status: RecommendationStatus = RecommendationStatus.ACTIVE
     created_at: datetime
     # Calculated fields (populated by backend)
@@ -109,7 +112,7 @@ class PendingReview(BaseModel):
     id: str
     influencer_id: str
     influencer_name: str
-    source: SourceType
+    source: Optional[str] = None
     source_url: str
     original_content: str
     ai_analysis: dict  # Raw AI output
@@ -117,4 +120,5 @@ class PendingReview(BaseModel):
     suggested_signal: Optional[SignalType] = None
     suggested_timeframe: Optional[TimeframeType] = None
     confidence: Optional[float] = None
+    post_date: Optional[date] = None
     created_at: datetime

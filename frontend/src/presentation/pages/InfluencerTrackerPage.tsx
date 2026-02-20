@@ -8,6 +8,7 @@ import {
   Tabs,
   Tab,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import { Add, AutoMode, Edit, TrendingUp } from '@mui/icons-material';
 import { useState, useEffect, useMemo } from 'react';
@@ -27,6 +28,7 @@ import { EditRecommendationDialog } from '../components/influencers/EditRecommen
 import { PerformanceRanking } from '../components/influencers/PerformanceRanking';
 import { PopularStocks } from '../components/influencers/PopularStocks';
 import { PendingReviewList } from '../components/influencers/PendingReviewList';
+import { ScrapedPostsHistory } from '../components/influencers/ScrapedPostsHistory';
 import { useTranslation } from 'react-i18next';
 
 // Top-level mode tabs
@@ -70,13 +72,25 @@ export function InfluencerTrackerPage() {
   };
 
   // Split recommendations by source type
+  // Legacy data might have URLs in the source field, or null
   const manualRecommendations = useMemo(
-    () => recommendations.filter(r => r.source === 'MANUAL'),
+    () =>
+      recommendations.filter(
+        r =>
+          !r.source ||
+          r.source === 'MANUAL' ||
+          (!r.source.startsWith('http') && !r.source.startsWith('AUTO_'))
+      ),
     [recommendations]
   );
 
   const autoRecommendations = useMemo(
-    () => recommendations.filter(r => r.source !== 'MANUAL'),
+    () =>
+      recommendations.filter(
+        r =>
+          r.source &&
+          (r.source.startsWith('http') || r.source.startsWith('AUTO_'))
+      ),
     [recommendations]
   );
 
@@ -191,11 +205,33 @@ export function InfluencerTrackerPage() {
       alert(
         `追蹤完成！\n分析 ${result.posts_analyzed} 篇貼文\n發現 ${result.recommendations_found} 個推薦`
       );
-      // Switch to pending tab
       setAutoSubTab(0);
     } catch (error: any) {
       console.error('Auto-track failed:', error);
       alert(`自動追蹤失敗: ${error.message}`);
+    } finally {
+      setIsAutoTracking(false);
+    }
+  };
+
+  const handleAutoTrackAll = async (limit: number = 5) => {
+    setIsAutoTracking(true);
+    try {
+      const result = await apiClient.triggerAutoTrackAll(limit);
+      const msg =
+        `追蹤全部完成！\n${result.total_influencers} 位博主\n抓取 ${result.total_posts_scraped} 篇貼文\n發現 ${result.total_recommendations} 個推薦` +
+        (result.auto_approved > 0
+          ? `\n自動通過 ${result.auto_approved} 筆`
+          : '') +
+        (result.errors.length > 0
+          ? `\n\n⚠️ 錯誤:\n${result.errors.join('\n')}`
+          : '');
+      alert(msg);
+      setAutoSubTab(0);
+      fetchData();
+    } catch (error: any) {
+      console.error('Auto-track-all failed:', error);
+      alert(`批量追蹤失敗: ${error.message}`);
     } finally {
       setIsAutoTracking(false);
     }
@@ -259,8 +295,21 @@ export function InfluencerTrackerPage() {
         )}
 
         {trackingMode === 'auto' && (
-          // Button moved to PendingReviewList
-          <Box />
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={
+              isAutoTracking ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                <AutoMode />
+              )
+            }
+            onClick={() => handleAutoTrackAll(5)}
+            disabled={isAutoTracking}
+          >
+            {isAutoTracking ? '追蹤中...' : '追蹤全部博主'}
+          </Button>
         )}
       </Box>
 
@@ -370,6 +419,7 @@ export function InfluencerTrackerPage() {
                       icon={<TrendingUp fontSize="small" />}
                       iconPosition="end"
                     />
+                    <Tab label="分析紀錄" />
                   </Tabs>
                   {autoSubTab === 1 && (
                     <Typography variant="subtitle1" color="text.secondary">
@@ -394,14 +444,18 @@ export function InfluencerTrackerPage() {
                     <RecommendationTable
                       recommendations={filteredAutoRecs}
                       influencers={influencers}
-                      onDelete={handleDeleteRecommendation}
-                      onEdit={handleEditRecommendation}
+                      readOnly={true}
                     />
                   )}
                   {autoSubTab === 2 && (
                     <PerformanceRanking
                       recommendations={autoRecommendations}
                       influencers={influencers}
+                    />
+                  )}
+                  {autoSubTab === 3 && (
+                    <ScrapedPostsHistory
+                      selectedInfluencerId={selectedInfluencerId}
                     />
                   )}
                 </Box>

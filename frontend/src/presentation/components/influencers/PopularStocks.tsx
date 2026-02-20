@@ -45,11 +45,14 @@ export function PopularStocks({
   const popularStocks = Object.entries(stockCounts)
     .map(([symbol, data]) => {
       const recs = recommendations.filter(
-        r => r.symbol === symbol && r.price_change_percent !== null
+        r =>
+          r.symbol === symbol &&
+          r.unrealized_return !== undefined &&
+          r.unrealized_return !== null
       );
       const avgReturn =
         recs.length > 0
-          ? recs.reduce((sum, r) => sum + (r.price_change_percent || 0), 0) /
+          ? recs.reduce((sum, r) => sum + (r.unrealized_return || 0), 0) /
             recs.length
           : 0;
 

@@ -221,6 +221,28 @@ export const apiClient = {
     return handleResponse(response);
   },
 
+  getScrapedPosts: async (influencerId?: string): Promise<any[]> => {
+    const params = influencerId ? `?influencer_id=${influencerId}` : '';
+    const response = await fetch(`${API_BASE_URL}/scraped-posts${params}`);
+    return handleResponse(response);
+  },
+
+  deleteScrapedPost: async (postId: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/scraped-posts/${postId}`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  },
+
+  bulkDeleteScrapedPosts: async (ids: string[]): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/scraped-posts/bulk-delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+    return handleResponse(response);
+  },
+
   approvePendingReview: async (reviewId: string, data: any): Promise<any> => {
     const response = await fetch(
       `${API_BASE_URL}/pending-reviews/${reviewId}/approve`,
@@ -238,6 +260,42 @@ export const apiClient = {
       `${API_BASE_URL}/pending-reviews/${reviewId}/reject`,
       {
         method: 'POST',
+      }
+    );
+    return handleResponse(response);
+  },
+
+  // Batch Operations
+  triggerAutoTrackAll: async (
+    limit: number = 5,
+    autoApproveThreshold?: number
+  ): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/auto-track-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        limit,
+        auto_approve_threshold: autoApproveThreshold ?? null,
+      }),
+    });
+    return handleResponse(response);
+  },
+
+  approveAllPending: async (): Promise<any> => {
+    const response = await fetch(
+      `${API_BASE_URL}/pending-reviews/approve-all`,
+      { method: 'POST' }
+    );
+    return handleResponse(response);
+  },
+
+  autoApprovePending: async (threshold: number = 0.7): Promise<any> => {
+    const response = await fetch(
+      `${API_BASE_URL}/pending-reviews/auto-approve`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threshold }),
       }
     );
     return handleResponse(response);

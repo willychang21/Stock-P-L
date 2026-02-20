@@ -1,5 +1,6 @@
 /**
  * PendingReviewList - Displays AI-analyzed posts pending user review
+ * Supports batch operations: Approve All, Auto-Approve, grouped multi-asset display
  */
 
 import {
@@ -11,15 +12,15 @@ import {
   Button,
   Chip,
   Stack,
-  TextField,
   CircularProgress,
   Avatar,
   Tooltip,
   IconButton,
-  Collapse,
   Slider,
   FormControl,
   FormLabel,
+  Divider,
+  Alert,
 } from '@mui/material';
 import {
   Check,
@@ -30,8 +31,15 @@ import {
   ExpandLess,
   OpenInNew,
   AutoMode,
+  DoneAll,
+  AutoAwesome,
+  PlayArrow,
+  Shield,
+  Visibility,
+  CheckCircle,
+  TrendingFlat,
 } from '@mui/icons-material';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { apiClient } from '@infrastructure/api/client';
 import { PendingReview, getSignalLabel } from '@domain/models/Influencer';
 import { getFaviconUrl } from '@presentation/utils/favicon';
@@ -54,19 +62,16 @@ export function PendingReviewList({
   const [pendingReviews, setPendingReviews] = useState<PendingReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<Record<string, any>>({});
   const [processing, setProcessing] = useState<string | null>(null);
   const [postLimit, setPostLimit] = useState<number>(5);
-
-  useEffect(() => {
-    fetchPendingReviews();
-  }, [isAutoTracking]); // Refresh when tracking completes
+  const [batchProcessing, setBatchProcessing] = useState(false);
+  const [batchResult, setBatchResult] = useState<string | null>(null);
 
   const fetchPendingReviews = async () => {
-    setLoading(true);
     try {
-      const reviews = await apiClient.getPendingReviews();
-      setPendingReviews(reviews);
+      setLoading(true);
+      const data = await apiClient.getPendingReviews();
+      setPendingReviews(data);
     } catch (error) {
       console.error('Failed to fetch pending reviews:', error);
     } finally {
@@ -77,17 +82,11 @@ export function PendingReviewList({
   const handleApprove = async (review: PendingReview) => {
     setProcessing(review.id);
     try {
-      const edits = editValues[review.id] || {};
       await apiClient.approvePendingReview(review.id, {
-        symbol: edits.symbol || review.suggested_symbol,
-        signal: edits.signal || review.suggested_signal,
-        timeframe: edits.timeframe || review.suggested_timeframe,
-        entry_price: edits.entry_price || null,
-        target_price: edits.target_price || null,
-        stop_loss: edits.stop_loss || null,
-        note: edits.note || null,
+        symbol: review.suggested_symbol,
+        signal: review.suggested_signal,
+        timeframe: review.suggested_timeframe,
       });
-      // Remove from list
       setPendingReviews(prev => prev.filter(r => r.id !== review.id));
       onReviewComplete();
     } catch (error) {
@@ -110,19 +109,97 @@ export function PendingReviewList({
     }
   };
 
-  const updateEditValue = (reviewId: string, field: string, value: any) => {
-    setEditValues(prev => ({
-      ...prev,
-      [reviewId]: {
-        ...(prev[reviewId] || {}),
-        [field]: value,
-      },
-    }));
+  const handleApproveAll = async () => {
+    setBatchProcessing(true);
+    setBatchResult(null);
+    try {
+      const result = await apiClient.approveAllPending();
+      setBatchResult(`✅ 已通過 ${result.approved} 筆推薦`);
+      setPendingReviews([]);
+      onReviewComplete();
+    } catch (error: any) {
+      setBatchResult(`❌ 失敗: ${error.message}`);
+    } finally {
+      setBatchProcessing(false);
+    }
   };
 
-  const getInfluencerInfo = (id: string) => {
-    return influencers.find(i => i.id === id);
+  const handleAutoApprove = async () => {
+    setBatchProcessing(true);
+    setBatchResult(null);
+    try {
+      const result = await apiClient.autoApprovePending(0.7);
+      setBatchResult(
+        `✅ 自動通過 ${result.approved} 筆（信心度≥70%），剩餘 ${result.skipped} 筆待審核`
+      );
+      fetchPendingReviews();
+      onReviewComplete();
+    } catch (error: any) {
+      setBatchResult(`❌ 失敗: ${error.message}`);
+    } finally {
+      setBatchProcessing(false);
+    }
   };
+
+  const handleApproveGroup = async (reviews: PendingReview[]) => {
+    setBatchProcessing(true);
+    try {
+      for (const review of reviews) {
+        await apiClient.approvePendingReview(review.id, {
+          symbol: review.suggested_symbol,
+          signal: review.suggested_signal,
+          timeframe: review.suggested_timeframe,
+        });
+      }
+      const ids = new Set(reviews.map(r => r.id));
+      setPendingReviews(prev => prev.filter(r => !ids.has(r.id)));
+      onReviewComplete();
+    } catch (error: any) {
+      alert(`批次通過失敗: ${error.message}`);
+    } finally {
+      setBatchProcessing(false);
+    }
+  };
+
+  const getInfluencerInfo = (id: string) => influencers.find(i => i.id === id);
+
+  useEffect(() => {
+    fetchPendingReviews();
+  }, []);
+
+  // Group reviews by source content (same post → multiple assets)
+  const groupedReviews = useMemo(() => {
+    const groups: {
+      key: string;
+      content: string;
+      sourceUrl: string;
+      influencerName: string;
+      influencerId: string;
+      reviews: PendingReview[];
+    }[] = [];
+
+    const contentMap = new Map<string, number>();
+
+    for (const review of pendingReviews) {
+      const key = review.original_content?.slice(0, 100) || review.id;
+      const existingIdx = contentMap.get(key);
+      if (existingIdx !== undefined && groups[existingIdx]) {
+        groups[existingIdx].reviews.push(review);
+      } else {
+        contentMap.set(key, groups.length);
+        groups.push({
+          key,
+          content: review.original_content,
+          sourceUrl: review.source_url,
+          influencerName: review.influencer_name,
+          influencerId: review.influencer_id,
+          reviews: [review],
+        });
+      }
+    }
+
+    return groups;
+  }, [pendingReviews]);
 
   if (loading) {
     return (
@@ -191,11 +268,11 @@ export function PendingReviewList({
                 isAutoTracking ? (
                   <CircularProgress size={20} color="inherit" />
                 ) : (
-                  <AutoMode />
+                  <PlayArrow />
                 )
               }
             >
-              {isAutoTracking ? '正在分析中...' : '開始追蹤分析'}
+              {isAutoTracking ? '正在分析中...' : '追蹤選定博主'}
             </Button>
             <Typography variant="caption" display="block" sx={{ mt: 1 }}>
               系統將爬取並分析最新的 {postLimit} 篇貼文
@@ -212,19 +289,71 @@ export function PendingReviewList({
 
   return (
     <Stack spacing={2}>
-      {pendingReviews.map(review => {
-        const influencer = getInfluencerInfo(review.influencer_id);
-        const isExpanded = expandedId === review.id;
-        const edits = editValues[review.id] || {};
-        const isProcessing = processing === review.id;
-        const analysis = (review.ai_analysis || {}) as { summary?: string };
+      {/* Batch Action Bar */}
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 1,
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          p: 2,
+          bgcolor: 'action.hover',
+          borderRadius: 2,
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ mr: 1 }}>
+          {pendingReviews.length} 筆待審核
+        </Typography>
+        <Button
+          variant="contained"
+          color="success"
+          size="small"
+          startIcon={
+            batchProcessing ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : (
+              <DoneAll />
+            )
+          }
+          onClick={handleApproveAll}
+          disabled={batchProcessing}
+        >
+          全部通過
+        </Button>
+        <Button
+          variant="outlined"
+          color="secondary"
+          size="small"
+          startIcon={
+            batchProcessing ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : (
+              <AutoAwesome />
+            )
+          }
+          onClick={handleAutoApprove}
+          disabled={batchProcessing}
+        >
+          自動審核（≥70%）
+        </Button>
+      </Box>
+
+      {batchResult && (
+        <Alert
+          severity={batchResult.startsWith('✅') ? 'success' : 'error'}
+          onClose={() => setBatchResult(null)}
+        >
+          {batchResult}
+        </Alert>
+      )}
+
+      {/* Grouped Reviews */}
+      {groupedReviews.map(group => {
+        const influencer = getInfluencerInfo(group.influencerId);
+        const isMultiAsset = group.reviews.length > 1;
 
         return (
-          <Card
-            key={review.id}
-            variant="outlined"
-            sx={{ opacity: isProcessing ? 0.6 : 1 }}
-          >
+          <Card key={group.key} variant="outlined">
             <CardContent sx={{ pb: 1 }}>
               {/* Header */}
               <Box
@@ -241,68 +370,29 @@ export function PendingReviewList({
                     sx={{ width: 24, height: 24 }}
                   />
                   <Typography variant="subtitle2">
-                    {review.influencer_name}
+                    {group.influencerName}
                   </Typography>
-                  <Chip
-                    size="small"
-                    label={review.source?.replace('AUTO_', '')}
-                    color="secondary"
-                    variant="outlined"
-                  />
+                  {isMultiAsset && (
+                    <Chip
+                      size="small"
+                      label={`${group.reviews.length} 檔標的`}
+                      color="info"
+                      variant="outlined"
+                    />
+                  )}
                 </Box>
-                <Typography variant="caption" color="text.secondary">
-                  {new Date(review.created_at).toLocaleDateString()}
-                </Typography>
-              </Box>
-
-              {/* AI Analysis Summary */}
-              <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                {review.suggested_signal && (
-                  <Chip
-                    icon={
-                      review.suggested_signal === 'BUY' ? (
-                        <TrendingUp fontSize="small" />
-                      ) : (
-                        <TrendingDown fontSize="small" />
-                      )
-                    }
-                    label={getSignalLabel(review.suggested_signal)}
-                    size="small"
-                    color={
-                      review.suggested_signal === 'BUY'
-                        ? 'success'
-                        : review.suggested_signal === 'SELL'
-                          ? 'error'
-                          : 'default'
-                    }
-                  />
-                )}
-                {review.suggested_symbol && (
-                  <Chip
-                    label={review.suggested_symbol}
-                    size="small"
-                    color="primary"
-                  />
-                )}
-                {review.confidence && (
-                  <Chip
-                    label={`信心: ${(review.confidence * 100).toFixed(0)}%`}
-                    size="small"
-                    variant="outlined"
-                  />
+                {group.sourceUrl && (
+                  <Tooltip title="查看原文">
+                    <IconButton
+                      size="small"
+                      href={group.sourceUrl}
+                      target="_blank"
+                    >
+                      <OpenInNew fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 )}
               </Box>
-
-              {/* AI Summary */}
-              {analysis.summary && (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mb: 1 }}
-                >
-                  📊 {analysis.summary}
-                </Typography>
-              )}
 
               {/* Original Content Preview */}
               <Typography
@@ -312,116 +402,159 @@ export function PendingReviewList({
                   bgcolor: 'action.hover',
                   borderRadius: 1,
                   fontSize: '0.8rem',
-                  maxHeight: isExpanded ? 'none' : 60,
+                  maxHeight: expandedId === group.key ? 'none' : 60,
                   overflow: 'hidden',
+                  mb: 1,
                 }}
               >
-                {review.original_content}
+                {group.content}
               </Typography>
 
-              <Button
-                size="small"
-                onClick={() => setExpandedId(isExpanded ? null : review.id)}
-                endIcon={isExpanded ? <ExpandLess /> : <ExpandMore />}
-                sx={{ mt: 0.5 }}
-              >
-                {isExpanded ? '收起' : '展開'}
-              </Button>
+              {group.content?.length > 100 && (
+                <Button
+                  size="small"
+                  onClick={() =>
+                    setExpandedId(expandedId === group.key ? null : group.key)
+                  }
+                  endIcon={
+                    expandedId === group.key ? <ExpandLess /> : <ExpandMore />
+                  }
+                  sx={{ mb: 1 }}
+                >
+                  {expandedId === group.key ? '收起' : '展開'}
+                </Button>
+              )}
 
-              {/* Expanded Edit Form */}
-              <Collapse in={isExpanded}>
-                <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                  <TextField
-                    size="small"
-                    label="標的代號"
-                    value={edits.symbol ?? review.suggested_symbol ?? ''}
-                    onChange={e =>
-                      updateEditValue(review.id, 'symbol', e.target.value)
-                    }
-                    sx={{ width: 120 }}
-                  />
-                  <TextField
-                    size="small"
-                    label="進場價"
-                    type="number"
-                    value={edits.entry_price ?? ''}
-                    onChange={e =>
-                      updateEditValue(
-                        review.id,
-                        'entry_price',
-                        parseFloat(e.target.value) || null
-                      )
-                    }
-                    sx={{ width: 100 }}
-                  />
-                  <TextField
-                    size="small"
-                    label="目標價"
-                    type="number"
-                    value={edits.target_price ?? ''}
-                    onChange={e =>
-                      updateEditValue(
-                        review.id,
-                        'target_price',
-                        parseFloat(e.target.value) || null
-                      )
-                    }
-                    sx={{ width: 100 }}
-                  />
-                  <TextField
-                    size="small"
-                    label="止損價"
-                    type="number"
-                    value={edits.stop_loss ?? ''}
-                    onChange={e =>
-                      updateEditValue(
-                        review.id,
-                        'stop_loss',
-                        parseFloat(e.target.value) || null
-                      )
-                    }
-                    sx={{ width: 100 }}
-                  />
-                </Box>
-              </Collapse>
+              {/* Assets from this post */}
+              <Divider sx={{ my: 1 }} />
+              <Stack spacing={1}>
+                {group.reviews.map(review => {
+                  const isProcessing = processing === review.id;
+                  const analysis = (review.ai_analysis || {}) as {
+                    summary?: string;
+                    note?: string;
+                  };
+
+                  return (
+                    <Box
+                      key={review.id}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 1,
+                        p: 1,
+                        borderRadius: 1,
+                        bgcolor: 'background.default',
+                        opacity: isProcessing ? 0.5 : 1,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        {review.suggested_symbol && (
+                          <Chip
+                            label={review.suggested_symbol}
+                            size="small"
+                            color="primary"
+                            sx={{ fontWeight: 'bold' }}
+                          />
+                        )}
+                        {review.suggested_signal && (
+                          <Chip
+                            icon={
+                              review.suggested_signal === 'BUY' ? (
+                                <TrendingUp fontSize="small" />
+                              ) : review.suggested_signal === 'SELL' ? (
+                                <TrendingDown fontSize="small" />
+                              ) : review.suggested_signal === 'HEDGE' ? (
+                                <Shield fontSize="small" />
+                              ) : review.suggested_signal === 'WATCH' ? (
+                                <Visibility fontSize="small" />
+                              ) : review.suggested_signal === 'CLOSED' ? (
+                                <CheckCircle fontSize="small" />
+                              ) : (
+                                <TrendingFlat fontSize="small" />
+                              )
+                            }
+                            label={getSignalLabel(review.suggested_signal)}
+                            size="small"
+                            color={
+                              review.suggested_signal === 'BUY'
+                                ? 'success'
+                                : review.suggested_signal === 'SELL'
+                                  ? 'error'
+                                  : review.suggested_signal === 'HEDGE'
+                                    ? 'warning'
+                                    : review.suggested_signal === 'WATCH'
+                                      ? 'info'
+                                      : 'default'
+                            }
+                          />
+                        )}
+                        {review.confidence && (
+                          <Chip
+                            label={`${(review.confidence * 100).toFixed(0)}%`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                        {analysis.note && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ maxWidth: 200 }}
+                            noWrap
+                          >
+                            {analysis.note}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleReject(review)}
+                          disabled={isProcessing}
+                        >
+                          <Close fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="success"
+                          onClick={() => handleApprove(review)}
+                          disabled={isProcessing}
+                        >
+                          <Check fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Stack>
             </CardContent>
 
-            <CardActions sx={{ justifyContent: 'space-between', pt: 0 }}>
-              <Box>
-                {review.source_url && (
-                  <Tooltip title="查看原文">
-                    <IconButton
-                      size="small"
-                      href={review.source_url}
-                      target="_blank"
-                    >
-                      <OpenInNew fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </Box>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+            {/* Group action: approve all assets from this post */}
+            {isMultiAsset && (
+              <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
                 <Button
                   size="small"
-                  color="error"
-                  startIcon={<Close />}
-                  onClick={() => handleReject(review)}
-                  disabled={isProcessing}
-                >
-                  忽略
-                </Button>
-                <Button
-                  size="small"
-                  variant="contained"
+                  variant="outlined"
                   color="success"
-                  startIcon={<Check />}
-                  onClick={() => handleApprove(review)}
-                  disabled={isProcessing}
+                  startIcon={<DoneAll />}
+                  onClick={() => handleApproveGroup(group.reviews)}
+                  disabled={batchProcessing}
                 >
-                  確認
+                  全部通過此貼文 ({group.reviews.length} 檔)
                 </Button>
-              </Box>
-            </CardActions>
+              </CardActions>
+            )}
           </Card>
         );
       })}

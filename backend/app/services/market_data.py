@@ -7,12 +7,32 @@ from app.services.price_cache import price_cache_service, historical_price_cache
 
 class MarketDataService:
 
+    # Common non-stock tickers → Yahoo Finance symbols
+    SYMBOL_ALIASES = {
+        "US10Y": "^TNX",    # 10-Year Treasury Yield
+        "US2Y": "^IRX",     # 2-Year (closest proxy)
+        "US30Y": "^TYX",    # 30-Year Treasury Yield
+        "VIX": "^VIX",      # Volatility Index
+        "DXY": "DX-Y.NYB",  # US Dollar Index
+        "GOLD": "GC=F",     # Gold Futures
+        "OIL": "CL=F",      # Crude Oil Futures
+        "BTC": "BTC-USD",   # Bitcoin
+        "ETH": "ETH-USD",   # Ethereum
+    }
+
+    def _normalize_symbol(self, symbol: str) -> str:
+        """Normalize symbol: apply aliases, uppercase."""
+        upper = symbol.upper()
+        return self.SYMBOL_ALIASES.get(upper, upper)
+
     def get_quotes(self, symbols: List[str]) -> List[Dict]:
         if not symbols:
             return []
         
-        # Normalize symbols
-        normalized_symbols = [s.upper() for s in symbols]
+        # Normalize symbols and apply aliases
+        original_to_yf = {s.upper(): self._normalize_symbol(s) for s in symbols}
+        yf_to_original = {v: k for k, v in original_to_yf.items()}
+        normalized_symbols = list(set(original_to_yf.values()))
         
         # 1. Check cache first
         cached_results, missing_symbols = price_cache_service.get(normalized_symbols)
@@ -49,8 +69,10 @@ class MarketDataService:
                         price = hist['Close'].iloc[-1]
                 
                 if price is not None:
+                    # Map back to original symbol name if aliased
+                    original_sym = yf_to_original.get(symbol, symbol)
                     return {
-                        "symbol": symbol,
+                        "symbol": original_sym,
                         "regularMarketPrice": price,
                         "quoteType": quote_type,
                         "regularMarketChange": 0,
@@ -79,6 +101,7 @@ class MarketDataService:
 
     def get_historical_prices(self, symbol: str, start_date: str, end_date: str) -> Dict:
         upper_symbol = symbol.upper()
+        yf_symbol = self._normalize_symbol(symbol)
         
         # 1. Check if we have complete cached data
         if historical_price_cache_service.has_complete_data(upper_symbol, start_date, end_date):
@@ -94,7 +117,7 @@ class MarketDataService:
         # 2. Fetch from Yahoo Finance
         print(f"📡 Historical cache MISS for {upper_symbol}: fetching from Yahoo Finance")
         try:
-            ticker = yf.Ticker(symbol)
+            ticker = yf.Ticker(yf_symbol)
             hist = ticker.history(start=start_date, end=end_date, interval="1d")
             
             prices = []
