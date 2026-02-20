@@ -1,56 +1,28 @@
-# Investment Portfolio Tracker
+# Stock P:L — Investment Portfolio Tracker
 
-A **full-stack web application** for personal investment tracking and P/L analysis. Built with a **Python/FastAPI** backend for robust data processing and a **React** frontend for a modern user experience.
+A full-stack web application for personal investment tracking and P/L analysis.
 
-## Architecture
+![Demo Screen Placeholder](./.github/assets/demo.png) _(Note: Please update with actual screenshot)_
 
-This application follows a **Strict Layered (Hexagonal) Architecture** to ensure maintainability, extensibility, and testability:
+## What This Does
 
-- **Domain Layer**: Pure business logic (Entities, Value Objects, Port Interfaces). No external dependencies.
-  - _Location_: `src/domain/`, `backend/app/core/domain/`
-- **Application Layer**: Orchestrates domain logic via Services (Use Cases).
-  - _Location_: `src/application/`, `backend/app/services/`
-- **Infrastructure Layer**: Implementation of port interfaces (API clients, Database repositories, Market data adapters).
-  - _Location_: `src/infrastructure/`, `backend/app/infrastructure/`
-- **Presentation Layer**: UI Components (React) and API Endpoints (FastAPI).
-  - _Location_: `src/presentation/`, `backend/app/api/`
+This application provides a comprehensive dashboard to track your investment portfolio's performance. You can import trade history (CSV) from your broker, and the app will automatically calculate your Realized and Unrealized Profit/Loss.
 
-### Key Design Patterns
+I built this because I wanted a **privacy-focused** alternative to cloud-based financial trackers. All transaction data is stored locally on your machine (via DuckDB), and live stock prices are fetched automatically via a proxy to Yahoo Finance, requiring no manual entry or third-party cloud syncing.
 
-- **Strategy Pattern**: Decoupled portfolio calculators (FIFO, Weighted Average) that can be selected at runtime.
-- **Repository Pattern**: Abstracted data access to isolate the domain from storage details (DuckDB/LocalStorage).
-- **Result Pattern**: Standardized error handling across the stack.
+## Tech Stack
 
-## Features
+- **Backend**: Python 3.10+, FastAPI, DuckDB, Pydantic, `yfinance`
+  - _Why_: FastAPI provides robust typing and async endpoints, while DuckDB is perfect for fast, in-process analytical queries without needing a separate database server.
+- **Frontend**: React 18, TypeScript, Vite, Material UI (MUI 5), TailwindCSS 3, Zustand, Recharts
+  - _Why_: A modern React stack with Vite offers a fantastic developer experience. Zustand keeps state management minimal, and Recharts makes data visualization simple and beautiful.
 
-✅ **Transaction Management**
+## Getting Started
 
-- Server-side CSV import (Robinhood, Charles Schwab)
-- Automatic deduplication via content hashing
-- Persistent storage using DuckDB
-
-✅ **P/L Calculation**
-
-- FIFO (First-In-First-Out) cost basis logic (In Progress)
-- Realized and unrealized P/L tracking
-- Per-symbol P/L breakdown
-
-✅ **Market Data**
-
-- **Real-time Quotes**: Automatic fetching via Yahoo Finance proxy
-- No manual price entry required
-
-✅ **Privacy Focused**
-
-- Data stored locally on your machine (DuckDB file)
-- No external cloud sync required (Self-hosted/Localhost)
-
-## Prerequisites
+### Prerequisites
 
 - **Python 3.10+** (for backend)
 - **Node.js 18+** (for frontend)
-
-## Quick Start
 
 ### 1. Setup Backend
 
@@ -72,12 +44,12 @@ python3 -m app.db.init_db
 
 ### 2. Run Application
 
-You need to run both the backend and frontend servers.
+You need to run both the backend and frontend servers in separate terminals.
 
 **Terminal 1 (Backend):**
 
 ```bash
-# From project root or /backend
+# From project root
 ./backend/scripts/dev.sh
 # Runs on http://localhost:3001
 ```
@@ -86,12 +58,47 @@ You need to run both the backend and frontend servers.
 
 ```bash
 # From project root
+cd frontend
 npm install
 npm run dev
 # Runs on http://localhost:5173
 ```
 
 Visit `http://localhost:5173` in your browser.
+
+## How It Works
+
+This application follows a **Strict Layered (Hexagonal) Architecture** on both the frontend and backend to ensure maintainability, extensibility, and testability.
+
+### Key Design Patterns
+
+- **Strategy Pattern**: Decoupled portfolio calculators (FIFO, Weighted Average) that can be swapped dynamically.
+- **Repository Pattern**: Abstracted data access to isolate domain logic from storage specifics (DuckDB/LocalStorage).
+- **Result Pattern**: Standardized error handling mechanism across the stack.
+
+### Architecture Structure
+
+- **Domain Layer**: Pure business logic (Entities, Value Objects, Port Interfaces). No external dependencies.
+- **Application Layer**: Orchestrates domain logic via Services (Use Cases).
+- **Infrastructure Layer**: Implementation of port interfaces (API clients, Database repositories, Market data adapters).
+- **Presentation Layer**: UI Components (React) and API Endpoints (FastAPI).
+
+## What I Learned
+
+- Implementing **Hexagonal Architecture** consistently across two entirely different ecosystems (Python/FastAPI and TypeScript/React), enforcing strict boundaries between pure business logic and infrastructure.
+- Leveraging **DuckDB** as an embedded analytical database, demonstrating its incredible speed and efficiency for local data manipulation and aggregations instead of a traditional RDBMS.
+- Creating clean abstractions like the **Repository and Strategy patterns** to keep complex financial calculation logic modular and testable.
+
+## Future Ideas
+
+- [ ] Complete the FIFO (First-In-First-Out) cost basis calculation service
+- [ ] Add parsing support for exporting CSVs from additional brokers
+- [ ] Enhance visualizations with advanced portfolio risk metrics (e.g., Sharpe Ratio, asset allocation breakdowns)
+
+## API Documentation
+
+Once the backend is running, full API documentation (Swagger UI) is available at:
+`http://localhost:3001/docs`
 
 ## Data Migration
 
@@ -103,51 +110,10 @@ export PYTHONPATH=$PYTHONPATH:.
 python3 backend/scripts/migrate_parquet.py
 ```
 
-## API Documentation
-
-Once the backend is running, full API documentation (Swagger UI) is available at:
-`http://localhost:3001/docs`
-
-## Usage Guide
-
-1.  **Import Data**: Go to Dashboard > Import CSV. Upload your broker export file.
-2.  **View Portfolio**: The dashboard automatically updates with total value, cost, and P/L.
-3.  **Prices**: Stock prices are automatically fetched from Yahoo Finance.
-
-## Development
-
-### Backend Structure
-
-```
-backend/app/
-├── core/             # Domain Entities & Port Interfaces
-├── infrastructure/   # Adapters (DB, External APIs)
-├── services/         # Application Services
-└── api/              # Presentation (FastAPI Endpoints)
-```
-
-### Frontend Structure
-
-```
-src/
-├── domain/           # Pure Domain Logic (Models, Calculators, Ports)
-├── application/      # Application Services (Use Cases, Store)
-├── infrastructure/   # Infrastructure Adapters (API Client, Repositories)
-└── presentation/     # Presentation Layer (Components, Pages, Hooks)
-```
-
 ## Troubleshooting
 
-**Backend won't start**
-
-- Ensure Python 3.10+ is installed.
-- Check virtual environment activation.
-- Verify `backend/requirements.txt` packages are installed.
-
-**Frontend "Network Error"**
-
-- Ensure the Backend server is running on port 3001.
-- Check browser console for CORS errors (CORS is configured for localhost:5173).
+- **Backend won't start**: Ensure Python 3.10+ is installed and your virtual environment is activated before installing `backend/requirements.txt`.
+- **Frontend "Network Error"**: Make sure the backend server runs on port 3001 and CORS issues aren't blocking queries in the browser console.
 
 ## License
 
@@ -155,5 +121,4 @@ MIT
 
 ## Disclaimer
 
-This software is provided "as-is" for personal use. Not financial or tax advice.
-Always verify P/L calculations against official broker statements.
+This software is provided "as-is" for personal use. Not financial or tax advice. Always verify P/L calculations against official broker statements.
