@@ -1,5 +1,6 @@
+from __future__ import annotations
 from pydantic import BaseModel, Field
-from typing import Optional
+
 from datetime import datetime
 
 class PriceBase(BaseModel):
@@ -7,7 +8,7 @@ class PriceBase(BaseModel):
     price: float
     change: float
     change_percent: float
-    quote_type: Optional[str] = None
+    quote_type: str | None = None
 
 class Price(PriceBase):
     updated_at: datetime = Field(default_factory=datetime.now)

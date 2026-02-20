@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Auto-Tracking API Endpoints
 Endpoints for triggering auto-tracking and managing pending reviews.
@@ -5,7 +6,8 @@ Endpoints for triggering auto-tracking and managing pending reviews.
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Annotated
+import duckdb
 from datetime import datetime
 import uuid
 from app.db.session import get_db
@@ -36,17 +38,17 @@ class TrackingResult(BaseModel):
 
 class ApproveReviewRequest(BaseModel):
     """Request to approve a pending review and create recommendation."""
-    symbol: Optional[str] = None
-    signal: Optional[SignalType] = None
-    timeframe: Optional[TimeframeType] = None
-    entry_price: Optional[float] = None
-    target_price: Optional[float] = None
-    stop_loss: Optional[float] = None
-    note: Optional[str] = None
+    symbol: str | None = None
+    signal: SignalType | None = None
+    timeframe: TimeframeType | None = None
+    entry_price: float | None = None
+    target_price: float | None = None
+    stop_loss: float | None = None
+    note: str | None = None
 
 
 @router.post("/auto-track", response_model=TrackingResult)
-async def trigger_auto_track(request: TrackInfluencerRequest, db=Depends(get_db)):
+async def trigger_auto_track(request: TrackInfluencerRequest, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """
     Trigger auto-tracking for an influencer.
     Scrapes their social media, analyzes with AI, and creates pending reviews.
@@ -80,9 +82,9 @@ async def trigger_auto_track(request: TrackInfluencerRequest, db=Depends(get_db)
 
 @router.get("/pending-reviews", response_model=List[PendingReview])
 def get_pending_reviews(
-    influencer_id: Optional[str] = None,
-    status: str = "PENDING",
-    db=Depends(get_db)
+    db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)],
+    influencer_id: str | None = None,
+    status: str = "PENDING"
 ):
     """Get all pending reviews waiting for user approval."""
     query = """
@@ -140,8 +142,8 @@ def get_pending_reviews(
 
 @router.get("/scraped-posts")
 def get_scraped_posts(
-    influencer_id: Optional[str] = None,
-    db=Depends(get_db)
+    db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)],
+    influencer_id: str | None = None
 ):
     """Get all scraped posts history — shows what was analyzed and what was skipped."""
     query = """
@@ -180,7 +182,7 @@ def get_scraped_posts(
 
 
 @router.delete("/scraped-posts/{post_id}")
-def delete_scraped_post(post_id: str, db=Depends(get_db)):
+def delete_scraped_post(post_id: str, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """Delete a single scraped post record."""
     result = db.execute("DELETE FROM scraped_posts WHERE id = ?", [post_id])
     if result.rowcount == 0:
@@ -193,7 +195,7 @@ class BulkDeleteRequest(BaseModel):
 
 
 @router.post("/scraped-posts/bulk-delete")
-def bulk_delete_scraped_posts(request: BulkDeleteRequest, db=Depends(get_db)):
+def bulk_delete_scraped_posts(request: BulkDeleteRequest, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """Delete multiple scraped post records at once."""
     if not request.ids:
         return {"deleted": 0}
@@ -212,7 +214,7 @@ class ApproveAllResult(BaseModel):
 
 
 @router.post("/pending-reviews/approve-all", response_model=ApproveAllResult)
-def approve_all_pending(db=Depends(get_db)):
+def approve_all_pending(db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """Approve ALL pending reviews at once using their suggested values."""
     reviews = db.execute(
         """
@@ -252,7 +254,7 @@ class AutoApproveResult(BaseModel):
 
 
 @router.post("/pending-reviews/auto-approve", response_model=AutoApproveResult)
-def auto_approve_pending(request: AutoApproveRequest, db=Depends(get_db)):
+def auto_approve_pending(request: AutoApproveRequest, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """Auto-approve pending reviews with confidence >= threshold."""
     approved = _auto_approve_pending(db, request.threshold)
     
@@ -268,10 +270,10 @@ def auto_approve_pending(request: AutoApproveRequest, db=Depends(get_db)):
 # ═══════════════════════════════════════════
 
 @router.post("/pending-reviews/{review_id}/approve")
-async def approve_pending_review(
+def approve_pending_review(
     review_id: str,
     request: ApproveReviewRequest,
-    db=Depends(get_db)
+    db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]
 ):
     """Approve a pending review and create a recommendation."""
     review_tuple = db.execute(
@@ -298,7 +300,7 @@ async def approve_pending_review(
 
 
 @router.post("/pending-reviews/{review_id}/reject")
-def reject_pending_review(review_id: str, db=Depends(get_db)):
+def reject_pending_review(review_id: str, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """Reject and dismiss a pending review."""
     db.execute(
         "UPDATE pending_reviews SET status = 'REJECTED', reviewed_at = ? WHERE id = ? AND status = 'PENDING'",
@@ -308,7 +310,7 @@ def reject_pending_review(review_id: str, db=Depends(get_db)):
 
 
 @router.delete("/pending-reviews/{review_id}")
-def delete_pending_review(review_id: str, db=Depends(get_db)):
+def delete_pending_review(review_id: str, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """Delete a pending review."""
     db.execute("DELETE FROM pending_reviews WHERE id = ?", [review_id])
     return {"status": "deleted"}
@@ -321,7 +323,7 @@ def delete_pending_review(review_id: str, db=Depends(get_db)):
 class TrackAllRequest(BaseModel):
     """Request to track all influencers at once."""
     limit: int = 5
-    auto_approve_threshold: Optional[float] = None
+    auto_approve_threshold: float | None = None
 
 
 class TrackAllResult(BaseModel):
@@ -336,7 +338,7 @@ class TrackAllResult(BaseModel):
 
 
 @router.post("/auto-track-all", response_model=TrackAllResult)
-async def trigger_auto_track_all(request: TrackAllRequest, db=Depends(get_db)):
+async def trigger_auto_track_all(request: TrackAllRequest, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """
     Batch auto-track ALL influencers with URLs.
     Optionally auto-approve high-confidence results.

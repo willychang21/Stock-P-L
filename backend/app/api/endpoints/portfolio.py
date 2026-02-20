@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from app.services.portfolio_service import portfolio_service
 from app.core.domain.models import Portfolio

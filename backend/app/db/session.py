@@ -1,3 +1,4 @@
+from __future__ import annotations
 import duckdb
 import os
 from contextlib import contextmanager

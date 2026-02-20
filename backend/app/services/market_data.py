@@ -1,3 +1,4 @@
+from __future__ import annotations
 import yfinance as yf
 from app.models.price import Price
 from typing import List, Dict

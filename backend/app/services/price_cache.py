@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Price Cache Service
 
@@ -42,8 +43,8 @@ class PriceCacheService:
     def __init__(
         self,
         db_provider: DatabaseProvider,
-        clock: Optional[ClockProvider] = None,
-        config: Optional[CacheConfig] = None,
+        clock: ClockProvider | None = None,
+        config: CacheConfig | None = None,
     ):
         """
         Initialize the cache service.
@@ -218,7 +219,7 @@ class HistoricalPriceCacheService:
     def __init__(
         self,
         db_provider: DatabaseProvider,
-        clock: Optional[ClockProvider] = None,
+        clock: ClockProvider | None = None,
     ):
         """
         Initialize the historical cache service.

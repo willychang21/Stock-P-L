@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import List, Optional
@@ -10,7 +11,7 @@ router = APIRouter(prefix="/api/social", tags=["Social Media Analysis"])
 class SocialAnalysisRequest(BaseModel):
     source_type: str  # "threads" or "substack"
     target: str       # URL (for substack) or username (for threads)
-    limit: Optional[int] = 5
+    limit: int | None = 5
 
 class SocialPostAnalysis(BaseModel):
     source: str
@@ -18,7 +19,7 @@ class SocialPostAnalysis(BaseModel):
     content: str
     url: str
     date: str
-    analysis: Optional[dict] = None
+    analysis: dict | None = None
 
 @router.post("/analyze", response_model=List[SocialPostAnalysis])
 async def analyze_social_media(request: SocialAnalysisRequest):

@@ -33,7 +33,7 @@ export function AddRecommendationDialog({
   const [formData, setFormData] = useState<RecommendationCreate>({
     symbol: '',
     recommendation_date: new Date().toISOString().split('T')[0] ?? '',
-    initial_price: undefined,
+    entry_price: undefined,
     note: '',
   });
   const { t } = useTranslation();
@@ -44,7 +44,7 @@ export function AddRecommendationDialog({
       setFormData({
         symbol: '',
         recommendation_date: new Date().toISOString().split('T')[0] ?? '',
-        initial_price: undefined,
+        entry_price: undefined,
         note: '',
       });
     }
@@ -113,11 +113,11 @@ export function AddRecommendationDialog({
           label={t('influencers.initialPriceLabel')}
           type="number"
           fullWidth
-          value={formData.initial_price || ''}
+          value={formData.entry_price || ''}
           onChange={e =>
             setFormData({
               ...formData,
-              initial_price: e.target.value
+              entry_price: e.target.value
                 ? parseFloat(e.target.value)
                 : undefined,
             })

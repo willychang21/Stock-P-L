@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Auto-Tracker Service — Redesigned Pipeline
 Scrapes influencer posts → deduplicates → classifies → extracts assets → creates pending reviews.
@@ -211,11 +212,11 @@ class AutoTrackerService:
         source_url: str,
         original_content: str,
         ai_analysis: Dict,
-        suggested_symbol: Optional[str] = None,
-        suggested_signal: Optional[str] = None,
-        content_hash: Optional[str] = None,
-        post_date: Optional[str] = None
-    ) -> Optional[str]:
+        suggested_symbol: str | None = None,
+        suggested_signal: str | None = None,
+        content_hash: str | None = None,
+        post_date: str | None = None
+    ) -> str | None:
         """Store a pending review record in the database."""
         try:
             db = next(get_db())

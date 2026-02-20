@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import APIRouter, Query
 from app.services.market_data import market_data_service
 from typing import List

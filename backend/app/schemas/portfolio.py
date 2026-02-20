@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
@@ -13,9 +14,9 @@ class PortfolioSummary(BaseModel):
 
 class TransactionResponse(DomainTransaction):
     # Add optional fields that might be in the database but not core domain
-    broker: Optional[str] = None
-    rawData: Optional[str] = None
-    notes: Optional[str] = None
+    broker: str | None = None
+    rawData: str | None = None
+    notes: str | None = None
 
 class TransactionList(BaseModel):
     items: List[TransactionResponse]

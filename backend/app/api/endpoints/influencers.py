@@ -1,7 +1,9 @@
+from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Optional
+from typing import List, Annotated
 from datetime import datetime, timedelta, date
 import uuid
+import duckdb
 from app.db.session import get_db
 from app.schemas.influencer import (
     Influencer, InfluencerCreate, InfluencerUpdate, 
@@ -22,7 +24,7 @@ def calculate_expiry_date(rec_date: date, timeframe: TimeframeType) -> date:
         return rec_date + timedelta(days=90)  # 3 months
 
 @router.get("/influencers", response_model=List[InfluencerWithStats])
-def get_influencers(db=Depends(get_db)):
+def get_influencers(db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """List all influencers with performance stats"""
     influencers = db.execute("SELECT * FROM influencers ORDER BY name").fetchall()
     
@@ -111,7 +113,7 @@ def get_influencers(db=Depends(get_db)):
     return results
 
 @router.post("/influencers", response_model=Influencer)
-def create_influencer(influencer: InfluencerCreate, db=Depends(get_db)):
+def create_influencer(influencer: InfluencerCreate, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """Create a new influencer"""
     inf_id = str(uuid.uuid4())
     now = datetime.now()
@@ -139,7 +141,7 @@ def create_influencer(influencer: InfluencerCreate, db=Depends(get_db)):
 def create_recommendation(
     influencer_id: str, 
     recommendation: RecommendationCreate, 
-    db=Depends(get_db)
+    db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]
 ):
     """Add a recommendation for an influencer"""
     return create_recommendations_batch(influencer_id, [recommendation], db)[0]
@@ -148,7 +150,7 @@ def create_recommendation(
 def create_recommendations_batch(
     influencer_id: str, 
     recommendations: List[RecommendationCreate], 
-    db=Depends(get_db)
+    db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]
 ):
     """Batch add recommendations for an influencer"""
     # Verify influencer exists
@@ -268,9 +270,9 @@ def create_recommendations_batch(
 
 @router.get("/recommendations", response_model=List[Recommendation])
 def get_all_recommendations(
-    status: Optional[RecommendationStatus] = None,
-    timeframe: Optional[TimeframeType] = None,
-    db=Depends(get_db)
+    db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)],
+    status: RecommendationStatus | None = None,
+    timeframe: TimeframeType | None = None
 ):
     """Get all recommendations with live performance metrics. Supports filtering."""
     query = """
@@ -376,7 +378,7 @@ def get_all_recommendations(
 def update_influencer(
     influencer_id: str,
     influencer_update: InfluencerUpdate,
-    db=Depends(get_db)
+    db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]
 ):
     """Update an existing influencer"""
     current = db.execute("SELECT * FROM influencers WHERE id = ?", [influencer_id]).fetchone()
@@ -424,7 +426,7 @@ def update_influencer(
 def update_recommendation(
     recommendation_id: str,
     recommendation_update: RecommendationUpdate,
-    db=Depends(get_db)
+    db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]
 ):
     """Update an existing recommendation"""
     current = db.execute("SELECT * FROM influencer_recommendations WHERE id = ?", [recommendation_id]).fetchone()
@@ -494,7 +496,7 @@ def update_recommendation(
     }
 
 @router.delete("/influencers/{influencer_id}")
-def delete_influencer(influencer_id: str, db=Depends(get_db)):
+def delete_influencer(influencer_id: str, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """Delete an influencer and their recommendations"""
     # Delete recommendations first
     db.execute("DELETE FROM influencer_recommendations WHERE influencer_id = ?", [influencer_id])
@@ -512,6 +514,6 @@ def delete_influencer(influencer_id: str, db=Depends(get_db)):
     return {"status": "success"}
 
 @router.delete("/recommendations/{recommendation_id}")
-def delete_recommendation(recommendation_id: str, db=Depends(get_db)):
+def delete_recommendation(recommendation_id: str, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     db.execute("DELETE FROM influencer_recommendations WHERE id = ?", [recommendation_id])
     return {"status": "success"}

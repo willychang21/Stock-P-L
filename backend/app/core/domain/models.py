@@ -1,6 +1,7 @@
+from __future__ import annotations
 from enum import Enum
 from pydantic import BaseModel, Field
-from typing import Optional, List, Union
+from typing import List, Union
 from datetime import datetime, date
 from decimal import Decimal
 

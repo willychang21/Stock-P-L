@@ -41,7 +41,7 @@ export function EditRecommendationDialog({
       setFormData({
         symbol: recommendation.symbol,
         recommendation_date: recommendation.recommendation_date,
-        initial_price: recommendation.initial_price || undefined,
+        entry_price: recommendation.entry_price || undefined,
         note: recommendation.note || '',
       });
     }
@@ -101,11 +101,11 @@ export function EditRecommendationDialog({
           label={t('influencers.initialPriceLabel')}
           type="number"
           fullWidth
-          value={formData.initial_price || ''}
+          value={formData.entry_price || ''}
           onChange={e =>
             setFormData({
               ...formData,
-              initial_price: e.target.value
+              entry_price: e.target.value
                 ? parseFloat(e.target.value)
                 : undefined,
             })

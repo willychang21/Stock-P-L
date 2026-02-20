@@ -1,5 +1,6 @@
+from __future__ import annotations
 from pydantic import BaseModel, Field
-from typing import Optional, Any
+from typing import Any
 from enum import Enum
 from datetime import date, datetime
 import uuid
@@ -27,14 +28,14 @@ class TransactionBase(BaseModel):
     symbol: str
     transaction_type: str
     transaction_date: date
-    settle_date: Optional[date] = None
+    settle_date: date | None = None
     quantity: float
     price: float
     fees: float
     total_amount: float
     broker: str
-    account_id: Optional[str] = None
-    notes: Optional[str] = None
+    account_id: str | None = None
+    notes: str | None = None
     raw_data: str # Storing JSON string or CSV row content
     content_hash: str
 

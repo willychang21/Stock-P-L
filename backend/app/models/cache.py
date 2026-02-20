@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Domain Models for Cache System
 
@@ -6,7 +7,7 @@ Following Google's style guide, we use immutable dataclasses for value objects.
 """
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
+
 from enum import Enum
 
 
@@ -122,7 +123,7 @@ class CacheConfig:
     market_open_hour: int = 9
     market_close_hour: int = 16
     
-    def get_ttl_seconds(self, now: Optional[datetime] = None) -> int:
+    def get_ttl_seconds(self, now: datetime | None = None) -> int:
         """
         Get appropriate TTL based on current time.
         

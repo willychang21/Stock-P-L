@@ -24,15 +24,23 @@ export class TransactionRepository implements ITransactionRepository {
     }
   }
 
-  async add(transaction: Omit<Transaction, 'id'>): Promise<Result<Transaction>> {
-    return Result.fail(new AppError('Method not implemented in API client', 'NOT_IMPLEMENTED'));
+  async add(
+    _transaction: Omit<Transaction, 'id'>
+  ): Promise<Result<Transaction>> {
+    return Result.fail(
+      new AppError('Method not implemented in API client', 'NOT_IMPLEMENTED')
+    );
   }
 
-  async update(transaction: Transaction): Promise<Result<Transaction>> {
-    return Result.fail(new AppError('Method not implemented in API client', 'NOT_IMPLEMENTED'));
+  async update(_transaction: Transaction): Promise<Result<Transaction>> {
+    return Result.fail(
+      new AppError('Method not implemented in API client', 'NOT_IMPLEMENTED')
+    );
   }
 
-  async delete(id: string): Promise<Result<void>> {
-    return Result.fail(new AppError('Method not implemented in API client', 'NOT_IMPLEMENTED'));
+  async delete(_id: string): Promise<Result<void>> {
+    return Result.fail(
+      new AppError('Method not implemented in API client', 'NOT_IMPLEMENTED')
+    );
   }
 }

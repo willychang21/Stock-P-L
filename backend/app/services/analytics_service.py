@@ -1,3 +1,4 @@
+from __future__ import annotations
 from app.db.session import db
 from app.services.calculators import FIFOCalculator, TradeRecord
 from app.services.market_data import market_data_service

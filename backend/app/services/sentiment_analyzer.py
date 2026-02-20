@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Enhanced Sentiment Analyzer Service — Two-Phase Analysis Pipeline
 

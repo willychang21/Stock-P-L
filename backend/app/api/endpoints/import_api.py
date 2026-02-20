@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.services.importer import importer_service
 from app.schemas.portfolio import ImportResult # Need to define this schema or generic dict

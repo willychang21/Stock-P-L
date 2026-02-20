@@ -1,3 +1,4 @@
+from __future__ import annotations
 import feedparser
 from playwright.async_api import async_playwright
 from typing import List, Dict, Optional

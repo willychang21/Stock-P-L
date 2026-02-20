@@ -1,5 +1,6 @@
+from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, HTTPException
-from typing import List, Optional
+from typing import List, Annotated
 from pydantic import BaseModel
 from app.schemas.portfolio import TransactionResponse
 from app.db.session import get_db
@@ -10,17 +11,17 @@ from app.core.domain.models import TransactionType
 router = APIRouter()
 
 class UpdateTransactionRequest(BaseModel):
-    notes: Optional[str] = None
+    notes: str | None = None
     tags: Optional[List[str]] = None
-    rating: Optional[int] = None
+    rating: int | None = None
 
 from app.core.domain.models import TransactionType
 
 @router.get("", response_model=List[TransactionResponse])
 def list_transactions(
+    conn: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)],
     limit: int = 100000,
-    offset: int = 0,
-    conn: duckdb.DuckDBPyConnection = Depends(get_db)
+    offset: int = 0
 ):
     query = "SELECT * FROM transactions ORDER BY transaction_date DESC, id ASC LIMIT ? OFFSET ?"
     cursor = conn.execute(query, [limit, offset])
@@ -79,7 +80,7 @@ def list_transactions(
 def update_transaction(
     transaction_id: str,
     request: UpdateTransactionRequest,
-    conn: duckdb.DuckDBPyConnection = Depends(get_db)
+    conn: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]
 ):
     updates = []
     params = []
@@ -107,7 +108,7 @@ def update_transaction(
 @router.delete("/{transaction_id}")
 def delete_transaction(
     transaction_id: str,
-    conn: duckdb.DuckDBPyConnection = Depends(get_db)
+    conn: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]
 ):
     conn.execute("DELETE FROM transactions WHERE id = ?", [transaction_id])
     return {"status": "success"}
