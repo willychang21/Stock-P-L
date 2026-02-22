@@ -91,10 +91,22 @@ export function Layout() {
         sx={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: isCollapsed && !isMobile ? 'center' : 'space-between',
+          justifyContent: isCollapsed && !isMobile ? 'center' : 'flex-start',
           px: isCollapsed && !isMobile ? 1 : 2,
         }}
       >
+        <Box
+          component="img"
+          src="/logo.png"
+          alt="Stock P:L Logo"
+          sx={{
+            width: 32,
+            height: 32,
+            borderRadius: 1,
+            mr: isCollapsed && !isMobile ? 0 : 1.5,
+            transition: 'margin 0.2s',
+          }}
+        />
         {(!isCollapsed || isMobile) && (
           <Typography
             variant="h6"
@@ -105,15 +117,8 @@ export function Layout() {
             {t('app.title')}
           </Typography>
         )}
-        <IconButton
-          onClick={handleToggleCollapse}
-          sx={{ display: { xs: 'none', md: 'flex' } }}
-          size="small"
-        >
-          {isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-        </IconButton>
       </Toolbar>
-      <List sx={{ pt: 2 }}>
+      <List sx={{ pt: 2, flexGrow: 1 }}>
         {menuItems.map(item => (
           <ListItem
             key={item.key}
@@ -179,6 +184,37 @@ export function Layout() {
           </ListItem>
         ))}
       </List>
+      <Box
+        sx={{
+          p: 1.5,
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          display: { xs: 'none', md: 'flex' },
+          justifyContent: isCollapsed ? 'center' : 'flex-start',
+        }}
+      >
+        <IconButton
+          onClick={handleToggleCollapse}
+          sx={{
+            width: isCollapsed ? 'auto' : '100%',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            borderRadius: 2,
+            px: isCollapsed ? 1 : 2,
+            py: 1,
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          }}
+          size="small"
+        >
+          {isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+          {!isCollapsed && (
+            <Typography variant="body2" sx={{ ml: 1, fontWeight: 500 }}>
+              {t('app.collapseSidebar', { defaultValue: 'Collapse' })}
+            </Typography>
+          )}
+        </IconButton>
+      </Box>
     </Box>
   );
 
