@@ -59,9 +59,19 @@ export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const currentMenuItem = menuItems.find(item => {
+    if (item.path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(item.path);
+  });
+  const pageTitle = currentMenuItem
+    ? t(currentMenuItem.key)
+    : t('app.fullTitle');
+
   useEffect(() => {
-    document.title = t('app.fullTitle');
-  }, [t]);
+    document.title = currentMenuItem
+      ? `${pageTitle} - ${t('app.title')}`
+      : t('app.fullTitle');
+  }, [pageTitle, currentMenuItem, t]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -224,6 +234,7 @@ export function Layout() {
         position="fixed"
         elevation={0}
         sx={{
+          display: { xs: 'block', md: 'none' },
           width: { md: `calc(100% - ${currentDrawerWidth}px)` },
           ml: { md: `${currentDrawerWidth}px` },
           transition: theme.transitions.create(['width', 'margin'], {
@@ -254,7 +265,7 @@ export function Layout() {
             component="div"
             sx={{ fontWeight: 600 }}
           >
-            {t('app.fullTitle')}
+            {pageTitle}
           </Typography>
         </Toolbar>
       </AppBar>
@@ -327,7 +338,8 @@ export function Layout() {
             'radial-gradient(circle at 50% 0%, #1e1b4b 0%, #09090b 60%)', // Indigo 950 glow to Zinc 950
         }}
       >
-        <Toolbar /> {/* Spacer for AppBar */}
+        <Toolbar sx={{ display: { xs: 'block', md: 'none' } }} />{' '}
+        {/* Spacer for AppBar */}
         <PageTransition>
           <Outlet />
         </PageTransition>
