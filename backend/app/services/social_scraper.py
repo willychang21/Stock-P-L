@@ -125,7 +125,7 @@ class SocialScraperService:
                                 continue
                             
                             # Clean the text
-                            clean_text = self._clean_threads_post(full_text, username)
+                            clean_text, part_num, total_parts = self._clean_threads_post(full_text, username)
                             
                             if len(clean_text) < 10:
                                 continue
@@ -169,11 +169,13 @@ class SocialScraperService:
                                 pass
                             # Try to extract post date from <time> element
                             post_date = "Recent"
+                            post_datetime = None
                             try:
                                 time_elem = container.locator("time").first
                                 if await time_elem.count() > 0:
                                     dt = await time_elem.get_attribute("datetime")
                                     if dt:
+                                        post_datetime = dt
                                         # Extract just the YYYY-MM-DD part
                                         post_date = dt.split("T")[0]
                             except Exception:
@@ -185,7 +187,10 @@ class SocialScraperService:
                                 "content": clean_text,
                                 "content_hash": content_hash,
                                 "url": post_url,
-                                "date": post_date
+                                "date": post_date,
+                                "datetime": post_datetime,
+                                "part_num": part_num,
+                                "total_parts": total_parts
                             })
                             new_posts_found = True
                             print(f"[DEBUG] Extracted post #{len(collected_posts)}: {clean_text[:60]}...")
@@ -207,10 +212,10 @@ class SocialScraperService:
                         print("[DEBUG] No new posts found after scrolling, stopping.")
                         break
                 
-                results = collected_posts
+                results = self._merge_multipart_posts(collected_posts)
                 
                 await browser.close()
-                print(f"[DEBUG] Successfully extracted {len(results)} valid posts")
+                print(f"[DEBUG] Successfully extracted and merged to {len(results)} valid posts")
                 
         except Exception as e:
             print(f"[ERROR] fetch_threads_posts failed: {e}")
@@ -221,52 +226,206 @@ class SocialScraperService:
             
         return results
 
-    def _clean_threads_post(self, text: str, username: str) -> str:
+    def _clean_threads_post(self, text: str, username: str) -> tuple[str, int | None, int | None]:
         """
         Clean Threads post text — remove ALL UI noise so hashing is deterministic.
-
-        Threads text_content() produces concatenated strings like:
-          "Follow okaneinu 3d Edited More 那天買DDOG... Translate Like102 Reply4 Repost Share 2"
-        or even worse (with reposts embedded):
-          "okaneinu期權解說 - 01...Like207Reply18Repost9Share49Like16Reply2Repost"
-
-        We aggressively strip all engagement metadata so the same post
-        always produces the same MD5 hash regardless of engagement counts.
+        Returns a tuple: (cleaned_text, part_num, total_parts)
         """
         import re
         
-        # Step 1: Remove "Follow" + username prefix (may appear multiple times for reposts)
+        part_num = None
+        total_parts = None
+        
+        # Clean engagement/UI tokens first so markers at the end of text aren't buried
+        text = re.sub(r'Audio is muted\s*', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'Translate\s*', '', text, flags=re.IGNORECASE)
+        
+        # Detect multi-part markers
+        match = re.search(r'(?<!\d)(\d+)\s*(?:/|of)\s*(\d+)(?!\d)', text, flags=re.IGNORECASE)
+        if match:
+            part_num = int(match.group(1))
+            total_parts = int(match.group(2))
+        else:
+            match2 = re.search(r'(?<!\w)(?:part|day)\s+(\d+)(?!\d)', text, flags=re.IGNORECASE)
+            if match2:
+                part_num = int(match2.group(1))
+            else:
+                match3 = re.search(r'\(\s*(\d+)\s*\)\s*$', text)
+                if match3:
+                    part_num = int(match3.group(1))
+
+        # Step 1: Remove "Follow" + username prefix
         text = re.sub(rf'(Follow\s*)?{re.escape(username)}\s*', '', text, flags=re.IGNORECASE)
         
-        # Step 2: Remove ALL engagement tokens anywhere in text (the core fix)
-        # These appear concatenated: "Like207Reply18Repost9Share49"
-        # Use global replacement, not just trailing
+        # Step 2: Remove ALL engagement tokens anywhere in text
         text = re.sub(r'Translate\s*', '', text, flags=re.IGNORECASE)
         text = re.sub(r'Like\s*\d*', '', text, flags=re.IGNORECASE)
         text = re.sub(r'Reply\s*\d*', '', text, flags=re.IGNORECASE)
         text = re.sub(r'Repost\s*\d*', '', text, flags=re.IGNORECASE)
         text = re.sub(r'Share\s*\d*', '', text, flags=re.IGNORECASE)
         text = re.sub(r'Comment\s*\d*', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'Audio is muted\s*', '', text, flags=re.IGNORECASE)
         
-        # Step 3: Remove time+metadata block (often concatenated: "14hEditedMore", "6hEdited")
-        # MUST come before individual keyword removal.
-        # No \b boundaries — Threads concatenates these without spaces
+        # Step 3: Remove time+metadata block
         text = re.sub(r'\d{1,3}[hdwm]\s*(?:Edited\s*)?(?:More\s*)?', '', text, flags=re.IGNORECASE)
-        # Standalone "Edited" and "More" that weren't caught above
         text = re.sub(r'Edited\s*(?:More\s*)?', '', text, flags=re.IGNORECASE)
-        # "More" at the very start (e.g., "More期權解說...")
         text = re.sub(r'^More\s*', '', text, flags=re.IGNORECASE)
-        # "Verified" and "Follow" (no word boundary needed)
         text = re.sub(r'Verified\s*', '', text, flags=re.IGNORECASE)
         text = re.sub(r'Follow\s*', '', text, flags=re.IGNORECASE)
         
-        # Step 4: Remove carousel indicators "1 / 2", "2 / 2"
-        text = re.sub(r'\d+\s*/\s*\d+', '', text)
+        # Step 4: Remove multi-part indicators
+        text = re.sub(r'(?<!\d)\d+\s*(?:/|of)\s*\d+(?!\d)', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'(?<!\w)(?:part|day)\s+\d+(?!\d)', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\(\s*\d+\s*\)\s*$', '', text)
         
         # Step 5: Clean excessive whitespace
         text = ' '.join(text.split())
         
-        return text.strip()
+        return text.strip(), part_num, total_parts
+
+    def _merge_multipart_posts(self, posts: List[Dict]) -> List[Dict]:
+        """
+        Merge sequential multi-part posts from the same author into single posts.
+        Handles non-adjacent posts (e.g., if part 2 is pinned).
+        """
+        if not posts:
+            return posts
+            
+        from datetime import datetime, timezone
+        import hashlib
+        
+        merged_results = []
+        author_groups = {}
+        
+        # Group posts by author
+        for p in posts:
+            author = p.get('author', 'Unknown')
+            if author not in author_groups:
+                author_groups[author] = []
+            author_groups[author].append(p)
+            
+        def parse_dt(post):
+            dt_str = post.get('datetime')
+            if dt_str:
+                try:
+                    return datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+                except Exception:
+                    pass
+            return None
+
+        for author, author_posts in author_groups.items():
+            # Separate multipart posts from single ones
+            multipart_posts = []
+            single_posts = []
+            
+            for p in author_posts:
+                if p.get('part_num') is not None:
+                    multipart_posts.append(p)
+                else:
+                    single_posts.append(p)
+                    
+            # Try to build complete sequences
+            # Since threads without datetimes might be tricky, we'll sort them 
+            # by part_num descending, and try to find part n-1 within 5 minutes.
+            # However, if one part is pinned, they might have 0-24h gap in retrieval time
+            # but their authored `datetime` is close. If `datetime` is missing, 
+            # we rely purely on sequential numbering.
+            
+            # Sort all multipart posts by part number ascending
+            multipart_posts.sort(key=lambda x: x.get('part_num', 0))
+            
+            used_indices = set()
+            clusters = []
+            
+            for i, p in enumerate(multipart_posts):
+                if i in used_indices:
+                    continue
+                
+                if p.get('part_num') == 1:
+                    # Start a new sequence
+                    current_cluster = [p]
+                    used_indices.add(i)
+                    
+                    expected_next = 2
+                    last_post = p
+                    
+                    # Look for subsequent parts
+                    while True:
+                        found_next = False
+                        for j, candidate in enumerate(multipart_posts):
+                            if j in used_indices:
+                                continue
+                                
+                            if candidate.get('part_num') == expected_next:
+                                # Check time difference if both have datetimes
+                                dt_last = parse_dt(last_post)
+                                dt_cand = parse_dt(candidate)
+                                time_ok = True
+                                if dt_last and dt_cand:
+                                    if abs((dt_cand - dt_last).total_seconds()) > 86400: # 24 hour relax constraint
+                                        # If gap > 24h, probably not the same thread, especially if same author recycles "1/2"
+                                        time_ok = False
+                                
+                                if time_ok:
+                                    current_cluster.append(candidate)
+                                    used_indices.add(j)
+                                    last_post = candidate
+                                    expected_next += 1
+                                    found_next = True
+                                    break
+                        
+                        if not found_next:
+                            break
+                    
+                    # Cluster built, wait. Is it complete or standalone?
+                    expected_total = current_cluster[0].get('total_parts')
+                    if expected_total and len(current_cluster) < expected_total:
+                        is_complete = False
+                    else:
+                        is_complete = True
+                        
+                    if len(current_cluster) > 1 and is_complete:
+                        clusters.append(current_cluster)
+                    else:
+                        # Revert usage if it didn't form a valid cluster
+                        for cp in current_cluster:
+                            single_posts.append(cp)
+                            
+            # Add any unmatched multi-part posts back to single list
+            for i, p in enumerate(multipart_posts):
+                if i not in used_indices:
+                    single_posts.append(p)
+                    
+            # Merge logic for successful clusters
+            for cluster in clusters:
+                merged_content = "\n\n".join(p['content'] for p in cluster)
+                merged_hash = hashlib.md5(merged_content.encode()).hexdigest()
+                
+                merged_post = cluster[0].copy()
+                merged_post['content'] = merged_content
+                merged_post['content_hash'] = merged_hash
+                
+                # Keep the date/time from the first post
+                single_posts.append(merged_post)
+                
+            merged_results.extend(single_posts)
+                
+        # Sort back to newest-first across all authors
+        def get_original_order(p):
+            dt = parse_dt(p)
+            if dt:
+                return dt
+            return datetime.fromtimestamp(0, timezone.utc)
+            
+        merged_results.sort(key=get_original_order, reverse=True)
+        
+        # Clean up temporary fields
+        for p in merged_results:
+            p.pop('part_num', None)
+            p.pop('total_parts', None)
+            p.pop('datetime', None)
+            
+        return merged_results
 
 
     def _clean_html(self, raw_html: str) -> str:

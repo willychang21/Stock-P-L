@@ -113,13 +113,14 @@ CLOSED — Author has exited a position (profit or loss).
 ═══════════════════════════════════
 
 1. Respond ONLY in valid JSON.
-2. Extract ONLY tickers that represent ACTUAL trades, holdings, recommendations, or exits.
-3. DO NOT extract tickers used as hypothetical/educational examples.
-4. Each asset gets its OWN signal based on context — one post can mix BUY, SELL, HEDGE, etc.
-5. For portfolio updates listing stocks by category, default signal is BUY (they are current holdings).
+2. Extract ONLY REAL TICKERS that perfectly map to publicly traded stocks (e.g., AAPL, NVDA, 2330.TW) or legitimate cryptocurrencies (e.g., BTC, ETH).
+3. NEVER EXTRACT SECTORS, THEMES, CALENDAR METRICS OR GENERAL CONCEPTS. Do not extract terms like "Cloud", "AI", "Software", "W8", "YTD", "Q3", "Short", "Tech". If no explicit ticker is found, DO NOT hallucinate one.
+4. CRITICAL: DO NOT confuse monetary values or points (e.g., "+2630", "-500", "$3000") with Taiwan stock tickers (which are 4 digits). If a number is preceded by +, -, or $, or follows words like "獲利", "短倉", "長倉", IT IS A PROFIT/LOSS AMOUNT, NOT A TICKER.
+5. Each asset gets its OWN signal based on context — one post can mix BUY, SELL, HEDGE, etc.
+6. For portfolio updates listing stocks by category, default signal is BUY (they are current holdings).
 6. If a post mentions both entering AND exiting the same stock, use the MOST RECENT action.
 7. Convert non-US stocks appropriately (e.g., "群聯" → "8299.TW", market: "TW").
-8. If unsure about a ticker's intent, OMIT it. Precision over recall.
+8. If you are not 100% sure a term is an active stock ticker, OMIT IT. Precision over recall.
 
 ═══════════════════════════════════
  CONFIDENCE SCORING RUBRIC
@@ -132,13 +133,9 @@ CLOSED — Author has exited a position (profit or loss).
 Below 0.3: Do not extract (too uncertain)
 
 ═══════════════════════════════════
- OUTPUT FORMAT
+ OUTPUT FORMAT SCHEMA
 ═══════════════════════════════════
 
-Post:
-\"\"\"{post_content}\"\"\"
-
-JSON Output:
 {{
   "assets": [
     {{
@@ -202,15 +199,30 @@ Example 6 — Earnings review:
 → assets: [{{"symbol":"NVDA","signal":"BUY","market":"US","category":"AI","note":"earnings beat, +120% YoY revenue, strong AI demand"}}]
   confidence: 0.8
 
-Example 7 — Educational (empty result):
+Example 7 — Sector & Profit discussion with no specific tickers:
+"2026 第八周復盤 主要短倉 +2630 🚀YTD +69.35% 主要長倉 📈YTD +3.93% 十檔年度選股倉 📈YTD +11.32% Cloud 長倉表現好"
+→ assets: []
+  confidence: 0
+
+Example 8 — Educational (empty result):
 "教學文：什麼是 Call Option？比如你看好 TSLA 和 NVDA，你可以買入 Call..."
 → assets: []
   confidence: 0
 
-Example 8 — Macro commentary without specific action (empty result):
+Example 9 — Macro commentary without specific action (empty result):
 "Fed 可能降息，市場偏多，但短期震盪難免"
 → assets: []
-  confidence: 0"""
+  confidence: 0
+
+═══════════════════════════════════
+ NOW ANALYZE THE FOLLOWING POST
+═══════════════════════════════════
+
+Post:
+\"\"\"{post_content}\"\"\"
+
+JSON Output:
+"""
 
         result = self._call_model(prompt)
         if "error" in result:
