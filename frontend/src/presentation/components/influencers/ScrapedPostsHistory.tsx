@@ -3,29 +3,25 @@
  * Allows the user to verify whether the classifier made the correct decision.
  */
 
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Chip,
-  Stack,
-  CircularProgress,
-  Avatar,
-  Tooltip,
-  IconButton,
-  Checkbox,
-  Button,
-} from '@mui/material';
-import {
-  CheckCircle,
-  Cancel,
-  OpenInNew,
-  ExpandMore,
-  ExpandLess,
-  Delete as DeleteIcon,
-  DeleteSweep,
-} from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import CircularProgress from '@mui/material/CircularProgress';
+import Avatar from '@mui/material/Avatar';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import Checkbox from '@mui/material/Checkbox';
+import Button from '@mui/material/Button';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Cancel from '@mui/icons-material/Cancel';
+import OpenInNew from '@mui/icons-material/OpenInNew';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteSweep from '@mui/icons-material/DeleteSweep';
 import { useState, useEffect } from 'react';
 import { apiClient } from '@infrastructure/api/client';
 import { getFaviconUrl } from '@presentation/utils/favicon';

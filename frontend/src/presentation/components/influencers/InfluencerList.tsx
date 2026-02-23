@@ -1,32 +1,28 @@
-import {
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  ListItemIcon,
-  IconButton,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Box,
-  Typography,
-  Paper,
-  Stack,
-  Avatar,
-} from '@mui/material';
-import {
-  Person,
-  Delete,
-  Add as AddIcon,
-  YouTube,
-  Instagram,
-  Language,
-  Edit as EditIcon,
-  OpenInNew,
-} from '@mui/icons-material';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import Avatar from '@mui/material/Avatar';
+import Person from '@mui/icons-material/Person';
+import Delete from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import YouTube from '@mui/icons-material/YouTube';
+import Instagram from '@mui/icons-material/Instagram';
+import Language from '@mui/icons-material/Language';
+import EditIcon from '@mui/icons-material/Edit';
+import OpenInNew from '@mui/icons-material/OpenInNew';
 import { useState } from 'react';
 import {
   Influencer,
@@ -147,7 +143,7 @@ export function InfluencerList({
             disablePadding
             secondaryAction={
               <Stack direction="row" spacing={0.5} sx={{ pr: 1 }}>
-                {inf.url && (
+                {inf.url ? (
                   <IconButton
                     edge="end"
                     size="small"
@@ -158,7 +154,7 @@ export function InfluencerList({
                   >
                     <OpenInNew fontSize="small" />
                   </IconButton>
-                )}
+                ) : null}
                 <IconButton
                   edge="end"
                   size="small"

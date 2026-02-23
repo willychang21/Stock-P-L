@@ -1,16 +1,14 @@
-import {
-  Paper,
-  Typography,
-  Avatar,
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
-import { EmojiEvents } from '@mui/icons-material';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Avatar from '@mui/material/Avatar';
+import Box from '@mui/material/Box';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import EmojiEvents from '@mui/icons-material/EmojiEvents';
 import { Recommendation, Influencer } from '@domain/models/Influencer';
 import { useTranslation } from 'react-i18next';
 import { getFaviconUrl } from '@presentation/utils/favicon';

@@ -1,34 +1,30 @@
-import { useState, useEffect, useMemo } from 'react';
-import {
-  Container,
-  Typography,
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  TablePagination,
-  TableSortLabel,
-  IconButton,
-  Select,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Tabs,
-  Tab,
-  Tooltip,
-  Autocomplete,
-  TextField,
-} from '@mui/material';
-import {
-  Edit as EditIcon,
-  FileDownload as FileDownloadIcon,
-  KeyboardArrowDown,
-} from '@mui/icons-material';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import Chip from '@mui/material/Chip';
+import TablePagination from '@mui/material/TablePagination';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import IconButton from '@mui/material/IconButton';
+import Select from '@mui/material/Select';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Tooltip from '@mui/material/Tooltip';
+import Autocomplete from '@mui/material/Autocomplete';
+import TextField from '@mui/material/TextField';
+import EditIcon from '@mui/icons-material/Edit';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
 import { apiClient } from '../../infrastructure/api/client';
 import { TransactionType } from '@domain/models/Transaction';
 import { useStore } from '@application/store/useStore';
@@ -74,11 +70,7 @@ export function Transactions() {
 
   const lastRefresh = useStore(state => state.lastRefresh);
 
-  useEffect(() => {
-    loadTransactions();
-  }, [lastRefresh]);
-
-  const loadTransactions = async () => {
+  const loadTransactions = useCallback(async () => {
     try {
       const txs = await apiClient.getTransactions();
 
@@ -106,7 +98,11 @@ export function Transactions() {
     } catch (error) {
       console.error('Failed to load transactions:', error);
     }
-  };
+  }, []); // Explicit dependencies (processTransactions is stable, setTransactions is stable)
+
+  useEffect(() => {
+    loadTransactions();
+  }, [lastRefresh, loadTransactions]);
 
   const formatAction = (action: string): string => {
     const map: Record<string, string> = {
@@ -186,13 +182,15 @@ export function Transactions() {
   };
 
   const uniqueSymbols = useMemo(() => {
-    const transactionsSymbols = transactions.map(t => t.symbol).filter(s => s);
-    const symbols = new Set(transactionsSymbols);
-    return Array.from(symbols).sort();
+    const symbols = new Set<string>();
+    for (const t of transactions) {
+      if (t.symbol) symbols.add(t.symbol);
+    }
+    return Array.from(symbols).toSorted();
   }, [transactions]);
 
   const filteredTransactions = useMemo(() => {
-    let result = [...transactions];
+    let result = transactions;
 
     if (filterSymbol) {
       result = result.filter(t => t.symbol === filterSymbol);
@@ -201,7 +199,7 @@ export function Transactions() {
       result = result.filter(t => filterType.includes(t.type));
     }
 
-    result.sort((a, b) => {
+    return result.toSorted((a, b) => {
       let aVal: string | number = a[orderBy] as string;
       let bVal: string | number = b[orderBy] as string;
 
@@ -215,8 +213,6 @@ export function Transactions() {
       }
       return aVal < bVal ? 1 : -1;
     });
-
-    return result;
   }, [transactions, filterSymbol, filterType, orderBy, order]);
 
   const handleSort = (property: OrderBy) => {

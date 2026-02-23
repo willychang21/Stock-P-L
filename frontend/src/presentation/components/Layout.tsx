@@ -1,31 +1,27 @@
-import {
-  Box,
-  AppBar,
-  Toolbar,
-  Typography,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  IconButton,
-  useTheme,
-  useMediaQuery,
-  Tooltip,
-} from '@mui/material';
-import {
-  Dashboard as DashboardIcon,
-  Receipt,
-  Settings,
-  Menu as MenuIcon,
-  Assessment,
-  CompareArrows,
-  Psychology,
-  People,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-} from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import IconButton from '@mui/material/IconButton';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import Tooltip from '@mui/material/Tooltip';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import Receipt from '@mui/icons-material/Receipt';
+import Settings from '@mui/icons-material/Settings';
+import MenuIcon from '@mui/icons-material/Menu';
+import Assessment from '@mui/icons-material/Assessment';
+import CompareArrows from '@mui/icons-material/CompareArrows';
+import Psychology from '@mui/icons-material/Psychology';
+import People from '@mui/icons-material/People';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';

@@ -1,22 +1,18 @@
 import { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  CircularProgress,
-  Chip,
-  Grid,
-  Alert,
-  Autocomplete,
-} from '@mui/material';
-import {
-  KeyboardArrowDown,
-  TrendingUp,
-  TrendingDown,
-  RemoveCircleOutline,
-} from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import CircularProgress from '@mui/material/CircularProgress';
+import Chip from '@mui/material/Chip';
+import Grid from '@mui/material/Grid';
+import Alert from '@mui/material/Alert';
+import Autocomplete from '@mui/material/Autocomplete';
+import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
+import TrendingUp from '@mui/icons-material/TrendingUp';
+import TrendingDown from '@mui/icons-material/TrendingDown';
+import RemoveCircleOutline from '@mui/icons-material/RemoveCircleOutline';
 import { useTranslation } from 'react-i18next';
 
 // Simple inline interface for the Strategy Response
@@ -70,10 +66,12 @@ export function TechnicalSignals() {
     fetch('http://localhost:3001/api/transactions') // Reusing transactions endpoint to get existing symbols
       .then(res => res.json())
       .then((txs: any[]) => {
-        const syms = Array.from(
-          new Set(txs.map(t => t.symbol).filter(Boolean))
-        ).sort();
-        setOptions(syms as string[]);
+        const symsSet = new Set<string>();
+        for (const t of txs) {
+          if (t.symbol) symsSet.add(t.symbol);
+        }
+        const syms = Array.from(symsSet).sort();
+        setOptions(syms);
       })
       .catch(() => {});
   }, []);

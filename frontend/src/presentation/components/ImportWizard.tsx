@@ -1,29 +1,27 @@
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Stepper,
-  Step,
-  StepLabel,
-  Box,
-  Typography,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Alert,
-  LinearProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableRow,
-  Paper,
-} from '@mui/material';
-import { CloudUpload } from '@mui/icons-material';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
+import Stepper from '@mui/material/Stepper';
+import Step from '@mui/material/Step';
+import StepLabel from '@mui/material/StepLabel';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Alert from '@mui/material/Alert';
+import LinearProgress from '@mui/material/LinearProgress';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import CloudUpload from '@mui/icons-material/CloudUpload';
 import { Broker } from '../../domain/models/Transaction';
 import { apiClient } from '../../infrastructure/api/client';
 import { useTranslation } from 'react-i18next';
@@ -132,12 +130,12 @@ export function ImportWizard({
           </Stepper>
         </Box>
 
-        {isImporting && <LinearProgress sx={{ mb: 2 }} />}
-        {errorMsg && (
+        {isImporting ? <LinearProgress sx={{ mb: 2 }} /> : null}
+        {errorMsg ? (
           <Alert severity="error" sx={{ mb: 2 }}>
             {errorMsg}
           </Alert>
-        )}
+        ) : null}
 
         {/* Step 0: File Upload */}
         {activeStep === 0 && (

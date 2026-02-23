@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Grid,
-  Typography,
-  Container,
-  Tab,
-  Tabs,
-  CircularProgress,
-  Divider,
-  ToggleButton,
-  ToggleButtonGroup,
-} from '@mui/material';
-import { BarChart, ShowChart, StackedLineChart } from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Grid from '@mui/material/Grid';
+import Typography from '@mui/material/Typography';
+import Container from '@mui/material/Container';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
+import CircularProgress from '@mui/material/CircularProgress';
+import Divider from '@mui/material/Divider';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import BarChart from '@mui/icons-material/BarChart';
+import ShowChart from '@mui/icons-material/ShowChart';
+import StackedLineChart from '@mui/icons-material/StackedLineChart';
 import {
   plService,
   PerformanceReport,
@@ -24,9 +24,19 @@ import {
 } from '../../application/services/PLService';
 import { useStore } from '../../application/store/useStore';
 import { useTranslation } from 'react-i18next';
-import { TimePeriodChart, ChartType } from '../components/TimePeriodChart';
+import { type ChartType } from '../components/TimePeriodChart';
 import { TimePeriodTable } from '../components/TimePeriodTable';
-import { BehavioralAnalytics } from '../components/BehavioralAnalytics';
+
+const TimePeriodChart = React.lazy(() =>
+  import('../components/TimePeriodChart').then(m => ({
+    default: m.TimePeriodChart,
+  }))
+);
+const BehavioralAnalytics = React.lazy(() =>
+  import('../components/BehavioralAnalytics').then(m => ({
+    default: m.BehavioralAnalytics,
+  }))
+);
 
 export const PerformanceAnalysis: React.FC = () => {
   const [report, setReport] = useState<PerformanceReport | null>(null);
@@ -353,10 +363,20 @@ export const PerformanceAnalysis: React.FC = () => {
               </Box>
 
               <Box sx={{ pt: 1 }}>
-                <TimePeriodChart
-                  data={timeReport?.periods || []}
-                  chartType={chartType}
-                />
+                <React.Suspense
+                  fallback={
+                    <Box
+                      sx={{ display: 'flex', justifyContent: 'center', p: 4 }}
+                    >
+                      <CircularProgress />
+                    </Box>
+                  }
+                >
+                  <TimePeriodChart
+                    data={timeReport?.periods || []}
+                    chartType={chartType}
+                  />
+                </React.Suspense>
               </Box>
             </CardContent>
           </Card>
@@ -504,7 +524,15 @@ export const PerformanceAnalysis: React.FC = () => {
             </Grid>
           </Grid>
 
-          <BehavioralAnalytics />
+          <React.Suspense
+            fallback={
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+              </Box>
+            }
+          >
+            <BehavioralAnalytics />
+          </React.Suspense>
         </>
       )}
 

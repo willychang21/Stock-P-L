@@ -15,7 +15,8 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import { Box, Typography } from '@mui/material';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import { DailyReturn } from '@application/services/BenchmarkService';
 import { useTranslation } from 'react-i18next';
 

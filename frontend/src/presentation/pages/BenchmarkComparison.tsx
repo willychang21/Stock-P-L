@@ -5,18 +5,17 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  CircularProgress,
-  ToggleButton,
-  ToggleButtonGroup,
-  Chip,
-  Alert,
-} from '@mui/material';
-import { TrendingUp, TrendingDown } from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
+import TrendingUp from '@mui/icons-material/TrendingUp';
+import TrendingDown from '@mui/icons-material/TrendingDown';
 import {
   benchmarkService,
   BenchmarkComparisonResult,
@@ -25,8 +24,13 @@ import {
 } from '@application/services/BenchmarkService';
 import { useStore } from '@application/store/useStore';
 import { useTranslation } from 'react-i18next';
-import { CumulativeReturnChart } from '../components/CumulativeReturnChart';
 import { PerformanceMetricsTable } from '../components/PerformanceMetricsTable';
+
+const CumulativeReturnChart = React.lazy(() =>
+  import('../components/CumulativeReturnChart').then(m => ({
+    default: m.CumulativeReturnChart,
+  }))
+);
 import { DCASettingsPanel } from '../components/DCASettingsPanel';
 
 type BenchmarkSelection = 'QQQ' | 'SPY' | 'VOO';
@@ -268,10 +272,18 @@ export const BenchmarkComparison: React.FC = () => {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {data.periodStart} → {data.periodEnd}
           </Typography>
-          <CumulativeReturnChart
-            portfolioReturns={data.portfolio.dailyReturns}
-            benchmarks={data.benchmarks}
-          />
+          <React.Suspense
+            fallback={
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+              </Box>
+            }
+          >
+            <CumulativeReturnChart
+              portfolioReturns={data.portfolio.dailyReturns}
+              benchmarks={data.benchmarks}
+            />
+          </React.Suspense>
         </CardContent>
       </Card>
 

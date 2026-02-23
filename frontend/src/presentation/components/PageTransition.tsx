@@ -1,6 +1,6 @@
 import { useEffect, useState, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Box } from '@mui/material';
+import Box from '@mui/material/Box';
 
 interface PageTransitionProps {
   children: ReactNode;

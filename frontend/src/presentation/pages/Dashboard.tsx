@@ -1,24 +1,23 @@
-import { useEffect, useState, useMemo } from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  Button,
-  CircularProgress,
-  Alert,
-  Tabs,
-  Tab,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-} from '@mui/material';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Grid';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import { useTranslation } from 'react-i18next';
 
-import { Add, Refresh } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import Refresh from '@mui/icons-material/Refresh';
 import { HoldingsTable } from '../components/HoldingsTable';
 import { ImportWizard } from '../components/ImportWizard';
 import { apiClient } from '../../infrastructure/api/client';
@@ -46,16 +45,15 @@ export function Dashboard() {
     'ALL'
   );
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // 1. Fetch Portfolio (includes summary and holdings)
-      const data = await apiClient.getPortfolio(calculatorId);
+      const [data, txs] = await Promise.all([
+        apiClient.getPortfolio(calculatorId),
+        apiClient.getTransactions(),
+      ]);
       setPortfolio(data);
-
-      // 2. Fetch Transactions (for recent list)
-      const txs = await apiClient.getTransactions();
       setTransactions(txs);
     } catch (err: any) {
       console.error(err);
@@ -63,11 +61,11 @@ export function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [calculatorId]);
 
   useEffect(() => {
     refreshData();
-  }, [calculatorId]);
+  }, [refreshData]);
 
   // Filter logic
   const holdings = portfolio?.holdings || [];
@@ -163,11 +161,11 @@ export function Dashboard() {
           </Box>
         </Box>
 
-        {error && (
+        {error ? (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
-        )}
+        ) : null}
 
         {/* Filter Tabs - Disabled for MVP if backend doesn't support filtering yet */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>

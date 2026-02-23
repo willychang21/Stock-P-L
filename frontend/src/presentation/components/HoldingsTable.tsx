@@ -1,19 +1,18 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TableSortLabel,
-  Typography,
-  Chip,
-  Box,
-  Collapse,
-  IconButton,
-} from '@mui/material';
-import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import Box from '@mui/material/Box';
+import Collapse from '@mui/material/Collapse';
+import IconButton from '@mui/material/IconButton';
+import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUp from '@mui/icons-material/KeyboardArrowUp';
 import { useState, useEffect, Fragment } from 'react';
 import Decimal from 'decimal.js';
 import { Holding } from '@domain/models/Holding';
@@ -211,9 +210,9 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
     return holding.marketValue.div(totalMarketValue).times(100);
   };
 
-  const sortedHoldings = [...activeHoldings].sort((a, b) => {
-    let aVal: string | Decimal;
-    let bVal: string | Decimal;
+  const sortedHoldings = activeHoldings.toSorted((a: Holding, b: Holding) => {
+    let aVal: Decimal;
+    let bVal: Decimal;
 
     switch (sortField) {
       case 'symbol':
@@ -361,7 +360,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {sortedHoldings.map(holding => (
+          {sortedHoldings.map((holding: Holding) => (
             <HoldingRow
               key={holding.symbol}
               holding={holding}

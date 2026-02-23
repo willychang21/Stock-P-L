@@ -4,18 +4,16 @@
  */
 
 import React from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  ToggleButton,
-  ToggleButtonGroup,
-  Button,
-  InputAdornment,
-} from '@mui/material';
-import { PlayArrow } from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Button from '@mui/material/Button';
+import InputAdornment from '@mui/material/InputAdornment';
+import PlayArrow from '@mui/icons-material/PlayArrow';
 import { useTranslation } from 'react-i18next';
 import {
   DCAFrequency,

@@ -13,7 +13,8 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import { Box, Typography } from '@mui/material';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import { PeriodStats } from '@application/services/PLService';
 import { useTranslation } from 'react-i18next';
 

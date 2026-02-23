@@ -1,19 +1,17 @@
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Box,
-  Typography,
-  Chip,
-  Rating,
-  Stack,
-  IconButton,
-} from '@mui/material';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import Rating from '@mui/material/Rating';
+import Stack from '@mui/material/Stack';
+import IconButton from '@mui/material/IconButton';
 import { useState, useEffect } from 'react';
-import { Add } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
 
 interface TransactionNoteDialogProps {

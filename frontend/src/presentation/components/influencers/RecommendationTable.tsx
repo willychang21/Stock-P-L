@@ -1,32 +1,28 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Typography,
-  Chip,
-  IconButton,
-  Tooltip,
-  TableSortLabel,
-  Stack,
-  Avatar,
-  Box,
-} from '@mui/material';
-import {
-  Delete as DeleteIcon,
-  OpenInNew,
-  Edit as EditIcon,
-  TrendingUp,
-  TrendingDown,
-  TrendingFlat,
-  CheckCircle,
-  Cancel,
-  Shield,
-  Visibility,
-} from '@mui/icons-material';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import Stack from '@mui/material/Stack';
+import Avatar from '@mui/material/Avatar';
+import Box from '@mui/material/Box';
+import DeleteIcon from '@mui/icons-material/Delete';
+import OpenInNew from '@mui/icons-material/OpenInNew';
+import EditIcon from '@mui/icons-material/Edit';
+import TrendingUp from '@mui/icons-material/TrendingUp';
+import TrendingDown from '@mui/icons-material/TrendingDown';
+import TrendingFlat from '@mui/icons-material/TrendingFlat';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Cancel from '@mui/icons-material/Cancel';
+import Shield from '@mui/icons-material/Shield';
+import Visibility from '@mui/icons-material/Visibility';
 import {
   Recommendation,
   Influencer,

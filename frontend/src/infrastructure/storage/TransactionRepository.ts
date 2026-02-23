@@ -53,8 +53,7 @@ export class TransactionRepository {
     const end = new Date(endDate);
     const all = await this.findAll();
     return all.filter(t => {
-      const dateMatch =
-        t.date >= start && t.date <= end;
+      const dateMatch = t.date >= start && t.date <= end;
       const symbolMatch = symbol ? t.symbol === symbol : true;
       return dateMatch && symbolMatch;
     });
@@ -79,7 +78,10 @@ export class TransactionRepository {
   async getAllSymbols(): Promise<string[]> {
     try {
       const all = await apiClient.getTransactions();
-      const symbols = new Set(all.map(t => t.symbol).filter(s => s && s !== ''));
+      const symbols = new Set<string>();
+      for (const t of all) {
+        if (t.symbol && t.symbol !== '') symbols.add(t.symbol);
+      }
       return Array.from(symbols).sort();
     } catch (e) {
       console.error('Failed to get symbols:', e);

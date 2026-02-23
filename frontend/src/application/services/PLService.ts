@@ -93,13 +93,20 @@ export class PLService {
 
     const symbols = await transactionRepo.getAllSymbols();
 
-    for (const symbol of symbols) {
+    // Fetch all transactions in parallel
+    const txsData = await Promise.all(
+      symbols.map(async symbol => ({
+        symbol,
+        allTxs: await transactionRepo.findBySymbol(symbol),
+      }))
+    );
+
+    for (const { symbol, allTxs } of txsData) {
       let typeStr = priceService.getAssetType(symbol);
       let type: 'EQUITY' | 'ETF' | 'UNKNOWN' = 'UNKNOWN';
       if (typeStr === 'EQUITY') type = 'EQUITY';
       else if (typeStr === 'ETF') type = 'ETF';
 
-      const allTxs = await transactionRepo.findBySymbol(symbol);
       const calculator =
         method === 'FIFO' ? new FIFOCalculator() : new AverageCostCalculator();
 
@@ -319,11 +326,15 @@ export class PLService {
     const activeSymbols: string[] = [];
 
     // 1. First, get all holdings WITHOUT prices (fast, no API calls)
-    for (const symbol of symbols) {
-      const holding = await this.getHoldingBasic(symbol, method);
+    const holdingPromises = symbols.map(symbol =>
+      this.getHoldingBasic(symbol, method)
+    );
+    const holdingResults = await Promise.all(holdingPromises);
+
+    for (const holding of holdingResults) {
       if (holding.quantity.gt(0.000001)) {
-        holdings.set(symbol, holding);
-        activeSymbols.push(symbol);
+        holdings.set(holding.symbol, holding);
+        activeSymbols.push(holding.symbol);
       }
     }
 
@@ -356,10 +367,14 @@ export class PLService {
     const symbols = await transactionRepo.getAllSymbols();
     const holdings = new Map<string, Holding>();
 
-    for (const symbol of symbols) {
-      const holding = await this.getHoldingBasic(symbol, method);
+    const holdingPromises = symbols.map(symbol =>
+      this.getHoldingBasic(symbol, method)
+    );
+    const holdingResults = await Promise.all(holdingPromises);
+
+    for (const holding of holdingResults) {
       if (holding.quantity.gt(0.000001)) {
-        holdings.set(symbol, holding);
+        holdings.set(holding.symbol, holding);
       }
     }
 
@@ -406,7 +421,14 @@ export class PLService {
 
     const symbols = await transactionRepo.getAllSymbols();
 
-    for (const symbol of symbols) {
+    const txsData = await Promise.all(
+      symbols.map(async symbol => ({
+        symbol,
+        allTxs: await transactionRepo.findBySymbol(symbol),
+      }))
+    );
+
+    for (const { symbol, allTxs } of txsData) {
       // Apply asset filter
       const typeStr = priceService.getAssetType(symbol);
       if (assetFilter !== 'ALL') {
@@ -414,7 +436,6 @@ export class PLService {
         if (assetFilter === 'ETF' && typeStr !== 'ETF') continue;
       }
 
-      const allTxs = await transactionRepo.findBySymbol(symbol);
       const calculator =
         method === 'FIFO' ? new FIFOCalculator() : new AverageCostCalculator();
 

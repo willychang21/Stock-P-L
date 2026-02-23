@@ -1,16 +1,17 @@
-import {
-  Box,
-  Typography,
-  Button,
-  Container,
-  Grid,
-  Paper,
-  Tabs,
-  Tab,
-  Chip,
-  CircularProgress,
-} from '@mui/material';
-import { Add, AutoMode, Edit, TrendingUp } from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Container from '@mui/material/Container';
+import Grid from '@mui/material/Grid';
+import Paper from '@mui/material/Paper';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import Add from '@mui/icons-material/Add';
+import AutoMode from '@mui/icons-material/AutoMode';
+import Edit from '@mui/icons-material/Edit';
+import TrendingUp from '@mui/icons-material/TrendingUp';
 import { useState, useEffect, useMemo } from 'react';
 import {
   Influencer,

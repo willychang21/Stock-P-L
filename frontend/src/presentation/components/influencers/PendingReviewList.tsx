@@ -3,42 +3,38 @@
  * Supports batch operations: Approve All, Auto-Approve, grouped multi-asset display
  */
 
-import {
-  Box,
-  Card,
-  CardContent,
-  CardActions,
-  Typography,
-  Button,
-  Chip,
-  Stack,
-  CircularProgress,
-  Avatar,
-  Tooltip,
-  IconButton,
-  Slider,
-  FormControl,
-  FormLabel,
-  Divider,
-  Alert,
-} from '@mui/material';
-import {
-  Check,
-  Close,
-  TrendingUp,
-  TrendingDown,
-  ExpandMore,
-  ExpandLess,
-  OpenInNew,
-  AutoMode,
-  DoneAll,
-  AutoAwesome,
-  PlayArrow,
-  Shield,
-  Visibility,
-  CheckCircle,
-  TrendingFlat,
-} from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardActions from '@mui/material/CardActions';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import CircularProgress from '@mui/material/CircularProgress';
+import Avatar from '@mui/material/Avatar';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import Slider from '@mui/material/Slider';
+import FormControl from '@mui/material/FormControl';
+import FormLabel from '@mui/material/FormLabel';
+import Divider from '@mui/material/Divider';
+import Alert from '@mui/material/Alert';
+import Check from '@mui/icons-material/Check';
+import Close from '@mui/icons-material/Close';
+import TrendingUp from '@mui/icons-material/TrendingUp';
+import TrendingDown from '@mui/icons-material/TrendingDown';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import OpenInNew from '@mui/icons-material/OpenInNew';
+import AutoMode from '@mui/icons-material/AutoMode';
+import DoneAll from '@mui/icons-material/DoneAll';
+import AutoAwesome from '@mui/icons-material/AutoAwesome';
+import PlayArrow from '@mui/icons-material/PlayArrow';
+import Shield from '@mui/icons-material/Shield';
+import Visibility from '@mui/icons-material/Visibility';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import TrendingFlat from '@mui/icons-material/TrendingFlat';
 import { useState, useEffect, useMemo } from 'react';
 import { apiClient } from '@infrastructure/api/client';
 import { PendingReview, getSignalLabel } from '@domain/models/Influencer';

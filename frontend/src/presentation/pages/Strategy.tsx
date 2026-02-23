@@ -1,4 +1,6 @@
-import { Container, Typography, Grid } from '@mui/material';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Grid';
 import { useTranslation } from 'react-i18next';
 import { PositionSizeCalculator } from '../components/tools/PositionSizeCalculator';
 import { TechnicalSignals } from '../components/tools/TechnicalSignals';

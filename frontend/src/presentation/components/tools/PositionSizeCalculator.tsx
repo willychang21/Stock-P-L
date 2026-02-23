@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Grid,
-  InputAdornment,
-  Divider,
-  Button,
-} from '@mui/material';
-import { RestartAlt } from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import Grid from '@mui/material/Grid';
+import InputAdornment from '@mui/material/InputAdornment';
+import Divider from '@mui/material/Divider';
+import Button from '@mui/material/Button';
+import RestartAlt from '@mui/icons-material/RestartAlt';
 import { useTranslation } from 'react-i18next';
 
 export function PositionSizeCalculator() {

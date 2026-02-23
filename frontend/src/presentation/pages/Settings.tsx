@@ -1,23 +1,21 @@
 import { useState, useEffect } from 'react';
-import {
-  Container,
-  Typography,
-  Box,
-  Card,
-  CardContent,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Divider,
-} from '@mui/material';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Divider from '@mui/material/Divider';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import StorageIcon from '@mui/icons-material/Storage';
 import { useStore } from '@application/store/useStore';
@@ -87,11 +85,11 @@ export function Settings() {
         {t('settings.title')}
       </Typography>
 
-      {clearSuccess && (
+      {clearSuccess ? (
         <Alert severity="success" sx={{ mb: 2 }}>
           {t('settings.successMessage')}
         </Alert>
-      )}
+      ) : null}
 
       <Box sx={{ mt: 4 }}>
         <Card>
