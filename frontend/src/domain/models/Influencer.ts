@@ -103,48 +103,51 @@ export interface PendingReview {
 }
 
 // Helper functions
-export const getTimeframeLabel = (tf: TimeframeType): string => {
+export const getTimeframeLabel = (tf: TimeframeType, t: any): string => {
   switch (tf) {
     case 'SHORT':
-      return '短期 (<1週)';
+      return t('influencers.timeframes.SHORT', { defaultValue: '短期 (<1週)' });
     case 'MID':
-      return '中期 (1-4週)';
+      return t('influencers.timeframes.MID', { defaultValue: '中期 (1-4週)' });
     case 'LONG':
-      return '長期 (>1月)';
+      return t('influencers.timeframes.LONG', { defaultValue: '長期 (>1月)' });
     default:
       return tf;
   }
 };
 
-export const getSignalLabel = (signal: SignalType): string => {
+export const getSignalLabel = (signal: SignalType, t: any): string => {
   switch (signal) {
     case 'BUY':
-      return '看多 📈';
+      return t('influencers.signals.BUY', { defaultValue: '看多 📈' });
     case 'SELL':
-      return '看空 📉';
+      return t('influencers.signals.SELL', { defaultValue: '看空 📉' });
     case 'HOLD':
-      return '觀望 ⏸️';
+      return t('influencers.signals.HOLD', { defaultValue: '觀望 ⏸️' });
     case 'HEDGE':
-      return '避險 🛡️';
+      return t('influencers.signals.HEDGE', { defaultValue: '避險 🛡️' });
     case 'WATCH':
-      return '觀察 👀';
+      return t('influencers.signals.WATCH', { defaultValue: '觀察 👀' });
     case 'CLOSED':
-      return '已平倉 ✅';
+      return t('influencers.signals.CLOSED', { defaultValue: '已平倉 ✅' });
     default:
       return signal;
   }
 };
 
-export const getStatusLabel = (status: RecommendationStatus): string => {
+export const getStatusLabel = (
+  status: RecommendationStatus,
+  t: any
+): string => {
   switch (status) {
     case 'PENDING':
-      return '待審核';
+      return t('influencers.statuses.PENDING', { defaultValue: '待審核' });
     case 'ACTIVE':
-      return '追蹤中';
+      return t('influencers.statuses.ACTIVE', { defaultValue: '追蹤中' });
     case 'EXPIRED':
-      return '已到期';
+      return t('influencers.statuses.EXPIRED', { defaultValue: '已到期' });
     case 'CLOSED':
-      return '已結束';
+      return t('influencers.statuses.CLOSED', { defaultValue: '已結束' });
     default:
       return status;
   }

@@ -173,7 +173,9 @@
     "notes": "備註",
     "noNotes": "無備註",
     "count": "{{total}} 筆中的 {{count}} 筆交易",
-    "noTransactions": "未找到交易記錄。請匯入 CSV 檔案以開始使用。"
+    "noTransactions": "未找到交易記錄。請匯入 CSV 檔案以開始使用。",
+    "emptySymbol": "未找到交易記錄。",
+    "returnPct": "報酬率 %"
   },
   "holdings": {
     "symbol": "代號",
@@ -186,6 +188,11 @@
     "noHoldings": "目前無持倉。請匯入交易記錄以開始使用。",
     "transactionHistory": "交易歷史",
     "type": "類型"
+  },
+  "errors": {
+    "oops": "哎呀，出錯了。",
+    "unexpected": "發生未預期的錯誤。",
+    "reload": "重新載入頁面"
   },
   "common": {
     "loading": "載入中...",
@@ -224,7 +231,58 @@
     "tabs": {
       "latest": "最新推薦",
       "performance": "績效排行",
-      "popular": "熱門標的"
+      "popular": "熱門標的",
+      "recommendationList": "推薦列表",
+      "pendingReview": "待審核",
+      "confirmedRecs": "已確認推薦",
+      "analysisHistory": "分析紀錄"
+    },
+    "alerts": {
+      "createFailed": "新增網紅失敗",
+      "updateFailed": "更新網紅失敗",
+      "deleteFailed": "刪除網紅失敗",
+      "addRecsFailed": "新增推薦失敗",
+      "updateRecFailed": "更新推薦失敗",
+      "deleteRecFailed": "刪除推薦失敗",
+      "selectInfluencerFirst": "請先選擇一個網紅",
+      "influencerNoUrl": "此網紅沒有設定 URL",
+      "autoTrackSuccess": "追蹤完成！\n分析 {{posts}} 篇貼文\n發現 {{recs}} 個推薦",
+      "autoTrackFailed": "自動追蹤失敗: {{error}}",
+      "autoTrackAllSuccess": "追蹤全部完成！\n{{influencers}} 位博主\n抓取 {{posts}} 篇貼文\n發現 {{recs}} 個推薦",
+      "autoTrackAllAutoApproved": "\n自動通過 {{approved}} 筆",
+      "autoTrackAllErrors": "\n\n⚠️ 錯誤:\n{{errors}}",
+      "autoTrackAllFailed": "批量追蹤失敗: {{error}}"
+    },
+    "modes": {
+      "manual": "手動新增",
+      "auto": "自動追蹤",
+      "trackingStatus": "追蹤中...",
+      "trackAll": "追蹤全部博主"
+    },
+    "stats": {
+      "unknown": "未知",
+      "allManual": "全部手動推薦 ({{count}} 筆)",
+      "allAuto": "全部自動追蹤 ({{count}} 筆)",
+      "influencerCount": "{{name}} ({{count}} 筆)"
+    },
+    "timeframes": {
+      "SHORT": "短期 (<1週)",
+      "MID": "中期 (1-4週)",
+      "LONG": "長期 (>1月)"
+    },
+    "signals": {
+      "BUY": "看多 📈",
+      "SELL": "看空 📉",
+      "HOLD": "觀望 ⏸️",
+      "HEDGE": "避險 🛡️",
+      "WATCH": "觀察 👀",
+      "CLOSED": "已平倉 ✅"
+    },
+    "statuses": {
+      "PENDING": "待審核",
+      "ACTIVE": "追蹤中",
+      "EXPIRED": "已到期",
+      "CLOSED": "已結束"
     },
     "name": "名稱",
     "platform": "平台",
@@ -248,13 +306,70 @@
       "date": "日期",
       "influencer": "網紅",
       "symbol": "代號",
-      "initialPrice": "初始價格",
+      "signal": "方向",
+      "timeframe": "期限",
+      "initialPrice": "進場價",
+      "targetStop": "目標/止損",
+      "targetPrice": "目標價",
+      "stopLoss": "止損價",
       "currentPrice": "現價",
       "return": "報酬率",
       "avgReturn": "平均報酬",
+      "status": "狀態",
+      "originalView": "原文",
       "note": "備註",
       "actions": "操作",
-      "empty": "尚無追蹤推薦。請選擇一位網紅並新增股票推薦！"
+      "empty": "尚無追蹤推薦。請選擇一位網紅並新增股票推薦！",
+      "hitTarget": "達標",
+      "hitStopLoss": "觸止損"
+    },
+    "pendingReview": {
+      "empty": "目前沒有待審核的推薦",
+      "startNewAnalysis": "開始新一輪分析",
+      "analyzePostLimit": "分析貼文數量: {{limit}} 篇",
+      "selectInfluencerFirst": "請從左側列表選擇一位網紅以開始追蹤",
+      "itemsPending": "{{count}} 筆待審核",
+      "approveAll": "全部通過",
+      "autoApprove": "自動審核（≥70%）",
+      "approveSummary": "✅ 已通過 {{approved}} 筆推薦",
+      "autoApproveSummary": "✅ 自動通過 {{approved}} 筆（信心度≥70%），剩餘 {{skipped}} 筆待審核",
+      "errorSubmitting": "❌ 失敗: {{error}}",
+      "failedToApprove": "通過審核失敗",
+      "batchApproveFailed": "批次通過失敗: {{error}}",
+      "multiAssetTip_one": "1 檔標的",
+      "multiAssetTip_other": "{{count}} 檔標的",
+      "approveAllPost": "全部通過此貼文 ({{count}} 檔)",
+      "viewOriginal": "查看原文",
+      "expand": "展開",
+      "collapse": "收起"
+    },
+    "scrapedPosts": {
+      "empty": "尚無分析紀錄。請先觸發自動追蹤來分析貼文。",
+      "filterAll": "全部 ({{count}})",
+      "filterInvestment": "已抽取 ({{count}})",
+      "filterSkipped": "已跳過 ({{count}})",
+      "deleteSelected": "刪除已選 ({{count}})",
+      "deleting": "刪除中...",
+      "cancelSelection": "取消選擇",
+      "confirmDelete": "確定刪除 {{count}} 筆紀錄？",
+      "deleteSingle": "刪除此紀錄",
+      "viewSource": "開啟原文",
+      "statusInvestment": "✅ 已抽取為推薦",
+      "statusSkipped": "❌ AI 判定為非投資內容",
+      "categoryLabel": "分類: {{label}}",
+      "types": {
+        "single_pick": "單一推薦",
+        "portfolio_update": "持股更新",
+        "trade_journal": "交易日誌",
+        "earnings_review": "財報解讀",
+        "company_analysis": "公司分析",
+        "market_commentary": "市場評論",
+        "educational": "教學文",
+        "lifestyle": "生活",
+        "other": "其他",
+        "irrelevant": "無關",
+        "error": "分析錯誤"
+      }
     },
     "deleteConfirm": "確定要刪除嗎？這將連同刪除所有相關推薦。",
     "deleteRecConfirm": "確定要移除此推薦嗎？"

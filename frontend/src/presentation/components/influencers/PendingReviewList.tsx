@@ -36,6 +36,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import TrendingFlat from '@mui/icons-material/TrendingFlat';
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '@infrastructure/api/client';
 import { PendingReview, getSignalLabel } from '@domain/models/Influencer';
 import { getFaviconUrl } from '@presentation/utils/favicon';
@@ -55,6 +56,7 @@ export function PendingReviewList({
   isAutoTracking,
   selectedInfluencerId,
 }: PendingReviewListProps) {
+  const { t } = useTranslation();
   const [pendingReviews, setPendingReviews] = useState<PendingReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -87,7 +89,7 @@ export function PendingReviewList({
       onReviewComplete();
     } catch (error) {
       console.error('Failed to approve review:', error);
-      alert('Failed to approve review');
+      alert(t('influencers.pendingReview.failedToApprove'));
     } finally {
       setProcessing(null);
     }
@@ -110,11 +112,17 @@ export function PendingReviewList({
     setBatchResult(null);
     try {
       const result = await apiClient.approveAllPending();
-      setBatchResult(`✅ 已通過 ${result.approved} 筆推薦`);
+      setBatchResult(
+        t('influencers.pendingReview.approveSummary', {
+          approved: result.approved,
+        })
+      );
       setPendingReviews([]);
       onReviewComplete();
     } catch (error: any) {
-      setBatchResult(`❌ 失敗: ${error.message}`);
+      setBatchResult(
+        t('influencers.pendingReview.errorSubmitting', { error: error.message })
+      );
     } finally {
       setBatchProcessing(false);
     }
@@ -126,12 +134,17 @@ export function PendingReviewList({
     try {
       const result = await apiClient.autoApprovePending(0.7);
       setBatchResult(
-        `✅ 自動通過 ${result.approved} 筆（信心度≥70%），剩餘 ${result.skipped} 筆待審核`
+        t('influencers.pendingReview.autoApproveSummary', {
+          approved: result.approved,
+          skipped: result.skipped,
+        })
       );
       fetchPendingReviews();
       onReviewComplete();
     } catch (error: any) {
-      setBatchResult(`❌ 失敗: ${error.message}`);
+      setBatchResult(
+        t('influencers.pendingReview.errorSubmitting', { error: error.message })
+      );
     } finally {
       setBatchProcessing(false);
     }
@@ -151,7 +164,11 @@ export function PendingReviewList({
       setPendingReviews(prev => prev.filter(r => !ids.has(r.id)));
       onReviewComplete();
     } catch (error: any) {
-      alert(`批次通過失敗: ${error.message}`);
+      alert(
+        t('influencers.pendingReview.batchApproveFailed', {
+          error: error.message,
+        })
+      );
     } finally {
       setBatchProcessing(false);
     }
@@ -210,7 +227,7 @@ export function PendingReviewList({
       <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
         <AutoMode sx={{ fontSize: 64, mb: 2, opacity: 0.3 }} />
         <Typography variant="h6" gutterBottom>
-          目前沒有待審核的推薦
+          {t('influencers.pendingReview.empty')}
         </Typography>
 
         {selectedInfluencerId ? (
@@ -230,12 +247,14 @@ export function PendingReviewList({
               gutterBottom
               sx={{ color: 'text.primary', fontWeight: 'bold' }}
             >
-              開始新一輪分析
+              {t('influencers.pendingReview.startNewAnalysis')}
             </Typography>
 
             <FormControl fullWidth sx={{ mt: 2, mb: 3 }}>
               <FormLabel id="post-limit-slider" sx={{ mb: 1 }}>
-                分析貼文數量: {postLimit} 篇
+                {t('influencers.pendingReview.analyzePostLimit', {
+                  limit: postLimit,
+                })}
               </FormLabel>
               <Slider
                 value={postLimit}
@@ -268,15 +287,19 @@ export function PendingReviewList({
                 )
               }
             >
-              {isAutoTracking ? '正在分析中...' : '追蹤選定博主'}
+              {isAutoTracking
+                ? t('influencers.modes.trackingStatus')
+                : t('influencers.modes.trackAll')}
             </Button>
             <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-              系統將爬取並分析最新的 {postLimit} 篇貼文
+              {t('influencers.pendingReview.analyzePostLimit', {
+                limit: postLimit,
+              })}
             </Typography>
           </Box>
         ) : (
           <Typography variant="body1" sx={{ mt: 2 }}>
-            請從左側列表選擇一位網紅以開始追蹤
+            {t('influencers.pendingReview.selectInfluencerFirst')}
           </Typography>
         )}
       </Box>
@@ -298,7 +321,9 @@ export function PendingReviewList({
         }}
       >
         <Typography variant="subtitle2" sx={{ mr: 1 }}>
-          {pendingReviews.length} 筆待審核
+          {t('influencers.pendingReview.itemsPending', {
+            count: pendingReviews.length,
+          })}
         </Typography>
         <Button
           variant="contained"
@@ -314,7 +339,7 @@ export function PendingReviewList({
           onClick={handleApproveAll}
           disabled={batchProcessing}
         >
-          全部通過
+          {t('influencers.pendingReview.approveAll')}
         </Button>
         <Button
           variant="outlined"
@@ -330,7 +355,7 @@ export function PendingReviewList({
           onClick={handleAutoApprove}
           disabled={batchProcessing}
         >
-          自動審核（≥70%）
+          {t('influencers.pendingReview.autoApprove')}
         </Button>
       </Box>
 
@@ -371,14 +396,17 @@ export function PendingReviewList({
                   {isMultiAsset && (
                     <Chip
                       size="small"
-                      label={`${group.reviews.length} 檔標的`}
+                      label={t(
+                        'influencers.pendingReview.multiAssetTip_other',
+                        { count: group.reviews.length }
+                      )}
                       color="info"
                       variant="outlined"
                     />
                   )}
                 </Box>
                 {group.sourceUrl && (
-                  <Tooltip title="查看原文">
+                  <Tooltip title={t('influencers.pendingReview.viewOriginal')}>
                     <IconButton
                       size="small"
                       href={group.sourceUrl}
@@ -417,7 +445,9 @@ export function PendingReviewList({
                   }
                   sx={{ mb: 1 }}
                 >
-                  {expandedId === group.key ? '收起' : '展開'}
+                  {expandedId === group.key
+                    ? t('influencers.pendingReview.collapse')
+                    : t('influencers.pendingReview.expand')}
                 </Button>
               )}
 
@@ -479,7 +509,7 @@ export function PendingReviewList({
                                 <TrendingFlat fontSize="small" />
                               )
                             }
-                            label={getSignalLabel(review.suggested_signal)}
+                            label={getSignalLabel(review.suggested_signal, t)}
                             size="small"
                             color={
                               review.suggested_signal === 'BUY'
@@ -547,7 +577,9 @@ export function PendingReviewList({
                   onClick={() => handleApproveGroup(group.reviews)}
                   disabled={batchProcessing}
                 >
-                  全部通過此貼文 ({group.reviews.length} 檔)
+                  {t('influencers.pendingReview.approveAllPost', {
+                    count: group.reviews.length,
+                  })}
                 </Button>
               </CardActions>
             )}

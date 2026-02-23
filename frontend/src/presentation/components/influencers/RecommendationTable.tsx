@@ -204,7 +204,7 @@ export function RecommendationTable({
                 direction={orderBy === 'date' ? order : 'asc'}
                 onClick={() => handleRequestSort('date')}
               >
-                日期
+                {t('influencers.table.date')}
               </TableSortLabel>
             </TableCell>
             <TableCell sortDirection={orderBy === 'influencer' ? order : false}>
@@ -213,7 +213,7 @@ export function RecommendationTable({
                 direction={orderBy === 'influencer' ? order : 'asc'}
                 onClick={() => handleRequestSort('influencer')}
               >
-                網紅
+                {t('influencers.table.influencer')}
               </TableSortLabel>
             </TableCell>
             <TableCell sortDirection={orderBy === 'symbol' ? order : false}>
@@ -222,7 +222,7 @@ export function RecommendationTable({
                 direction={orderBy === 'symbol' ? order : 'asc'}
                 onClick={() => handleRequestSort('symbol')}
               >
-                標的
+                {t('influencers.table.symbol')}
               </TableSortLabel>
             </TableCell>
             <TableCell sortDirection={orderBy === 'signal' ? order : false}>
@@ -231,13 +231,19 @@ export function RecommendationTable({
                 direction={orderBy === 'signal' ? order : 'asc'}
                 onClick={() => handleRequestSort('signal')}
               >
-                方向
+                {t('influencers.table.signal')}
               </TableSortLabel>
             </TableCell>
-            <TableCell>期限</TableCell>
-            <TableCell align="right">進場價</TableCell>
-            <TableCell align="right">目標/止損</TableCell>
-            <TableCell align="right">現價</TableCell>
+            <TableCell>{t('influencers.table.timeframe')}</TableCell>
+            <TableCell align="right">
+              {t('influencers.table.initialPrice')}
+            </TableCell>
+            <TableCell align="right">
+              {t('influencers.table.targetStop')}
+            </TableCell>
+            <TableCell align="right">
+              {t('influencers.table.currentPrice')}
+            </TableCell>
             <TableCell
               align="right"
               sortDirection={orderBy === 'return' ? order : false}
@@ -247,12 +253,16 @@ export function RecommendationTable({
                 direction={orderBy === 'return' ? order : 'asc'}
                 onClick={() => handleRequestSort('return')}
               >
-                報酬
+                {t('influencers.table.return')}
               </TableSortLabel>
             </TableCell>
-            <TableCell>狀態</TableCell>
-            <TableCell>原文</TableCell>
-            {!readOnly && <TableCell align="right">操作</TableCell>}
+            <TableCell>{t('influencers.table.status')}</TableCell>
+            <TableCell>{t('influencers.table.originalView')}</TableCell>
+            {!readOnly && (
+              <TableCell align="right">
+                {t('influencers.table.actions')}
+              </TableCell>
+            )}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -289,7 +299,7 @@ export function RecommendationTable({
                 <TableCell>
                   <Chip
                     icon={getSignalIcon(rec.signal)}
-                    label={getSignalLabel(rec.signal)}
+                    label={getSignalLabel(rec.signal, t)}
                     size="small"
                     color={getSignalColor(rec.signal)}
                     variant="outlined"
@@ -297,7 +307,7 @@ export function RecommendationTable({
                 </TableCell>
                 <TableCell>
                   <Chip
-                    label={getTimeframeLabel(rec.timeframe)}
+                    label={getTimeframeLabel(rec.timeframe, t)}
                     size="small"
                     color={getTimeframeColor(rec.timeframe)}
                     variant="outlined"
@@ -315,14 +325,14 @@ export function RecommendationTable({
                     }}
                   >
                     {rec.target_price && (
-                      <Tooltip title="目標價">
+                      <Tooltip title={t('influencers.table.targetPrice')}>
                         <Typography variant="caption" color="success.main">
                           🎯 {formatCurrency(rec.target_price)}
                         </Typography>
                       </Tooltip>
                     )}
                     {rec.stop_loss && (
-                      <Tooltip title="止損價">
+                      <Tooltip title={t('influencers.table.stopLoss')}>
                         <Typography variant="caption" color="error.main">
                           🛑 {formatCurrency(rec.stop_loss)}
                         </Typography>
@@ -344,12 +354,12 @@ export function RecommendationTable({
                     }}
                   >
                     {rec.hit_target && (
-                      <Tooltip title="達標">
+                      <Tooltip title={t('influencers.table.hitTarget')}>
                         <CheckCircle fontSize="small" color="success" />
                       </Tooltip>
                     )}
                     {rec.hit_stop_loss && (
-                      <Tooltip title="觸止損">
+                      <Tooltip title={t('influencers.table.hitStopLoss')}>
                         <Cancel fontSize="small" color="error" />
                       </Tooltip>
                     )}
@@ -364,7 +374,7 @@ export function RecommendationTable({
                 </TableCell>
                 <TableCell>
                   <Chip
-                    label={getStatusLabel(rec.status)}
+                    label={getStatusLabel(rec.status, t)}
                     size="small"
                     color={getStatusColor(rec.status)}
                     variant="filled"
@@ -373,7 +383,7 @@ export function RecommendationTable({
                 <TableCell>
                   <Stack direction="row" spacing={0} alignItems="center">
                     {rec.source_url && (
-                      <Tooltip title="開啟原文連結">
+                      <Tooltip title={t('influencers.scrapedPosts.viewSource')}>
                         <IconButton
                           size="small"
                           href={rec.source_url}
@@ -417,7 +427,9 @@ export function RecommendationTable({
                     >
                       {rec.note &&
                         (noteIsUrl ? (
-                          <Tooltip title="查看連結">
+                          <Tooltip
+                            title={t('influencers.scrapedPosts.viewSource')}
+                          >
                             <IconButton
                               size="small"
                               href={rec.note}

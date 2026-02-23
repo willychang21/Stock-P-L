@@ -127,11 +127,12 @@
     "totalValue": "Total Value",
     "investedValue": "Invested Value",
     "cashBalance": "Cash Balance",
-    "investReturn": "Invest Return",
     "totalReturn": "Total Return",
+    "totalCost": "Total Cost",
     "realizedPL": "Realized P/L",
     "unrealizedPL": "Unrealized P/L",
     "totalPL": "Total P/L ($)",
+    "totalPLPercent": "Total P/L (%)",
     "currentHoldings": "Current Holdings",
     "filterAll": "All"
   },
@@ -172,7 +173,9 @@
     "notes": "Notes",
     "noNotes": "No notes",
     "count": "{{count}} of {{total}} transactions",
-    "noTransactions": "No transactions found. Import a CSV file to get started."
+    "noTransactions": "No transactions found. Import a CSV file to get started.",
+    "emptySymbol": "No transactions found.",
+    "returnPct": "Return %"
   },
   "holdings": {
     "symbol": "Symbol",
@@ -185,6 +188,11 @@
     "noHoldings": "No current holdings. Import transactions to get started.",
     "transactionHistory": "Transaction History",
     "type": "Type"
+  },
+  "errors": {
+    "oops": "Oops, something went wrong.",
+    "unexpected": "An unexpected error occurred.",
+    "reload": "Reload Page"
   },
   "common": {
     "loading": "Loading...",
@@ -217,11 +225,64 @@
     "viewStats": "View Statistics",
     "addRecommendation": "Add Recommendation",
     "addInfluencer": "Add Influencer",
+    "editInfluencer": "Edit Influencer",
+    "editRecommendation": "Edit Recommendation",
     "allInfluencers": "All Influencers",
     "tabs": {
       "latest": "Latest Recommendations",
       "performance": "Performance Ranking",
-      "popular": "Popular Stocks"
+      "popular": "Popular Stocks",
+      "recommendationList": "Recommendation List",
+      "pendingReview": "Pending Review",
+      "confirmedRecs": "Confirmed Recommendations",
+      "analysisHistory": "Analysis History"
+    },
+    "alerts": {
+      "createFailed": "Failed to create influencer",
+      "updateFailed": "Failed to update influencer",
+      "deleteFailed": "Failed to delete influencer",
+      "addRecsFailed": "Failed to add recommendations",
+      "updateRecFailed": "Failed to update recommendation",
+      "deleteRecFailed": "Failed to delete recommendation",
+      "selectInfluencerFirst": "Please select an influencer first",
+      "influencerNoUrl": "This influencer does not have a set URL",
+      "autoTrackSuccess": "Tracking complete!\nAnalyzed {{posts}} posts\nFound {{recs}} recommendations",
+      "autoTrackFailed": "Auto-tracking failed: {{error}}",
+      "autoTrackAllSuccess": "Track all complete!\n{{influencers}} influencers\nScraped {{posts}} posts\nFound {{recs}} recommendations",
+      "autoTrackAllAutoApproved": "\nAuto-approved {{approved}} items",
+      "autoTrackAllErrors": "\n\n⚠️ Errors:\n{{errors}}",
+      "autoTrackAllFailed": "Batch tracking failed: {{error}}"
+    },
+    "modes": {
+      "manual": "Manual Add",
+      "auto": "Auto Tracking",
+      "trackingStatus": "Tracking...",
+      "trackAll": "Track All Influencers"
+    },
+    "stats": {
+      "unknown": "Unknown",
+      "allManual": "All Manual Recommendations ({{count}} items)",
+      "allAuto": "All Auto Tracked ({{count}} items)",
+      "influencerCount": "{{name}} ({{count}} items)"
+    },
+    "timeframes": {
+      "SHORT": "Short Term (<1W)",
+      "MID": "Medium Term (1-4W)",
+      "LONG": "Long Term (>1M)"
+    },
+    "signals": {
+      "BUY": "Bullish 📈",
+      "SELL": "Bearish 📉",
+      "HOLD": "Hold ⏸️",
+      "HEDGE": "Hedge 🛡️",
+      "WATCH": "Watch 👀",
+      "CLOSED": "Closed ✅"
+    },
+    "statuses": {
+      "PENDING": "Pending Review",
+      "ACTIVE": "Tracking",
+      "EXPIRED": "Expired",
+      "CLOSED": "Closed"
     },
     "name": "Name",
     "platform": "Platform",
@@ -245,13 +306,70 @@
       "date": "Date",
       "influencer": "Influencer",
       "symbol": "Symbol",
+      "signal": "Signal",
+      "timeframe": "Timeframe",
       "initialPrice": "Initial Price",
+      "targetStop": "Target/Stop",
+      "targetPrice": "Target Price",
+      "stopLoss": "Stop Loss",
       "currentPrice": "Current Price",
       "return": "Return",
       "avgReturn": "Avg Return",
+      "status": "Status",
+      "originalView": "Original",
       "note": "Note",
       "actions": "Actions",
-      "empty": "No recommendations tracked yet. Select an influencer and add a stock pick!"
+      "empty": "No recommendations tracked yet. Select an influencer and add a stock pick!",
+      "hitTarget": "Hit Target",
+      "hitStopLoss": "Hit Stop Loss"
+    },
+    "pendingReview": {
+      "empty": "No pending recommendations",
+      "startNewAnalysis": "Start New Analysis",
+      "analyzePostLimit": "Analyze Posts Limit: {{limit}}",
+      "selectInfluencerFirst": "Select an influencer from the list first",
+      "itemsPending": "{{count}} items pending review",
+      "approveAll": "Approve All",
+      "autoApprove": "Auto Approve (≥70%)",
+      "approveSummary": "✅ Approved {{approved}} recommendations",
+      "autoApproveSummary": "✅ Auto approved {{approved}} items (confidence ≥70%), {{skipped}} remaining",
+      "errorSubmitting": "❌ Failed: {{error}}",
+      "failedToApprove": "Failed to approve",
+      "batchApproveFailed": "Batch approve failed: {{error}}",
+      "multiAssetTip_one": "1 asset",
+      "multiAssetTip_other": "{{count}} assets",
+      "approveAllPost": "Approve all for this post ({{count}})",
+      "viewOriginal": "View Original",
+      "expand": "Expand",
+      "collapse": "Collapse"
+    },
+    "scrapedPosts": {
+      "empty": "No analysis records yet. Please trigger auto tracking first.",
+      "filterAll": "All ({{count}})",
+      "filterInvestment": "Extracted ({{count}})",
+      "filterSkipped": "Skipped ({{count}})",
+      "deleteSelected": "Delete Selected ({{count}})",
+      "deleting": "Deleting...",
+      "cancelSelection": "Cancel Selection",
+      "confirmDelete": "Delete {{count}} records?",
+      "deleteSingle": "Delete Record",
+      "viewSource": "View Source",
+      "statusInvestment": "✅ Extracted as Recommendation",
+      "statusSkipped": "❌ AI Determined non-investment",
+      "categoryLabel": "Category: {{label}}",
+      "types": {
+        "single_pick": "Single Pick",
+        "portfolio_update": "Portfolio Update",
+        "trade_journal": "Trade Journal",
+        "earnings_review": "Earnings Review",
+        "company_analysis": "Company Analysis",
+        "market_commentary": "Market Commentary",
+        "educational": "Educational",
+        "lifestyle": "Lifestyle",
+        "other": "Other",
+        "irrelevant": "Irrelevant",
+        "error": "Analysis Error"
+      }
     },
     "deleteConfirm": "Are you sure? This will delete all their recommendations too.",
     "deleteRecConfirm": "Remove this recommendation?"

@@ -13,6 +13,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import { TransactionWithPL } from '@domain/models/SymbolTransactionSummary';
 import { TransactionType } from '@domain/models/Transaction';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TransactionNoteDialog } from './TransactionNoteDialog';
 import { plService } from '@application/services/PLService';
 
@@ -30,6 +31,7 @@ export function SymbolTransactionHistory({
   isLoading = false,
   onNotesUpdated,
 }: SymbolTransactionHistoryProps) {
+  const { t } = useTranslation();
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState('');
 
@@ -76,7 +78,7 @@ export function SymbolTransactionHistory({
   if (transactions.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary" sx={{ py: 2, pl: 2 }}>
-        No transactions found.
+        {t('transactions.emptySymbol')}
       </Typography>
     );
   }
@@ -86,14 +88,14 @@ export function SymbolTransactionHistory({
       <Table size="small" sx={{ bgcolor: 'action.hover' }}>
         <TableHead>
           <TableRow>
-            <TableCell>Date</TableCell>
-            <TableCell>Type</TableCell>
-            <TableCell align="right">Quantity</TableCell>
-            <TableCell align="right">Price</TableCell>
-            <TableCell align="right">Total</TableCell>
-            <TableCell align="right">Realized P/L</TableCell>
-            <TableCell align="right">Return %</TableCell>
-            <TableCell>Notes</TableCell>
+            <TableCell>{t('transactions.date')}</TableCell>
+            <TableCell>{t('transactions.type')}</TableCell>
+            <TableCell align="right">{t('transactions.quantity')}</TableCell>
+            <TableCell align="right">{t('transactions.price')}</TableCell>
+            <TableCell align="right">{t('transactions.total')}</TableCell>
+            <TableCell align="right">{t('transactions.realizedPL')}</TableCell>
+            <TableCell align="right">{t('transactions.returnPct')}</TableCell>
+            <TableCell>{t('transactions.notes')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -110,7 +112,7 @@ export function SymbolTransactionHistory({
                 <TableCell>{formatDate(tx.date.toISOString())}</TableCell>
                 <TableCell>
                   <Chip
-                    label={tx.type}
+                    label={t(`types.${tx.type.toLowerCase()}`)}
                     size="small"
                     color={
                       isBuy
@@ -184,9 +186,9 @@ export function SymbolTransactionHistory({
                         fontStyle: tx.notes ? 'normal' : 'italic',
                       }}
                     >
-                      {tx.notes || 'No notes'}
+                      {tx.notes || t('transactions.noNotes')}
                     </Typography>
-                    <Tooltip title="Edit Note">
+                    <Tooltip title={t('common.edit')}>
                       <IconButton
                         size="small"
                         className="edit-btn"

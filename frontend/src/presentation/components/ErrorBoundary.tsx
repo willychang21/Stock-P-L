@@ -2,6 +2,7 @@ import { Component, ErrorInfo, ReactNode } from 'react';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
+import i18n from '@infrastructure/i18n/config';
 
 interface Props {
   children?: ReactNode;
@@ -30,13 +31,13 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <Container sx={{ mt: 8, textAlign: 'center' }}>
           <Typography variant="h4" gutterBottom>
-            Oops, something went wrong.
+            {i18n.t('errors.oops')}
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 4 }}>
-            {this.state.error?.message || 'An unexpected error occurred.'}
+            {this.state.error?.message || i18n.t('errors.unexpected')}
           </Typography>
           <Button variant="contained" onClick={() => window.location.reload()}>
-            Reload Page
+            {i18n.t('errors.reload')}
           </Button>
         </Container>
       );

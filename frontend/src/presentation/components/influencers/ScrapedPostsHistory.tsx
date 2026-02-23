@@ -23,6 +23,7 @@ import ExpandLess from '@mui/icons-material/ExpandLess';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DeleteSweep from '@mui/icons-material/DeleteSweep';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '@infrastructure/api/client';
 import { getFaviconUrl } from '@presentation/utils/favicon';
 
@@ -45,24 +46,55 @@ interface ScrapedPostsHistoryProps {
 
 const POST_TYPE_LABELS: Record<
   string,
-  { label: string; color: 'success' | 'error' | 'warning' | 'info' | 'default' }
+  {
+    labelKey: string;
+    color: 'success' | 'error' | 'warning' | 'info' | 'default';
+  }
 > = {
-  single_pick: { label: '單一推薦', color: 'success' },
-  portfolio_update: { label: '持股更新', color: 'success' },
-  trade_journal: { label: '交易日誌', color: 'success' },
-  earnings_review: { label: '財報解讀', color: 'info' },
-  company_analysis: { label: '公司分析', color: 'info' },
-  market_commentary: { label: '市場評論', color: 'warning' },
-  educational: { label: '教學文', color: 'default' },
-  lifestyle: { label: '生活', color: 'default' },
-  other: { label: '其他', color: 'default' },
-  irrelevant: { label: '無關', color: 'default' },
-  error: { label: '分析錯誤', color: 'error' },
+  single_pick: {
+    labelKey: 'influencers.scrapedPosts.types.single_pick',
+    color: 'success',
+  },
+  portfolio_update: {
+    labelKey: 'influencers.scrapedPosts.types.portfolio_update',
+    color: 'success',
+  },
+  trade_journal: {
+    labelKey: 'influencers.scrapedPosts.types.trade_journal',
+    color: 'success',
+  },
+  earnings_review: {
+    labelKey: 'influencers.scrapedPosts.types.earnings_review',
+    color: 'info',
+  },
+  company_analysis: {
+    labelKey: 'influencers.scrapedPosts.types.company_analysis',
+    color: 'info',
+  },
+  market_commentary: {
+    labelKey: 'influencers.scrapedPosts.types.market_commentary',
+    color: 'warning',
+  },
+  educational: {
+    labelKey: 'influencers.scrapedPosts.types.educational',
+    color: 'default',
+  },
+  lifestyle: {
+    labelKey: 'influencers.scrapedPosts.types.lifestyle',
+    color: 'default',
+  },
+  other: { labelKey: 'influencers.scrapedPosts.types.other', color: 'default' },
+  irrelevant: {
+    labelKey: 'influencers.scrapedPosts.types.irrelevant',
+    color: 'default',
+  },
+  error: { labelKey: 'influencers.scrapedPosts.types.error', color: 'error' },
 };
 
 export function ScrapedPostsHistory({
   selectedInfluencerId,
 }: ScrapedPostsHistoryProps) {
+  const { t } = useTranslation();
   const [posts, setPosts] = useState<ScrapedPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -108,7 +140,12 @@ export function ScrapedPostsHistory({
 
   const handleDeleteSelected = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`確定刪除 ${selectedIds.size} 筆紀錄？`)) return;
+    if (
+      !confirm(
+        t('influencers.scrapedPosts.confirmDelete', { count: selectedIds.size })
+      )
+    )
+      return;
     setDeleting(true);
     try {
       await apiClient.bulkDeleteScrapedPosts(Array.from(selectedIds));
@@ -148,7 +185,7 @@ export function ScrapedPostsHistory({
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
         <Typography color="text.secondary">
-          尚無分析紀錄。請先觸發自動追蹤來分析貼文。
+          {t('influencers.scrapedPosts.empty')}
         </Typography>
       </Box>
     );
@@ -159,7 +196,9 @@ export function ScrapedPostsHistory({
       {/* Filter chips */}
       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
         <Chip
-          label={`全部 (${posts.length})`}
+          label={t('influencers.scrapedPosts.filterAll', {
+            count: posts.length,
+          })}
           variant={filter === 'all' ? 'filled' : 'outlined'}
           onClick={() => setFilter('all')}
           color="primary"
@@ -167,7 +206,9 @@ export function ScrapedPostsHistory({
         />
         <Chip
           icon={<CheckCircle fontSize="small" />}
-          label={`已抽取 (${investmentCount})`}
+          label={t('influencers.scrapedPosts.filterInvestment', {
+            count: investmentCount,
+          })}
           variant={filter === 'investment' ? 'filled' : 'outlined'}
           onClick={() => setFilter('investment')}
           color="success"
@@ -175,7 +216,9 @@ export function ScrapedPostsHistory({
         />
         <Chip
           icon={<Cancel fontSize="small" />}
-          label={`已跳過 (${skippedCount})`}
+          label={t('influencers.scrapedPosts.filterSkipped', {
+            count: skippedCount,
+          })}
           variant={filter === 'skipped' ? 'filled' : 'outlined'}
           onClick={() => setFilter('skipped')}
           color="error"
@@ -194,10 +237,14 @@ export function ScrapedPostsHistory({
             onClick={handleDeleteSelected}
             disabled={deleting}
           >
-            {deleting ? '刪除中...' : `刪除已選 (${selectedIds.size})`}
+            {deleting
+              ? t('influencers.scrapedPosts.deleting')
+              : t('influencers.scrapedPosts.deleteSelected', {
+                  count: selectedIds.size,
+                })}
           </Button>
           <Button size="small" onClick={() => setSelectedIds(new Set())}>
-            取消選擇
+            {t('influencers.scrapedPosts.cancelSelection')}
           </Button>
         </Stack>
       )}
@@ -207,7 +254,7 @@ export function ScrapedPostsHistory({
         {filteredPosts.map(post => {
           const isExpanded = expandedId === post.id;
           const typeInfo = POST_TYPE_LABELS[post.post_type] ?? {
-            label: '其他',
+            labelKey: 'influencers.scrapedPosts.types.other',
             color: 'default' as const,
           };
           const contentPreview =
@@ -274,7 +321,7 @@ export function ScrapedPostsHistory({
 
                   {/* Post type chip */}
                   <Chip
-                    label={typeInfo.label}
+                    label={t(typeInfo.labelKey)}
                     size="small"
                     color={typeInfo.color}
                     variant="outlined"
@@ -302,7 +349,7 @@ export function ScrapedPostsHistory({
                   </IconButton>
 
                   {/* Delete single */}
-                  <Tooltip title="刪除此紀錄">
+                  <Tooltip title={t('influencers.scrapedPosts.deleteSingle')}>
                     <IconButton
                       size="small"
                       onClick={e => handleDeleteSingle(post.id, e)}
@@ -343,8 +390,8 @@ export function ScrapedPostsHistory({
                       <Chip
                         label={
                           post.is_investment_related
-                            ? '✅ 已抽取為推薦'
-                            : '❌ AI 判定為非投資內容'
+                            ? t('influencers.scrapedPosts.statusInvestment')
+                            : t('influencers.scrapedPosts.statusSkipped')
                         }
                         size="small"
                         color={
@@ -352,7 +399,9 @@ export function ScrapedPostsHistory({
                         }
                       />
                       <Chip
-                        label={`分類: ${typeInfo.label}`}
+                        label={t('influencers.scrapedPosts.categoryLabel', {
+                          label: t(typeInfo.labelKey),
+                        })}
                         size="small"
                         variant="outlined"
                       />
@@ -362,7 +411,9 @@ export function ScrapedPostsHistory({
                           : ''}
                       </Typography>
                       {post.source_url && (
-                        <Tooltip title="開啟原文">
+                        <Tooltip
+                          title={t('influencers.scrapedPosts.viewSource')}
+                        >
                           <IconButton
                             size="small"
                             href={post.source_url}

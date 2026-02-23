@@ -121,7 +121,7 @@ export function InfluencerTrackerPage() {
       await apiClient.createInfluencer(data);
       fetchData();
     } catch (error) {
-      alert('Failed to create influencer');
+      alert(t('influencers.alerts.createFailed'));
     }
   };
 
@@ -130,7 +130,7 @@ export function InfluencerTrackerPage() {
       await apiClient.updateInfluencer(id, data);
       fetchData();
     } catch (error) {
-      alert('Failed to update influencer');
+      alert(t('influencers.alerts.updateFailed'));
     }
   };
 
@@ -141,7 +141,7 @@ export function InfluencerTrackerPage() {
       if (selectedInfluencerId === id) setSelectedInfluencerId(null);
       fetchData();
     } catch (error) {
-      alert('Failed to delete influencer');
+      alert(t('influencers.alerts.deleteFailed'));
     }
   };
 
@@ -153,7 +153,7 @@ export function InfluencerTrackerPage() {
       await apiClient.createRecommendationsBatch(influencerId, data);
       fetchData();
     } catch (error) {
-      alert('Failed to add recommendations');
+      alert(t('influencers.alerts.addRecsFailed'));
     }
   };
 
@@ -170,7 +170,7 @@ export function InfluencerTrackerPage() {
       await apiClient.updateRecommendation(id, data);
       fetchData();
     } catch (error) {
-      alert('Failed to update recommendation');
+      alert(t('influencers.alerts.updateRecFailed'));
     }
   };
 
@@ -180,19 +180,19 @@ export function InfluencerTrackerPage() {
       await apiClient.deleteRecommendation(id);
       fetchData();
     } catch (error) {
-      alert('Failed to delete recommendation');
+      alert(t('influencers.alerts.deleteRecFailed'));
     }
   };
 
   const handleAutoTrack = async (limit: number = 5) => {
     if (!selectedInfluencerId) {
-      alert('請先選擇一個網紅');
+      alert(t('influencers.alerts.selectInfluencerFirst'));
       return;
     }
 
     const inf = influencers.find(i => i.id === selectedInfluencerId);
     if (!inf?.url) {
-      alert('此網紅沒有設定 URL');
+      alert(t('influencers.alerts.influencerNoUrl'));
       return;
     }
 
@@ -204,12 +204,15 @@ export function InfluencerTrackerPage() {
         limit
       );
       alert(
-        `追蹤完成！\n分析 ${result.posts_analyzed} 篇貼文\n發現 ${result.recommendations_found} 個推薦`
+        t('influencers.alerts.autoTrackSuccess', {
+          posts: result.posts_analyzed,
+          recs: result.recommendations_found,
+        })
       );
       setAutoSubTab(0);
     } catch (error: any) {
       console.error('Auto-track failed:', error);
-      alert(`自動追蹤失敗: ${error.message}`);
+      alert(t('influencers.alerts.autoTrackFailed', { error: error.message }));
     } finally {
       setIsAutoTracking(false);
     }
@@ -220,19 +223,29 @@ export function InfluencerTrackerPage() {
     try {
       const result = await apiClient.triggerAutoTrackAll(limit);
       const msg =
-        `追蹤全部完成！\n${result.total_influencers} 位博主\n抓取 ${result.total_posts_scraped} 篇貼文\n發現 ${result.total_recommendations} 個推薦` +
+        t('influencers.alerts.autoTrackAllSuccess', {
+          influencers: result.total_influencers,
+          posts: result.total_posts_scraped,
+          recs: result.total_recommendations,
+        }) +
         (result.auto_approved > 0
-          ? `\n自動通過 ${result.auto_approved} 筆`
+          ? t('influencers.alerts.autoTrackAllAutoApproved', {
+              approved: result.auto_approved,
+            })
           : '') +
         (result.errors.length > 0
-          ? `\n\n⚠️ 錯誤:\n${result.errors.join('\n')}`
+          ? t('influencers.alerts.autoTrackAllErrors', {
+              errors: result.errors.join('\n'),
+            })
           : '');
       alert(msg);
       setAutoSubTab(0);
       fetchData();
     } catch (error: any) {
       console.error('Auto-track-all failed:', error);
-      alert(`批量追蹤失敗: ${error.message}`);
+      alert(
+        t('influencers.alerts.autoTrackAllFailed', { error: error.message })
+      );
     } finally {
       setIsAutoTracking(false);
     }
@@ -263,7 +276,7 @@ export function InfluencerTrackerPage() {
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Edit fontSize="small" />
-                  手動新增
+                  {t('influencers.modes.manual')}
                   <Chip size="small" label={manualRecommendations.length} />
                 </Box>
               }
@@ -273,7 +286,7 @@ export function InfluencerTrackerPage() {
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <AutoMode fontSize="small" />
-                  自動追蹤
+                  {t('influencers.modes.auto')}
                   <Chip
                     size="small"
                     label={autoRecommendations.length}
@@ -309,7 +322,9 @@ export function InfluencerTrackerPage() {
             onClick={() => handleAutoTrackAll(5)}
             disabled={isAutoTracking}
           >
-            {isAutoTracking ? '追蹤中...' : '追蹤全部博主'}
+            {isAutoTracking
+              ? t('influencers.modes.trackingStatus')
+              : t('influencers.modes.trackAll')}
           </Button>
         )}
       </Box>
@@ -354,19 +369,27 @@ export function InfluencerTrackerPage() {
                     value={manualSubTab}
                     onChange={(_, v) => setManualSubTab(v)}
                   >
-                    <Tab label="推薦列表" />
+                    <Tab label={t('influencers.tabs.recommendationList')} />
                     <Tab
-                      label="績效排行"
+                      label={t('influencers.tabs.performance')}
                       icon={<TrendingUp fontSize="small" />}
                       iconPosition="end"
                     />
-                    <Tab label="熱門標的" />
+                    <Tab label={t('influencers.tabs.popular')} />
                   </Tabs>
                   {manualSubTab === 0 && (
                     <Typography variant="subtitle1" color="text.secondary">
                       {selectedInfluencerId
-                        ? `${influencers.find(i => i.id === selectedInfluencerId)?.name || 'Unknown'} (${filteredManualRecs.length} 筆)`
-                        : `全部手動推薦 (${filteredManualRecs.length} 筆)`}
+                        ? t('influencers.stats.influencerCount', {
+                            name:
+                              influencers.find(
+                                i => i.id === selectedInfluencerId
+                              )?.name || t('influencers.stats.unknown'),
+                            count: filteredManualRecs.length,
+                          })
+                        : t('influencers.stats.allManual', {
+                            count: filteredManualRecs.length,
+                          })}
                     </Typography>
                   )}
                 </Box>
@@ -413,20 +436,28 @@ export function InfluencerTrackerPage() {
                     value={autoSubTab}
                     onChange={(_, v) => setAutoSubTab(v)}
                   >
-                    <Tab label="待審核" />
-                    <Tab label="已確認推薦" />
+                    <Tab label={t('influencers.tabs.pendingReview')} />
+                    <Tab label={t('influencers.tabs.confirmedRecs')} />
                     <Tab
-                      label="績效排行"
+                      label={t('influencers.tabs.performance')}
                       icon={<TrendingUp fontSize="small" />}
                       iconPosition="end"
                     />
-                    <Tab label="分析紀錄" />
+                    <Tab label={t('influencers.tabs.analysisHistory')} />
                   </Tabs>
                   {autoSubTab === 1 && (
                     <Typography variant="subtitle1" color="text.secondary">
                       {selectedInfluencerId
-                        ? `${influencers.find(i => i.id === selectedInfluencerId)?.name || 'Unknown'} (${filteredAutoRecs.length} 筆)`
-                        : `全部自動追蹤 (${filteredAutoRecs.length} 筆)`}
+                        ? t('influencers.stats.influencerCount', {
+                            name:
+                              influencers.find(
+                                i => i.id === selectedInfluencerId
+                              )?.name || t('influencers.stats.unknown'),
+                            count: filteredAutoRecs.length,
+                          })
+                        : t('influencers.stats.allAuto', {
+                            count: filteredAutoRecs.length,
+                          })}
                     </Typography>
                   )}
                 </Box>
