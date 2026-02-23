@@ -6,6 +6,8 @@ from typing import List, Optional
 from app.services.social_scraper import social_scraper
 from app.services.sentiment_analyzer import sentiment_analyzer
 
+from fastapi.concurrency import run_in_threadpool
+
 router = APIRouter(prefix="/api/social", tags=["Social Media Analysis"])
 
 class SocialAnalysisRequest(BaseModel):
@@ -30,7 +32,8 @@ async def analyze_social_media(request: SocialAnalysisRequest):
     
     # 1. Fetch Posts
     if request.source_type.lower() == "substack":
-        posts = social_scraper.fetch_substack_posts(request.target, limit=request.limit)
+        # Run blocking substack scraper in threadpool
+        posts = await run_in_threadpool(social_scraper.fetch_substack_posts, request.target, limit=request.limit)
     elif request.source_type.lower() == "threads":
         posts = await social_scraper.fetch_threads_posts(request.target, limit=request.limit)
     else:
@@ -43,14 +46,13 @@ async def analyze_social_media(request: SocialAnalysisRequest):
     results = []
     
     # 2. Analyze Sentiment for each post
-    # Note: Sequential analysis can be slow with local LLM. 
-    # For production, this should be async/background task or batch processed.
+    # Using run_in_threadpool because local LLM analysis is a blocking call.
     for post in posts:
         # Skip if error occurred during fetching
         if "error" in post:
             continue
             
-        analysis_result = sentiment_analyzer.analyze_post(post["content"])
+        analysis_result = await run_in_threadpool(sentiment_analyzer.analyze_post, post["content"])
         
         results.append(SocialPostAnalysis(
             source=post["source"],

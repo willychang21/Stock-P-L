@@ -60,14 +60,15 @@ class PriceCacheProtocol(Protocol):
         """
         ...
     
-    def invalidate(self, symbols: Optional[List[str]] = None) -> None:
+    @abstractmethod
+    def invalidate(self, symbols: list[str] | None = None) -> None:
         """
-        Invalidate cached entries.
+        Invalidate cache for specific symbols or all cache.
         
         Args:
             symbols: Specific symbols to invalidate, or None for all.
         """
-        ...
+        pass
 
 
 class HistoricalPriceCacheProtocol(Protocol):

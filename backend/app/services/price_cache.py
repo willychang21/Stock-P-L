@@ -184,12 +184,9 @@ class PriceCacheService:
         finally:
             pass
     
-    def invalidate(self, symbols: Optional[List[str]] = None) -> None:
+    def invalidate(self, symbols: list[str] | None = None) -> None:
         """
-        Invalidate cached entries.
-        
-        Args:
-            symbols: Specific symbols to invalidate, or None for all.
+        Invalidate cache for specific symbols or all cache.
         """
         conn = self._db.get_connection()
         try:

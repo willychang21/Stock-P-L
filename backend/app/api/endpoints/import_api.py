@@ -3,6 +3,8 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.services.importer import importer_service
 from app.schemas.portfolio import ImportResult # Need to define this schema or generic dict
 
+from fastapi.concurrency import run_in_threadpool
+
 router = APIRouter()
 
 @router.post("", response_model=dict)
@@ -15,9 +17,12 @@ async def import_csv(
     
     try:
         content = await file.read()
-        batch, transactions = importer_service.parse_csv(content, file.filename, broker)
         
-        importer_service.save_import(batch, transactions)
+        # Move CPU-bound parsing to threadpool
+        batch, transactions = await run_in_threadpool(importer_service.parse_csv, content, file.filename, broker)
+        
+        # Move IO/DB-bound DB save to threadpool
+        await run_in_threadpool(importer_service.save_import, batch, transactions)
         
         return {
             "success": True,

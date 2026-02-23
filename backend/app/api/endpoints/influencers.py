@@ -442,9 +442,18 @@ def update_recommendation(
     if recommendation_update.recommendation_date is not None:
         updates.append("recommendation_date = ?")
         values.append(recommendation_update.recommendation_date)
-    if recommendation_update.initial_price is not None:
-        updates.append("initial_price = ?")
-        values.append(recommendation_update.initial_price)
+    if recommendation_update.entry_price is not None:
+        updates.append("entry_price = ?")
+        values.append(recommendation_update.entry_price)
+        
+    if recommendation_update.target_price is not None:
+        updates.append("target_price = ?")
+        values.append(recommendation_update.target_price)
+        
+    if recommendation_update.stop_loss is not None:
+        updates.append("stop_loss = ?")
+        values.append(recommendation_update.stop_loss)
+        
     if recommendation_update.note is not None:
         updates.append("note = ?")
         values.append(recommendation_update.note)
@@ -455,18 +464,23 @@ def update_recommendation(
             "id": current[0],
             "influencer_id": current[1],
             "symbol": current[2],
-            "recommendation_date": current[3],
-            "initial_price": current[4],
-            "note": current[5],
-            "created_at": current[6]
+            "recommendation_date": current[5], # Assuming current[5] is recommendation_date
+            "entry_price": current[6], # Assuming current[6] is entry_price
+            "target_price": current[7],
+            "stop_loss": current[8],
+            "note": current[12], # Assuming current[12] is note
+            "created_at": current[16] # Assuming current[16] is created_at
         }
         
     values.append(recommendation_id)
-    query = f"UPDATE influencer_recommendations SET {', '.join(updates)} WHERE id = ?"
+    query = f"UPDATE influencer_recommendations SET {', '.join(updates)} WHERE id = ? RETURNING id, influencer_id, symbol, signal, timeframe, recommendation_date, entry_price, target_price, stop_loss, expiry_date, source, source_url, note, status, final_price, final_return, created_at"
     db.execute(query, values)
     
     updated = db.execute("SELECT * FROM influencer_recommendations WHERE id = ?", [recommendation_id]).fetchone()
     
+    if not updated:
+        raise HTTPException(status_code=500, detail="Failed to update recommendation")
+        
     # Calculate current price / change if needed, similar to get_all_recommendations
     # For simplicity, we just return the stored data + basic stats if available or just basic data
     # The frontend usually refreshes the list anyway.
@@ -475,6 +489,7 @@ def update_recommendation(
     current_price = None
     change_pct = None
     try:
+        from app.services.market_data import market_data_service
         quotes = market_data_service.get_quotes([updated[2]])
         if quotes and quotes[0].get("regularMarketPrice"):
             current_price = quotes[0]["regularMarketPrice"]
@@ -487,10 +502,20 @@ def update_recommendation(
         "id": updated[0],
         "influencer_id": updated[1],
         "symbol": updated[2],
-        "recommendation_date": updated[3],
-        "initial_price": updated[4],
-        "note": updated[5],
-        "created_at": updated[6],
+        "signal": updated[3],
+        "timeframe": updated[4],
+        "recommendation_date": updated[5],
+        "entry_price": updated[6],
+        "target_price": updated[7],
+        "stop_loss": updated[8],
+        "expiry_date": updated[9],
+        "source": updated[10],
+        "source_url": updated[11],
+        "note": updated[12],
+        "status": updated[13],
+        "final_price": updated[14],
+        "final_return": updated[15],
+        "created_at": updated[16],
         "current_price": current_price,
         "price_change_percent": change_pct
     }

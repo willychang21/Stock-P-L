@@ -12,10 +12,15 @@ router = APIRouter()
 
 class UpdateTransactionRequest(BaseModel):
     notes: str | None = None
-    tags: Optional[List[str]] = None
+    tags: list[str] | None = None
     rating: int | None = None
 
-from app.core.domain.models import TransactionType
+class ListTransactionsRequest(BaseModel):
+    account_id: str | None = None
+    symbol: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    tags: list[str] | None = None
 
 @router.get("", response_model=List[TransactionResponse])
 def list_transactions(

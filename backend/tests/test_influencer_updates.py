@@ -75,25 +75,33 @@ def test_update_influencer_not_found(mock_db):
 
 def test_update_recommendation_success(mock_db):
     rec_id = "rec-123"
-    update_data = RecommendationUpdate(initial_price=150.0, note="Updated note")
+    update_data = RecommendationUpdate(entry_price=150.0, note="Updated note")
     
     db = MagicMock()
     
-    # Original: (id, inf_id, symbol, date, price, note, created_at)
-    original = ("rec-123", "inf-1", "AAPL", date(2023, 1, 1), 100.0, "Old note", datetime.now())
-    updated_rec = ("rec-123", "inf-1", "AAPL", date(2023, 1, 1), 150.0, "Updated note", datetime.now())
+    # Original: (id, inf_id, symbol, signal, timeframe, rec_date, entry_price, target, stop, expiry, src, src_url, note, status, final_p, final_r, created_at)
+    original = (
+        "rec-123", "inf-1", "AAPL", "BUY", "MID", date(2023, 1, 1), 
+        100.0, None, None, None, "MANUAL", None, "Old note", "ACTIVE", 
+        None, None, datetime.now()
+    )
+    updated_rec = (
+        "rec-123", "inf-1", "AAPL", "BUY", "MID", date(2023, 1, 1), 
+        150.0, None, None, None, "MANUAL", None, "Updated note", "ACTIVE", 
+        None, None, datetime.now()
+    )
     
     db.execute.return_value.fetchone.side_effect = [original, updated_rec]
     
     result = update_recommendation(rec_id, update_data, db)
     
-    assert result["initial_price"] == 150.0
+    assert result["entry_price"] == 150.0
     assert result["note"] == "Updated note"
     
     calls = db.execute.call_args_list
     update_call = calls[1]
     query, params = update_call[0]
     assert "UPDATE influencer_recommendations" in query
-    assert "initial_price = ?" in query
+    assert "entry_price = ?" in query
     assert "note = ?" in query
 

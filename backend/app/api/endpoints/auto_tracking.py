@@ -14,6 +14,8 @@ from app.db.session import get_db
 from app.services.auto_tracker import auto_tracker
 from app.schemas.influencer import PendingReview, SignalType, TimeframeType, SourceType
 
+from fastapi.concurrency import run_in_threadpool
+
 router = APIRouter()
 
 
@@ -47,6 +49,13 @@ class ApproveReviewRequest(BaseModel):
     note: str | None = None
 
 
+def _get_influencer_sync(db: duckdb.DuckDBPyConnection, influencer_id: str):
+    return db.execute(
+        "SELECT id, name, platform, url FROM influencers WHERE id = ?", 
+        [influencer_id]
+    ).fetchone()
+
+
 @router.post("/auto-track", response_model=TrackingResult)
 async def trigger_auto_track(request: TrackInfluencerRequest, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """
@@ -54,10 +63,7 @@ async def trigger_auto_track(request: TrackInfluencerRequest, db: Annotated[duck
     Scrapes their social media, analyzes with AI, and creates pending reviews.
     """
     # Verify influencer exists and get their URL
-    inf = db.execute(
-        "SELECT id, name, platform, url FROM influencers WHERE id = ?", 
-        [request.influencer_id]
-    ).fetchone()
+    inf = await run_in_threadpool(_get_influencer_sync, db, request.influencer_id)
     
     if not inf:
         raise HTTPException(status_code=404, detail="Influencer not found")
@@ -337,15 +343,19 @@ class TrackAllResult(BaseModel):
     per_influencer: List[TrackingResult]
 
 
+def _get_all_influencers_sync(db: duckdb.DuckDBPyConnection):
+    return db.execute(
+        "SELECT id, name, platform, url FROM influencers WHERE url IS NOT NULL AND url != ''"
+    ).fetchall()
+
+
 @router.post("/auto-track-all", response_model=TrackAllResult)
 async def trigger_auto_track_all(request: TrackAllRequest, db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)]):
     """
     Batch auto-track ALL influencers with URLs.
     Optionally auto-approve high-confidence results.
     """
-    influencers = db.execute(
-        "SELECT id, name, platform, url FROM influencers WHERE url IS NOT NULL AND url != ''"
-    ).fetchall()
+    influencers = await run_in_threadpool(_get_all_influencers_sync, db)
     
     result = TrackAllResult(
         total_influencers=len(influencers),
@@ -376,7 +386,7 @@ async def trigger_auto_track_all(request: TrackAllRequest, db: Annotated[duckdb.
     
     # Auto-approve if threshold is set
     if request.auto_approve_threshold is not None:
-        auto_count = _auto_approve_pending(db, request.auto_approve_threshold)
+        auto_count = await run_in_threadpool(_auto_approve_pending, db, request.auto_approve_threshold)
         result.auto_approved = auto_count
     
     return result
