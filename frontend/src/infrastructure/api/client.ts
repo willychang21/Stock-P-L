@@ -86,6 +86,34 @@ export const apiClient = {
     return response.json();
   },
 
+  getFundamentals: async (symbols: string[]): Promise<any> => {
+    const params = new URLSearchParams({ symbols: symbols.join(',') });
+    const response = await fetch(`${API_BASE_URL}/fundamentals?${params}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch fundamentals: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  getTechnicals: async (symbols: string[]): Promise<any> => {
+    const params = new URLSearchParams({ symbols: symbols.join(',') });
+    const response = await fetch(`${API_BASE_URL}/technicals?${params}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch technicals: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  getMarketSentiment: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/sentiment/market`);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch market sentiment: ${response.statusText}`
+      );
+    }
+    return response.json();
+  },
+
   updateTransactionNotes: async (
     id: string,
     notes: string,

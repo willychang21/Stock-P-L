@@ -178,7 +178,18 @@ class MarketDataService:
                     "fiftyTwoWeekHigh": info.get('fiftyTwoWeekHigh'),
                     "fiftyTwoWeekLow": info.get('fiftyTwoWeekLow'),
                     "dividendYield": info.get('dividendYield'),
-                    "beta": info.get("beta")
+                    "beta": info.get("beta"),
+                    # New Fundamental & Valuation Fields
+                    "trailingEps": info.get("trailingEps"),
+                    "forwardEps": info.get("forwardEps"),
+                    "profitMargins": info.get("profitMargins"),
+                    "returnOnEquity": info.get("returnOnEquity"),
+                    "returnOnAssets": info.get("returnOnAssets"),
+                    "revenueGrowth": info.get("revenueGrowth"),
+                    "debtToEquity": info.get("debtToEquity"),
+                    "exDividendDate": info.get("exDividendDate"),
+                    "payoutRatio": info.get("payoutRatio"),
+                    "earningsDate": info.get("earningsDate"), # Sometimes a list depending on yfinance version
                 }
             except Exception as e:
                 print(f"Failed to fetch fundamentals for {symbol}: {e}")

@@ -6,10 +6,20 @@
       "sourceType": "github",
       "computedHash": "fa51843cda87fc738f819c937cc697691255684d27d598dbc64a3a121e480064"
     },
+    "stock-analysis": {
+      "source": "gracefullight/stock-checker",
+      "sourceType": "github",
+      "computedHash": "bcd3abe47bd81a2c39b77fd3f116f98ff1f30ffe2604fc4189fd5d717581ff00"
+    },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",
       "computedHash": "e688fcd4c5693e14ebd00d48e982dbd2be060fbea89f5f60531e79c704a1bc28"
+    },
+    "yahoo-finance": {
+      "source": "gracefullight/stock-checker",
+      "sourceType": "github",
+      "computedHash": "e9fc6fa8cdb390f72f708126f32b882f789ff1e4efb6f9736c232b0e431a7b0b"
     }
   }
 }

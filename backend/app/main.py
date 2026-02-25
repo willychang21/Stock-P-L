@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.endpoints import portfolio, transactions, import_api, quotes, historical, system, strategy, influencers, social, auto_tracking
+from app.api.endpoints import portfolio, transactions, import_api, quotes, historical, system, strategy, influencers, social, auto_tracking, fundamentals, technicals, sentiment
 from app.db.init_db import init_db
 
 app = FastAPI(
@@ -65,8 +65,11 @@ app.include_router(quotes.router, prefix="/api/quotes", tags=["quotes"])
 app.include_router(historical.router, prefix="/api/historical-prices", tags=["historical"])
 app.include_router(system.router, prefix="/api/system", tags=["system"])
 app.include_router(strategy.router, prefix="/api/strategy", tags=["strategy"])
+app.include_router(technicals.router, prefix="/api/technicals", tags=["technicals"])
+app.include_router(sentiment.router, prefix="/api/sentiment", tags=["sentiment"])
 app.include_router(influencers.router, prefix="/api", tags=["influencers"])
 app.include_router(auto_tracking.router, prefix="/api", tags=["auto-tracking"])
+app.include_router(fundamentals.router, prefix="/api/fundamentals", tags=["fundamentals"])
 app.include_router(social.router)
 
 @app.get("/health")

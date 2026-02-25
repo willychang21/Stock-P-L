@@ -134,7 +134,25 @@
     "totalPL": "總損益 ($)",
     "totalPLPercent": "總損益 (%)",
     "currentHoldings": "目前持倉",
-    "filterAll": "全部"
+    "filterAll": "全部",
+    "sentiment": {
+      "marketRegime": "市場狀態",
+      "vix": "恐慌指數 (VIX)",
+      "safeHavenFlows": "避險資金動向",
+      "goldFutures": "黃金期貨",
+      "treasuryYield10Y": "美國 10 年期公債殖利率",
+      "regime": {
+        "NORMAL": "正常",
+        "HIGH_FEAR": "高度恐慌",
+        "RISK_OFF": "避險情緒 (Risk Off)",
+        "COMPLACENCY": "過度樂觀"
+      },
+      "trend": {
+        "RISING": "上升",
+        "FALLING": "下降",
+        "FLAT": "持平"
+      }
+    }
   },
   "settings": {
     "title": "設定",

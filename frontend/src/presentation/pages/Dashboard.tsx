@@ -20,6 +20,7 @@ import Add from '@mui/icons-material/Add';
 import Refresh from '@mui/icons-material/Refresh';
 import { HoldingsTable } from '../components/HoldingsTable';
 import { ImportWizard } from '../components/ImportWizard';
+import { MarketSentimentWidget } from '../components/Dashboard/MarketSentimentWidget';
 import { apiClient } from '../../infrastructure/api/client';
 import { Transaction } from '../../domain/models/Transaction';
 import { Holding } from '../../domain/models/Holding';
@@ -166,6 +167,10 @@ export function Dashboard() {
             {error}
           </Alert>
         ) : null}
+
+        <Box sx={{ mb: 3 }}>
+          <MarketSentimentWidget />
+        </Box>
 
         {/* Filter Tabs - Disabled for MVP if backend doesn't support filtering yet */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>

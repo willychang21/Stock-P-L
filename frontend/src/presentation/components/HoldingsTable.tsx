@@ -13,10 +13,13 @@ import Collapse from '@mui/material/Collapse';
 import IconButton from '@mui/material/IconButton';
 import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUp from '@mui/icons-material/KeyboardArrowUp';
+import Grid from '@mui/material/Grid';
 import { useState, useEffect, Fragment } from 'react';
 import Decimal from 'decimal.js';
 import { Holding } from '@domain/models/Holding';
 import { SymbolTransactionHistory } from './SymbolTransactionHistory';
+import { SymbolFundamentals } from './SymbolFundamentals';
+import { SymbolTechnicals } from './SymbolTechnicals';
 import { plService } from '@application/services/PLService';
 import { TransactionWithPL } from '@domain/models/SymbolTransactionSummary';
 import { useStore } from '@application/store/useStore';
@@ -157,6 +160,16 @@ function HoldingRow({
               <Typography variant="subtitle2" gutterBottom component="div">
                 {t('holdings.transactionHistory')}
               </Typography>
+
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <SymbolFundamentals symbol={holding.symbol} />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <SymbolTechnicals symbol={holding.symbol} />
+                </Grid>
+              </Grid>
+
               <SymbolTransactionHistory
                 transactions={transactions}
                 isLoading={isLoading}

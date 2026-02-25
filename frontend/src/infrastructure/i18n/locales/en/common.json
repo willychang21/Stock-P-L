@@ -134,7 +134,25 @@
     "totalPL": "Total P/L ($)",
     "totalPLPercent": "Total P/L (%)",
     "currentHoldings": "Current Holdings",
-    "filterAll": "All"
+    "filterAll": "All",
+    "sentiment": {
+      "marketRegime": "Market Regime",
+      "vix": "Volatility Index (VIX)",
+      "safeHavenFlows": "Safe Haven Flows",
+      "goldFutures": "Gold Futures",
+      "treasuryYield10Y": "10Y Treasury Yield",
+      "regime": {
+        "NORMAL": "Normal",
+        "HIGH_FEAR": "High Fear",
+        "RISK_OFF": "Risk Off",
+        "COMPLACENCY": "Complacency"
+      },
+      "trend": {
+        "RISING": "Rising",
+        "FALLING": "Falling",
+        "FLAT": "Flat"
+      }
+    }
   },
   "settings": {
     "title": "Settings",
