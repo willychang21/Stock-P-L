@@ -9,10 +9,17 @@ export class PortfolioService {
     private readonly calculators: Record<string, ICalculator>
   ) {}
 
-  async calculatePortfolio(calculatorId: string): Promise<Result<AnalysisResult>> {
+  async calculatePortfolio(
+    calculatorId: string
+  ): Promise<Result<AnalysisResult>> {
     const calculator = this.calculators[calculatorId];
     if (!calculator) {
-      return Result.fail(new AppError(`Calculator ${calculatorId} not found`, 'CALCULATOR_NOT_FOUND'));
+      return Result.fail(
+        new AppError(
+          `Calculator ${calculatorId} not found`,
+          'CALCULATOR_NOT_FOUND'
+        )
+      );
     }
 
     const transactionsResult = await this.transactionRepo.getAll();
@@ -21,7 +28,7 @@ export class PortfolioService {
     }
 
     // TODO: Fetch market data
-    const marketData = {}; 
+    const marketData = {};
 
     try {
       const result = calculator.calculate(transactionsResult.value, marketData);

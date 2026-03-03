@@ -18,8 +18,9 @@ import Settings from '@mui/icons-material/Settings';
 import MenuIcon from '@mui/icons-material/Menu';
 import Assessment from '@mui/icons-material/Assessment';
 import CompareArrows from '@mui/icons-material/CompareArrows';
-import Psychology from '@mui/icons-material/Psychology';
 import People from '@mui/icons-material/People';
+import Search from '@mui/icons-material/Search';
+import Visibility from '@mui/icons-material/Visibility';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useState, useEffect } from 'react';
@@ -35,8 +36,9 @@ const menuItems = [
   { key: 'nav.transactions', icon: <Receipt />, path: '/transactions' },
   { key: 'nav.analysis', icon: <Assessment />, path: '/analysis' },
   { key: 'nav.benchmark', icon: <CompareArrows />, path: '/benchmark' },
-  { key: 'nav.strategy', icon: <Psychology />, path: '/strategy' },
   { key: 'nav.influencers', icon: <People />, path: '/influencers' },
+  { key: 'nav.screener', icon: <Search />, path: '/screener' },
+  { key: 'nav.watchlist', icon: <Visibility />, path: '/watchlist' },
   { key: 'nav.settings', icon: <Settings />, path: '/settings' },
 ];
 

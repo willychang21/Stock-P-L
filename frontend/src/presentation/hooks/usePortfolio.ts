@@ -36,6 +36,6 @@ export function usePortfolio() {
     analysis,
     isLoading,
     error,
-    calculate
+    calculate,
   };
 }

@@ -4,7 +4,7 @@ import { PLResult } from '../models/PLReport';
 
 /**
  * Average Cost P/L Calculator
- * 
+ *
  * Simpler than FIFO - maintains running average of cost basis.
  * Used for comparison and user preference, but NOT IRS-compliant for stocks.
  */

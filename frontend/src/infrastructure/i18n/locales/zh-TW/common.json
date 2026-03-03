@@ -8,12 +8,10 @@
     "transactions": "交易記錄",
     "analysis": "分析",
     "benchmark": "大盤比較",
-    "strategy": "策略",
     "influencers": "網紅追蹤",
+    "screener": "股票篩選",
+    "watchlist": "觀察清單",
     "settings": "設定"
-  },
-  "strategy": {
-    "title": "策略助手"
   },
   "benchmark": {
     "title": "大盤比較",

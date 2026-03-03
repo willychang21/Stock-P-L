@@ -8,6 +8,12 @@ A full-stack web application for personal investment tracking and P/L analysis.
 
 This application provides a comprehensive dashboard to track your investment portfolio's performance. You can import trade history (CSV) from your broker, and the app will automatically calculate your Realized and Unrealized Profit/Loss.
 
+Key features:
+- **Portfolio Tracking**: Real-time tracking of holdings and historical performance.
+- **Enhanced Stock Screener**: Discover US stocks with 20+ professional filters including ROE, PEG ratio, Debt/Equity, and Moving Averages.
+- **Influencer Tracker**: Automatically track and analyze stock recommendations from social media.
+- **Privacy-focused**: All transaction data is stored locally via DuckDB.
+
 I built this because I wanted a **privacy-focused** alternative to cloud-based financial trackers. All transaction data is stored locally on your machine (via DuckDB), and live stock prices are fetched automatically via a proxy to Yahoo Finance, requiring no manual entry or third-party cloud syncing.
 
 ## Tech Stack

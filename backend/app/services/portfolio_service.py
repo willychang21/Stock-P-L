@@ -130,6 +130,22 @@ class PortfolioService:
             cash_balance=cash_balance
         )
 
+    def get_holding_symbols(self) -> List[str]:
+        """Get unique list of symbols currently in the portfolio (with quantity > 0)."""
+        transactions = self._get_all_transactions()
+        symbols = sorted(list(set(t.symbol for t in transactions)))
+        holding_symbols = []
+        
+        # We need a calculator to determine current quantity
+        calculator = self.calculators.get('fifo') # Any will do for quantity
+        
+        for sym in symbols:
+            sym_txs = [t for t in transactions if t.symbol == sym]
+            res = calculator.calculate(sym_txs, {})
+            if res.metrics['holdings'] > 0:
+                holding_symbols.append(sym)
+        return holding_symbols
+
     def _get_all_transactions(self) -> List[Transaction]:
         conn = db.get_connection()
         try:

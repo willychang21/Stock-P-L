@@ -7,5 +7,9 @@ export interface PricePoint {
 
 export interface IMarketDataService {
   getCurrentPrice(symbol: string): Promise<Result<number>>;
-  getHistory(symbol: string, startDate: Date, endDate: Date): Promise<Result<PricePoint[]>>;
+  getHistory(
+    symbol: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<Result<PricePoint[]>>;
 }

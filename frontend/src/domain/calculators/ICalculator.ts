@@ -6,7 +6,10 @@ export type PriceHistory = PricePoint[];
 export type MarketDataMap = Record<string, PriceHistory>;
 
 export interface ICalculator {
-  calculate(transactions: Transaction[], marketData: MarketDataMap): AnalysisResult;
+  calculate(
+    transactions: Transaction[],
+    marketData: MarketDataMap
+  ): AnalysisResult;
   metadata(): {
     id: string;
     name: string;

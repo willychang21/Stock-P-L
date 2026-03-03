@@ -4,9 +4,14 @@ import { AnalysisResult } from '../models/AnalysisResult';
 import Decimal from 'decimal.js';
 
 export class WeightedAverageCalculator implements ICalculator {
-  calculate(transactions: Transaction[], _marketData: MarketDataMap): AnalysisResult {
-    const sortedTxs = [...transactions].sort((a, b) => a.date.getTime() - b.date.getTime());
-    
+  calculate(
+    transactions: Transaction[],
+    _marketData: MarketDataMap
+  ): AnalysisResult {
+    const sortedTxs = [...transactions].sort(
+      (a, b) => a.date.getTime() - b.date.getTime()
+    );
+
     let totalQty = new Decimal(0);
     let totalCostBasis = new Decimal(0);
     let totalRealizedPL = new Decimal(0);
@@ -23,9 +28,11 @@ export class WeightedAverageCalculator implements ICalculator {
         const avgCostPerShare = totalCostBasis.div(totalQty);
         const costOfSoldShares = sellQty.mul(avgCostPerShare);
         const proceeds = sellQty.mul(tx.price).minus(tx.fees);
-        
-        totalRealizedPL = totalRealizedPL.plus(proceeds.minus(costOfSoldShares));
-        
+
+        totalRealizedPL = totalRealizedPL.plus(
+          proceeds.minus(costOfSoldShares)
+        );
+
         totalQty = totalQty.minus(sellQty);
         totalCostBasis = totalCostBasis.minus(costOfSoldShares);
       }
@@ -38,7 +45,7 @@ export class WeightedAverageCalculator implements ICalculator {
         holdings: totalQty,
         costBasis: totalCostBasis,
       },
-      generatedAt: new Date()
+      generatedAt: new Date(),
     };
   }
 
@@ -46,7 +53,7 @@ export class WeightedAverageCalculator implements ICalculator {
     return {
       id: 'weighted_avg',
       name: 'Weighted Average',
-      description: 'Calculates cost basis by averaging all purchase prices.'
+      description: 'Calculates cost basis by averaging all purchase prices.',
     };
   }
 }

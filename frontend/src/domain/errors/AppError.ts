@@ -3,7 +3,12 @@ export class AppError extends Error {
   public readonly details?: Record<string, any>;
   public readonly isOperational: boolean;
 
-  constructor(message: string, code: string, details?: Record<string, any>, isOperational = true) {
+  constructor(
+    message: string,
+    code: string,
+    details?: Record<string, any>,
+    isOperational = true
+  ) {
     super(message);
     this.name = 'AppError';
     this.code = code;
@@ -13,7 +18,9 @@ export class AppError extends Error {
   }
 }
 
-export type Result<T, E = AppError> = { success: true; value: T } | { success: false; error: E };
+export type Result<T, E = AppError> =
+  | { success: true; value: T }
+  | { success: false; error: E };
 
 export const Result = {
   ok: <T>(value: T): Result<T, never> => ({ success: true, value }),

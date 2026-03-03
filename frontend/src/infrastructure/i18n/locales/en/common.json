@@ -8,12 +8,10 @@
     "transactions": "Transactions",
     "analysis": "Analysis",
     "benchmark": "Benchmark",
-    "strategy": "Strategy",
     "influencers": "Influencers",
+    "screener": "Screener",
+    "watchlist": "Watchlist",
     "settings": "Settings"
-  },
-  "strategy": {
-    "title": "Strategy Assistant"
   },
   "benchmark": {
     "title": "Benchmark Comparison",
