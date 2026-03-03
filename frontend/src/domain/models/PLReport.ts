@@ -12,8 +12,8 @@ export type CostBasisMethod = 'FIFO' | 'AVERAGE_COST';
 export interface PLResult {
   realized_pl: Decimal; // Keeping snake_case for internal calculator logic if needed, or unify?
   // Let's unify to camelCase
-  realizedPL: Decimal; 
-  matchedLots?: LotMatch[]; 
+  realizedPL: Decimal;
+  matchedLots?: LotMatch[];
 }
 
 /**
@@ -21,11 +21,11 @@ export interface PLResult {
  * Used for audit trail and tax reporting
  */
 export interface LotMatch {
-  lot: Lot; 
-  quantitySold: Decimal; 
-  pl: Decimal; 
-  purchaseDate: string; 
-  saleDate: string; 
+  lot: Lot;
+  quantitySold: Decimal;
+  pl: Decimal;
+  purchaseDate: string;
+  saleDate: string;
 }
 
 /**
@@ -36,9 +36,9 @@ export interface SymbolPL {
   realizedPL: Decimal;
   unrealizedPL: Decimal;
   totalPL: Decimal;
-  totalInvested: Decimal; 
-  currentValue: Decimal; 
-  returnPercentage: Decimal; 
+  totalInvested: Decimal;
+  currentValue: Decimal;
+  returnPercentage: Decimal;
 }
 
 /**
@@ -50,9 +50,9 @@ export interface PLReport {
   costBasisMethod: CostBasisMethod;
 
   // Aggregate metrics
-  realizedPL: Decimal; 
-  unrealizedPL: Decimal; 
-  totalPL: Decimal; 
+  realizedPL: Decimal;
+  unrealizedPL: Decimal;
+  totalPL: Decimal;
 
   // Per-symbol breakdown
   breakdownBySymbol: Map<string, SymbolPL>;

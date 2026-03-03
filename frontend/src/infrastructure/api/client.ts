@@ -95,6 +95,11 @@ export const apiClient = {
     return response.json();
   },
 
+  getHistoricalFinancials: async (symbol: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/fundamentals/${encodeURIComponent(symbol)}/historical`);
+    return handleResponse(response);
+  },
+
   getTechnicals: async (symbols: string[]): Promise<any> => {
     const params = new URLSearchParams({ symbols: symbols.join(',') });
     const response = await fetch(`${API_BASE_URL}/technicals?${params}`);
@@ -326,6 +331,182 @@ export const apiClient = {
         body: JSON.stringify({ threshold }),
       }
     );
+    return handleResponse(response);
+  },
+
+  // Screener API
+  getScreenerStocks: async (filters: any): Promise<any> => {
+    const cleanFilters: any = {};
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== undefined && filters[key] !== null) {
+        cleanFilters[key] = filters[key];
+      }
+    });
+    const params = new URLSearchParams(cleanFilters);
+    const response = await fetch(`${API_BASE_URL}/screener?${params}`);
+    return handleResponse(response);
+  },
+
+  triggerScreenerSync: async (tickers: string[]): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tickers),
+    });
+    return handleResponse(response);
+  },
+
+  triggerScreenerSyncAll: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/sync-all`, {
+      method: 'POST',
+    });
+    return handleResponse(response);
+  },
+
+  getScreenerSyncStatus: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/sync-status`);
+    return handleResponse(response);
+  },
+
+  getTopIdeas: async (limit: number = 5): Promise<any> => {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    const response = await fetch(`${API_BASE_URL}/screener/top-ideas?${params}`);
+    return handleResponse(response);
+  },
+
+  listScreenerViews: async (): Promise<any[]> => {
+    const response = await fetch(`${API_BASE_URL}/screener/views`);
+    return handleResponse(response);
+  },
+
+  createScreenerView: async (payload: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/views`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  deleteScreenerView: async (viewId: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/views/${viewId}`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  },
+
+  listScreenerScreens: async (): Promise<any[]> => {
+    const response = await fetch(`${API_BASE_URL}/screener/screens`);
+    return handleResponse(response);
+  },
+
+  createScreenerScreen: async (payload: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/screens`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  updateScreenerScreen: async (screenId: string, payload: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/screens/${screenId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  deleteScreenerScreen: async (screenId: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/screens/${screenId}`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  },
+
+  checkScreenerAlerts: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/screens/check-alerts`, {
+      method: 'POST',
+    });
+    return handleResponse(response);
+  },
+
+  listScreenerAlerts: async (limit: number = 50): Promise<any[]> => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    const response = await fetch(`${API_BASE_URL}/screener/alerts?${params}`);
+    return handleResponse(response);
+  },
+
+  markScreenerAlertRead: async (eventId: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/alerts/${eventId}/read`, {
+      method: 'PATCH',
+    });
+    return handleResponse(response);
+  },
+
+  getScreenerSymbolInsights: async (symbol: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/symbol/${encodeURIComponent(symbol)}/insights`);
+    return handleResponse(response);
+  },
+
+  getScreenerMarketPulse: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/screener/market-pulse`);
+    return handleResponse(response);
+  },
+
+  // Watchlist API
+  listWatchlist: async (): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/watchlist`);
+    return handleResponse(response);
+  },
+
+  searchWatchlistSymbols: async (
+    q: string,
+    limit: number = 12
+  ): Promise<any[]> => {
+    const params = new URLSearchParams({ q, limit: String(limit) });
+    const response = await fetch(`${API_BASE_URL}/watchlist/search?${params}`);
+    return handleResponse(response);
+  },
+
+  addWatchlistItem: async (payload: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/watchlist`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  updateWatchlistItem: async (symbol: string, payload: any): Promise<any> => {
+    const response = await fetch(
+      `${API_BASE_URL}/watchlist/${encodeURIComponent(symbol)}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }
+    );
+    return handleResponse(response);
+  },
+
+  removeWatchlistItem: async (symbol: string): Promise<any> => {
+    const response = await fetch(
+      `${API_BASE_URL}/watchlist/${encodeURIComponent(symbol)}`,
+      {
+        method: 'DELETE',
+      }
+    );
+    return handleResponse(response);
+  },
+
+  simulateDCF: async (payload: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/watchlist/dcf-simulate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
     return handleResponse(response);
   },
 };

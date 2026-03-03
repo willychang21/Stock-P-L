@@ -9,9 +9,10 @@ import { Dashboard } from './presentation/pages/Dashboard';
 import { Transactions } from './presentation/pages/Transactions';
 import { PerformanceAnalysis } from './presentation/pages/PerformanceAnalysis';
 import { BenchmarkComparison } from './presentation/pages/BenchmarkComparison';
-import { Strategy } from './presentation/pages/Strategy';
 import { InfluencerTrackerPage } from './presentation/pages/InfluencerTrackerPage';
 import { Settings } from './presentation/pages/Settings';
+import ScreenerPage from './presentation/pages/ScreenerPage';
+import WatchlistPage from './presentation/pages/WatchlistPage';
 import './infrastructure/i18n/config';
 import './index.css';
 
@@ -240,8 +241,9 @@ function App() {
           <Route path="transactions" element={<Transactions />} />
           <Route path="analysis" element={<PerformanceAnalysis />} />
           <Route path="benchmark" element={<BenchmarkComparison />} />
-          <Route path="strategy" element={<Strategy />} />
           <Route path="influencers" element={<InfluencerTrackerPage />} />
+          <Route path="screener" element={<ScreenerPage />} />
+          <Route path="watchlist" element={<WatchlistPage />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

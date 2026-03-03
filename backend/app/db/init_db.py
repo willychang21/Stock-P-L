@@ -57,6 +57,57 @@ MIGRATIONS = [
      "ALTER TABLE pending_reviews ADD COLUMN content_hash TEXT"),
     ("002", "Add post_date to pending_reviews",
      "ALTER TABLE pending_reviews ADD COLUMN post_date DATE"),
+    ("003", "Expand screener_data with professional metrics",
+     """
+     ALTER TABLE screener_data ADD COLUMN forward_pe DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN price_to_sales DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN price_to_book DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN ev_to_ebitda DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN ev_to_revenue DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN peg_ratio DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN profit_margin DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN operating_margin DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN roe DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN roa DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN revenue_growth DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN earnings_growth DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN dividend_yield DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN payout_ratio DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN debt_to_equity DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN current_ratio DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN fifty_day_sma DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN two_hundred_day_sma DOUBLE;
+     """),
+    ("004", "Add ROIC and FCF components to screener_data",
+     """
+     ALTER TABLE screener_data ADD COLUMN free_cash_flow DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN roic DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN eps_growth DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN total_debt DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN total_equity DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN total_cash DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN operating_income DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN tax_rate DOUBLE;
+     """),
+    ("005", "Add sentiment and momentum metrics to screener_data",
+     """
+     ALTER TABLE screener_data ADD COLUMN target_upside DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN recommendation_mean DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN short_percent DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN inst_own_percent DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN insider_own_percent DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN beta DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN gross_margin DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN ebitda_margin DOUBLE;
+     """),
+    ("006", "Add dividend metrics and price ranges for better screening",
+     """
+     ALTER TABLE screener_data ADD COLUMN dividend_yield DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN payout_ratio DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN fifty_two_week_high DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN fifty_two_week_low DOUBLE;
+     ALTER TABLE screener_data ADD COLUMN price_to_fcf DOUBLE;
+     """),
 ]
 
 
@@ -280,8 +331,119 @@ def init_db():
             ON scraped_posts(influencer_id, content_hash);
         """)
 
+        # Screener Data Table (Cache for global stock discovery)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS screener_data (
+                symbol TEXT PRIMARY KEY,
+                name TEXT,
+                price DOUBLE,
+                market_cap DOUBLE,
+                trailing_pe DOUBLE,
+                forward_pe DOUBLE,
+                price_to_sales DOUBLE,
+                price_to_book DOUBLE,
+                ev_to_ebitda DOUBLE,
+                ev_to_revenue DOUBLE,
+                peg_ratio DOUBLE,
+                profit_margin DOUBLE,
+                operating_margin DOUBLE,
+                roe DOUBLE,
+                roa DOUBLE,
+                revenue_growth DOUBLE,
+                earnings_growth DOUBLE,
+                dividend_yield DOUBLE,
+                payout_ratio DOUBLE,
+                debt_to_equity DOUBLE,
+                current_ratio DOUBLE,
+                fifty_day_sma DOUBLE,
+                two_hundred_day_sma DOUBLE,
+                free_cash_flow DOUBLE,
+                roic DOUBLE,
+                eps_growth DOUBLE,
+                total_debt DOUBLE,
+                total_equity DOUBLE,
+                total_cash DOUBLE,
+                operating_income DOUBLE,
+                tax_rate DOUBLE,
+                target_upside DOUBLE,
+                recommendation_mean DOUBLE,
+                short_percent DOUBLE,
+                inst_own_percent DOUBLE,
+                insider_own_percent DOUBLE,
+                beta DOUBLE,
+                gross_margin DOUBLE,
+                ebitda_margin DOUBLE,
+                has_options BOOLEAN,
+                sector TEXT,
+                industry TEXT,
+                updated_at TIMESTAMP NOT NULL
+            );
+        """)
+
+        # Screener saved views (column visibility + filters)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS screener_views (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                visibility_model TEXT NOT NULL,
+                filters TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL,
+                updated_at TIMESTAMP NOT NULL
+            );
+        """)
+
+        # Screener saved screens (filters + alert config)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS screener_screens (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                filters TEXT NOT NULL,
+                alerts_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                email TEXT,
+                last_matched_symbols TEXT NOT NULL DEFAULT '[]',
+                created_at TIMESTAMP NOT NULL,
+                updated_at TIMESTAMP NOT NULL
+            );
+        """)
+
+        # Screener alert events (generated by periodic/triggered checks)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS screener_alert_events (
+                id TEXT PRIMARY KEY,
+                screen_id TEXT NOT NULL,
+                screen_name TEXT NOT NULL,
+                new_symbols TEXT NOT NULL,
+                email TEXT,
+                is_read BOOLEAN NOT NULL DEFAULT FALSE,
+                created_at TIMESTAMP NOT NULL,
+                FOREIGN KEY (screen_id) REFERENCES screener_screens(id)
+            );
+        """)
+
+        # Watchlist items (user curated symbols)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS watchlist_items (
+                id TEXT PRIMARY KEY,
+                symbol TEXT NOT NULL UNIQUE,
+                note TEXT,
+                created_at TIMESTAMP NOT NULL,
+                updated_at TIMESTAMP NOT NULL
+            );
+        """)
+
         # --- Run versioned migrations ---
         _run_migrations(conn)
+
+        # Emergency fallback: ensure essential new columns exist regardless of migration version
+        missing_cols = {
+            "fifty_two_week_high": "DOUBLE",
+            "fifty_two_week_low": "DOUBLE",
+            "price_to_fcf": "DOUBLE",
+            "dividend_yield": "DOUBLE",
+            "payout_ratio": "DOUBLE"
+        }
+        for col, col_type in missing_cols.items():
+            _safe_add_column(conn, "screener_data", col, col_type)
 
         print("✅ Database initialized successfully.")
     except Exception as e:

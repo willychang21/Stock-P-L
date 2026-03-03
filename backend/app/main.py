@@ -3,8 +3,10 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.endpoints import portfolio, transactions, import_api, quotes, historical, system, strategy, influencers, social, auto_tracking, fundamentals, technicals, sentiment
+from app.api.endpoints import portfolio, transactions, import_api, quotes, historical, system, influencers, social, auto_tracking, fundamentals, technicals, sentiment, screener, watchlist
 from app.db.init_db import init_db
+
+from app.services.screener_service import ScreenerService
 
 app = FastAPI(
     title="Stock Portfolio API",
@@ -14,9 +16,11 @@ app = FastAPI(
 )
 
 @app.on_event("startup")
-def startup_event():
-    """Initialize database tables on startup."""
+async def startup_event():
+    """Initialize database tables and check for screener data freshness on startup."""
     init_db()
+    # Automatically trigger screener sync if data is stale (from yesterday or earlier)
+    await ScreenerService.check_and_trigger_sync()
 
 # Configure CORS FIRST
 origins = [
@@ -64,12 +68,13 @@ app.include_router(import_api.router, prefix="/api/import", tags=["import"])
 app.include_router(quotes.router, prefix="/api/quotes", tags=["quotes"])
 app.include_router(historical.router, prefix="/api/historical-prices", tags=["historical"])
 app.include_router(system.router, prefix="/api/system", tags=["system"])
-app.include_router(strategy.router, prefix="/api/strategy", tags=["strategy"])
 app.include_router(technicals.router, prefix="/api/technicals", tags=["technicals"])
 app.include_router(sentiment.router, prefix="/api/sentiment", tags=["sentiment"])
 app.include_router(influencers.router, prefix="/api", tags=["influencers"])
 app.include_router(auto_tracking.router, prefix="/api", tags=["auto-tracking"])
 app.include_router(fundamentals.router, prefix="/api/fundamentals", tags=["fundamentals"])
+app.include_router(screener.router, prefix="/api/screener", tags=["screener"])
+app.include_router(watchlist.router, prefix="/api/watchlist", tags=["watchlist"])
 app.include_router(social.router)
 
 @app.get("/health")

@@ -13,3 +13,8 @@ def get_fundamentals(symbols: str = Query(..., description="Comma-separated list
     fundamentals = market_data_service.get_fundamentals(symbol_list)
     
     return {"result": fundamentals}
+
+@router.get("/{symbol}/historical")
+def get_historical_financials(symbol: str):
+    data = market_data_service.get_historical_financials(symbol.upper())
+    return data

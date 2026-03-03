@@ -5,7 +5,10 @@ import { CostBasisMethod } from '@domain/models/PLReport';
 import { plService } from '@application/services/PLService';
 import { priceService } from '@application/services/PriceService';
 import Decimal from 'decimal.js';
-import { ImportPipeline, ImportResult } from '@infrastructure/import/ImportPipeline';
+import {
+  ImportPipeline,
+  ImportResult,
+} from '@infrastructure/import/ImportPipeline';
 import { Broker } from '@domain/models/Transaction';
 
 interface AppState {
@@ -39,45 +42,48 @@ export const useStore = create<AppState>()(
         set({ isLoading: true, error: null });
         try {
           const method = get().costBasisMethod;
-          
+
           // 1. Calculate holdings based on transactions
           const holdingsMap = await plService.getAllHoldings(method);
-          
+
           // 2. Fetch current prices
           const symbols = Array.from(holdingsMap.keys());
           const prices = await priceService.getPrices(symbols);
-          
+
           // 3. Update holdings with market data
           const currentPrices = new Map<string, Decimal>();
-          
+
           for (const [symbol, holding] of holdingsMap.entries()) {
-             const price = prices.get(symbol.toUpperCase());
-             if (price) {
-                 const priceDec = new Decimal(price);
-                 currentPrices.set(symbol, priceDec);
-                 holding.currentPrice = priceDec;
-                 holding.marketValue = holding.quantity.times(priceDec);
-                 
-                 // Recalculate Unrealized P/L
-                 holding.unrealizedPL = holding.marketValue.minus(holding.costBasis);
-                 
-                 // Return %
-                 if (!holding.costBasis.isZero()) {
-                     (holding as any).returnPercentage = holding.unrealizedPL.div(holding.costBasis).times(100);
-                 }
-                 
-                 const type = priceService.getAssetType(symbol);
-                 if (type) holding.assetType = type;
-             }
+            const price = prices.get(symbol.toUpperCase());
+            if (price) {
+              const priceDec = new Decimal(price);
+              currentPrices.set(symbol, priceDec);
+              holding.currentPrice = priceDec;
+              holding.marketValue = holding.quantity.times(priceDec);
+
+              // Recalculate Unrealized P/L
+              holding.unrealizedPL = holding.marketValue.minus(
+                holding.costBasis
+              );
+
+              // Return %
+              if (!holding.costBasis.isZero()) {
+                (holding as any).returnPercentage = holding.unrealizedPL
+                  .div(holding.costBasis)
+                  .times(100);
+              }
+
+              const type = priceService.getAssetType(symbol);
+              if (type) holding.assetType = type;
+            }
           }
 
-          set({ 
-              holdings: new Map(holdingsMap), 
-              currentPrices, 
-              lastRefresh: Date.now(),
-              isLoading: false 
+          set({
+            holdings: new Map(holdingsMap),
+            currentPrices,
+            lastRefresh: Date.now(),
+            isLoading: false,
           });
-          
         } catch (error) {
           console.error('Failed to refresh holdings:', error);
           set({ error: String(error), isLoading: false });
@@ -90,15 +96,15 @@ export const useStore = create<AppState>()(
       },
 
       clearError: () => set({ error: null }),
-      
+
       resetStore: () => {
-          set({
-              holdings: new Map(),
-              isLoading: false,
-              error: null,
-              lastRefresh: 0,
-              currentPrices: new Map()
-          });
+        set({
+          holdings: new Map(),
+          isLoading: false,
+          error: null,
+          lastRefresh: 0,
+          currentPrices: new Map(),
+        });
       },
 
       importCSV: async (file: File, broker: Broker) => {
@@ -106,29 +112,29 @@ export const useStore = create<AppState>()(
         try {
           const pipeline = new ImportPipeline();
           const result = await pipeline.processFile(file, broker);
-          
+
           if (result.success) {
-             await get().refreshHoldings();
+            await get().refreshHoldings();
           }
-          
+
           set({ isLoading: false });
           return result;
         } catch (error) {
-           console.error('Import failed:', error);
-           set({ isLoading: false, error: String(error) });
-           throw error;
+          console.error('Import failed:', error);
+          set({ isLoading: false, error: String(error) });
+          throw error;
         }
       },
 
       initialize: async () => {
-          await get().refreshHoldings();
-      }
+        await get().refreshHoldings();
+      },
     }),
     {
       name: 'portfolio-storage',
       // Only persist user preferences, NOT computed data (holdings/prices come from DB)
-      partialize: (state) => ({ 
-        costBasisMethod: state.costBasisMethod 
+      partialize: state => ({
+        costBasisMethod: state.costBasisMethod,
       }),
     }
   )
