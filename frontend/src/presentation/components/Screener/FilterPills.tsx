@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Chip, Stack, Typography } from '@mui/material';
 import { ScreenerFilters } from '../../../domain/models/ScreenerStock';
 
@@ -7,75 +8,77 @@ interface FilterPillsProps {
   onRemove: (name: string) => void;
 }
 
-const filterLabels: Record<string, string> = {
-  min_mkt_cap: 'Min Mkt Cap',
-  max_mkt_cap: 'Max Mkt Cap',
-  min_pe: 'Min P/E',
-  max_pe: 'Max P/E',
-  min_ps: 'Min P/S',
-  max_ps: 'Max P/S',
-  min_pb: 'Min P/B',
-  max_pb: 'Max P/B',
-  min_peg: 'Min PEG',
-  max_peg: 'Max PEG',
-  min_roe: 'Min ROE',
-  max_roe: 'Max ROE',
-  min_roic: 'Min ROIC',
-  max_roic: 'Max ROIC',
-  min_profit_margin: 'Min Profit Margin',
-  max_profit_margin: 'Max Profit Margin',
-  min_revenue_growth: 'Min Rev Growth',
-  max_revenue_growth: 'Max Rev Growth',
-  min_eps_growth: 'Min EPS Growth',
-  max_eps_growth: 'Max EPS Growth',
-  min_fcf: 'Min FCF',
-  max_fcf: 'Max FCF',
-  min_target_upside: 'Min Upside',
-  max_target_upside: 'Max Upside',
-  min_recommendation_mean: 'Min Rating',
-  max_recommendation_mean: 'Max Rating',
-  min_short_percent: 'Min Short %',
-  max_short_percent: 'Max Short %',
-  min_inst_own: 'Min Inst Own',
-  max_inst_own: 'Max Inst Own',
-  min_insider_own: 'Min Insider Own',
-  max_insider_own: 'Max Insider Own',
-  min_beta: 'Min Beta',
-  max_beta: 'Max Beta',
-  min_gross_margin: 'Min Gross Margin',
-  max_gross_margin: 'Max Gross Margin',
-  min_ebitda_margin: 'Min EBITDA Margin',
-  max_ebitda_margin: 'Max EBITDA Margin',
-  has_options: 'Has Options',
-  only_holdings: 'Only My Holdings',
-  sector: 'Sector',
-};
-
-const formatPillValue = (key: string, value: unknown) => {
-  if (value === true) return 'Yes';
-  if (typeof value === 'number') {
-    if (
-      key.includes('growth') ||
-      key.includes('margin') ||
-      key.includes('upside') ||
-      key.includes('percent') ||
-      key === 'min_roe' ||
-      key === 'max_roe' ||
-      key === 'min_roic' ||
-      key === 'max_roic' ||
-      key === 'min_inst_own' ||
-      key === 'max_inst_own' ||
-      key === 'min_insider_own' ||
-      key === 'max_insider_own'
-    ) {
-      return `${(value * 100).toFixed(1)}%`;
-    }
-    return value.toLocaleString();
-  }
-  return String(value);
-};
-
 const FilterPills: React.FC<FilterPillsProps> = ({ filters, onRemove }) => {
+  const { t } = useTranslation();
+
+  const filterLabels: Record<string, string> = {
+    min_mkt_cap: t('screener.filter_pills.labels.min_mkt_cap'),
+    max_mkt_cap: t('screener.filter_pills.labels.max_mkt_cap'),
+    min_pe: t('screener.filter_pills.labels.min_pe'),
+    max_pe: t('screener.filter_pills.labels.max_pe'),
+    min_ps: t('screener.filter_pills.labels.min_ps'),
+    max_ps: t('screener.filter_pills.labels.max_ps'),
+    min_pb: t('screener.filter_pills.labels.min_pb'),
+    max_pb: t('screener.filter_pills.labels.max_pb'),
+    min_peg: t('screener.filter_pills.labels.min_peg'),
+    max_peg: t('screener.filter_pills.labels.max_peg'),
+    min_roe: t('screener.filter_pills.labels.min_roe'),
+    max_roe: t('screener.filter_pills.labels.max_roe'),
+    min_roic: t('screener.filter_pills.labels.min_roic'),
+    max_roic: t('screener.filter_pills.labels.max_roic'),
+    min_profit_margin: t('screener.filter_pills.labels.min_profit_margin'),
+    max_profit_margin: t('screener.filter_pills.labels.max_profit_margin'),
+    min_revenue_growth: t('screener.filter_pills.labels.min_revenue_growth'),
+    max_revenue_growth: t('screener.filter_pills.labels.max_revenue_growth'),
+    min_eps_growth: t('screener.filter_pills.labels.min_eps_growth'),
+    max_eps_growth: t('screener.filter_pills.labels.max_eps_growth'),
+    min_fcf: t('screener.filter_pills.labels.min_fcf'),
+    max_fcf: t('screener.filter_pills.labels.max_fcf'),
+    min_target_upside: t('screener.filter_pills.labels.min_target_upside'),
+    max_target_upside: t('screener.filter_pills.labels.max_target_upside'),
+    min_recommendation_mean: t('screener.filter_pills.labels.min_recommendation_mean'),
+    max_recommendation_mean: t('screener.filter_pills.labels.max_recommendation_mean'),
+    min_short_percent: t('screener.filter_pills.labels.min_short_percent'),
+    max_short_percent: t('screener.filter_pills.labels.max_short_percent'),
+    min_inst_own: t('screener.filter_pills.labels.min_inst_own'),
+    max_inst_own: t('screener.filter_pills.labels.max_inst_own'),
+    min_insider_own: t('screener.filter_pills.labels.min_insider_own'),
+    max_insider_own: t('screener.filter_pills.labels.max_insider_own'),
+    min_beta: t('screener.filter_pills.labels.min_beta'),
+    max_beta: t('screener.filter_pills.labels.max_beta'),
+    min_gross_margin: t('screener.filter_pills.labels.min_gross_margin'),
+    max_gross_margin: t('screener.filter_pills.labels.max_gross_margin'),
+    min_ebitda_margin: t('screener.filter_pills.labels.min_ebitda_margin'),
+    max_ebitda_margin: t('screener.filter_pills.labels.max_ebitda_margin'),
+    has_options: t('screener.filter_pills.labels.has_options'),
+    only_holdings: t('screener.filter_pills.labels.only_holdings'),
+    sector: t('screener.filter_pills.labels.sector'),
+  };
+
+  const formatPillValue = (key: string, value: unknown) => {
+    if (value === true) return t('screener.filter_pills.yes');
+    if (typeof value === 'number') {
+      if (
+        key.includes('growth') ||
+        key.includes('margin') ||
+        key.includes('upside') ||
+        key.includes('percent') ||
+        key === 'min_roe' ||
+        key === 'max_roe' ||
+        key === 'min_roic' ||
+        key === 'max_roic' ||
+        key === 'min_inst_own' ||
+        key === 'max_inst_own' ||
+        key === 'min_insider_own' ||
+        key === 'max_insider_own'
+      ) {
+        return `${(value * 100).toFixed(1)}%`;
+      }
+      return value.toLocaleString();
+    }
+    return String(value);
+  };
+
   const activeFilters = Object.entries(filters).filter(([key, value]) => {
     if (key === 'sort_by' || key === 'sort_order' || key === 'limit' || key === 'offset') return false;
     return value !== undefined && value !== '';
@@ -87,7 +90,7 @@ const FilterPills: React.FC<FilterPillsProps> = ({ filters, onRemove }) => {
     <Box sx={{ mb: 2 }}>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
         <Typography variant="caption" sx={{ alignSelf: 'center', fontWeight: 'bold', mr: 1 }}>
-          Active Filters:
+          {t('screener.filter_pills.activeFilters')}
         </Typography>
         {activeFilters.map(([key, value]) => (
           <Chip

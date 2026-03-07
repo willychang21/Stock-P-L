@@ -208,7 +208,8 @@
   "errors": {
     "oops": "Oops, something went wrong.",
     "unexpected": "An unexpected error occurred.",
-    "reload": "Reload Page"
+    "reload": "Reload Page",
+    "renderCrash": "Page Render Crash"
   },
   "common": {
     "loading": "Loading...",
@@ -218,7 +219,9 @@
     "edit": "Edit",
     "delete": "Delete",
     "rowsPerPage": "Rows per page:",
-    "of": "of"
+    "of": "of",
+    "updated": "Updated",
+    "unknown": "Unknown"
   },
   "types": {
     "equity": "Equity",
@@ -390,6 +393,405 @@
     "deleteConfirm": "Are you sure? This will delete all their recommendations too.",
     "deleteRecConfirm": "Remove this recommendation?"
   },
+  "screener": {
+    "title": "Screener Command Center",
+    "subtitle": "Custom columns, saved filters, and tracking new stock hits",
+    "syncAll": "Sync All Data",
+    "viewsColumns": "Views & Columns",
+    "filters": "Filters",
+    "searchPlaceholder": "Search symbol, name, sector on current page",
+    "saveScreen": "Save Screen",
+    "checkAlerts": "Check Alerts",
+    "compare": "Compare",
+    "compareWithCount": "Compare ({{count}})",
+    "clearAll": "Clear All",
+    "menu": {
+      "coreColumns": "Core Columns Only",
+      "saveCurrentView": "Save Current View",
+      "enableNotifications": "Enable Browser Notifications",
+      "viewPrefix": "{{name}} View",
+      "savedViews": "Saved Views",
+      "value": "Value",
+      "growth": "Growth",
+      "quality": "Quality"
+    },
+    "sync": {
+      "status": "Sync Status",
+      "running": "Running",
+      "idle": "Idle",
+      "progress": "{{processed}}/{{total}} ({{percent}}%)"
+    },
+    "marketPulse": {
+      "title": "Market Pulse",
+      "regime": "Regime",
+      "spy5d": "SPY 5D",
+      "qqq5d": "QQQ 5D",
+      "vix5d": "VIX 5D",
+      "vix": "VIX",
+      "updatedAt": "Market Pulse • {{time}}"
+    },
+    "stats": {
+      "visibleRows": "Visible Rows",
+      "avgPe": "Avg P/E",
+      "avgRoic": "Avg ROIC",
+      "avgPeg": "Avg PEG"
+    },
+    "savedScreens": {
+      "title": "Saved Screens",
+      "alert": "Alert",
+      "email": "Email: {{email}}",
+      "inAppOnly": "In-app alert only"
+    },
+    "savedViews": {
+      "title": "Saved Views"
+    },
+    "empty": {
+      "noMatch": "No stocks match your current filter criteria.",
+      "syncing": "The stock database is still syncing from yfinance. Start Sync All Data to populate screener universe.",
+      "clearFilters": "Clear all filters"
+    },
+    "dialogs": {
+      "saveView": {
+        "title": "Save Current View",
+        "nameLabel": "View Name"
+      },
+      "saveScreen": {
+        "title": "Save Screen + Alerts",
+        "nameLabel": "Screen Name",
+        "emailLabel": "Alert Email (optional)",
+        "emailPlaceholder": "name@example.com",
+        "helper": "In-app alerts are always enabled. Email opens draft via mail client when alert is triggered."
+      }
+    },
+    "table": {
+      "columns": {
+        "symbol": "Symbol",
+        "name": "Name",
+        "sector": "Sector",
+        "price": "Price",
+        "marketCap": "Mkt Cap",
+        "forwardPe": "Fwd P/E",
+        "trailingPe": "P/E",
+        "pegRatio": "PEG",
+        "priceToFcf": "P/FCF",
+        "roic": "ROIC",
+        "roe": "ROE",
+        "revenueGrowth": "Rev Growth",
+        "epsGrowth": "EPS Growth",
+        "fcf": "FCF",
+        "quality": "Quality",
+        "freshness": "Freshness",
+        "grossMargin": "Gross Margin",
+        "ebitdaMargin": "EBITDA Margin",
+        "oneMonthReturn": "1M Return",
+        "threeMonthReturn": "3M Return",
+        "rsi14": "RSI(14)",
+        "annualVolatility": "Annual Volatility",
+        "valuationScore": "Industry Score"
+      },
+      "tooltips": {
+        "forwardPe": "Forward P/E = Price / Next 12M expected EPS. Better for forward-looking valuation.",
+        "trailingPe": "P/E = Price / trailing 12M EPS. Can be misleading in cyclical earnings periods.",
+        "pegRatio": "PEG = P/E divided by EPS growth rate. Use with stable growth assumptions.",
+        "priceToFcf": "P/FCF = Market Cap / Free Cash Flow. For banks/insurers, this can be less meaningful.",
+        "roic": "ROIC = NOPAT / Invested Capital. Higher is better; compare within the same industry.",
+        "roe": "ROE = Net Income / Shareholder Equity. Can be inflated by high leverage or low equity base.",
+        "revenueGrowth": "Revenue growth YoY. Check quality of growth, not only the headline number.",
+        "epsGrowth": "EPS growth YoY. Sensitive to buybacks and accounting effects.",
+        "fcf": "Free Cash Flow = Operating Cash Flow - Capex. Key measure for capital allocation.",
+        "quality": "Data quality score = filled core fields / total core fields. Lower score means more missing fundamentals.",
+        "freshness": "Freshness = days since last backend update from yfinance. Older data carries higher decision risk.",
+        "valuationScore": "Industry Valuation Score (0–100). Percentile rank within the same sector. 80+ = Undervalued, 60–79 = Fair, 40–59 = Elevated, <40 = Expensive. ~ prefix = fewer than 5 sector peers (lower confidence)."
+      }
+    },
+    "filters_sidebar": {
+      "title": "Advanced Filters",
+      "valuation": "Valuation",
+      "profitability": "Profitability",
+      "growth": "Growth",
+      "cashFlow": "Cash Flow",
+      "sentiment": "Sentiment & Ownership",
+      "momentum": "Momentum & Margins",
+      "other": "Other",
+      "labels": {
+        "marketCap": "Market Cap",
+        "peRatio": "P/E Ratio",
+        "pegRatio": "PEG Ratio",
+        "psRatio": "P/S Ratio",
+        "pbRatio": "P/B Ratio",
+        "roe": "ROE (decimal)",
+        "roic": "ROIC (decimal)",
+        "profitMargin": "Profit Margin (decimal)",
+        "revenueGrowth": "Revenue Growth (decimal)",
+        "epsGrowth": "EPS Growth (decimal)",
+        "fcf": "Free Cash Flow",
+        "targetUpside": "Target Upside (decimal)",
+        "analystRating": "Analyst Rating (1-5)",
+        "shortInterest": "Short Interest (decimal)",
+        "instOwnership": "Inst. Ownership (decimal)",
+        "insiderOwnership": "Insider Ownership (decimal)",
+        "beta": "Beta",
+        "grossMargin": "Gross Margin (decimal)",
+        "ebitdaMargin": "EBITDA Margin (decimal)",
+        "sector": "Sector (exact name)",
+        "onlyHoldings": "Only My Holdings",
+        "hasOptions": "Has Options"
+      },
+      "apply": "Apply Filters",
+      "clear": "Clear",
+      "min": "Min",
+      "max": "Max"
+    },
+    "filter_pills": {
+      "activeFilters": "Active Filters:",
+      "yes": "Yes",
+      "labels": {
+        "min_mkt_cap": "Min Mkt Cap",
+        "max_mkt_cap": "Max Mkt Cap",
+        "min_pe": "Min P/E",
+        "max_pe": "Max P/E",
+        "min_ps": "Min P/S",
+        "max_ps": "Max P/S",
+        "min_pb": "Min P/B",
+        "max_pb": "Max P/B",
+        "min_peg": "Min PEG",
+        "max_peg": "Max PEG",
+        "min_roe": "Min ROE",
+        "max_roe": "Max ROE",
+        "min_roic": "Min ROIC",
+        "max_roic": "Max ROIC",
+        "min_profit_margin": "Min Profit Margin",
+        "max_profit_margin": "Max Profit Margin",
+        "min_revenue_growth": "Min Rev Growth",
+        "max_revenue_growth": "Max Rev Growth",
+        "min_eps_growth": "Min EPS Growth",
+        "max_eps_growth": "Max EPS Growth",
+        "min_fcf": "Min FCF",
+        "max_fcf": "Max FCF",
+        "min_target_upside": "Min Upside",
+        "max_target_upside": "Max Upside",
+        "min_recommendation_mean": "Min Rating",
+        "max_recommendation_mean": "Max Rating",
+        "min_short_percent": "Min Short %",
+        "max_short_percent": "Max Short %",
+        "min_inst_own": "Min Inst Own",
+        "max_inst_own": "Max Inst Own",
+        "min_insider_own": "Min Insider Own",
+        "max_insider_own": "Max Insider Own",
+        "min_beta": "Min Beta",
+        "max_beta": "Max Beta",
+        "min_gross_margin": "Min Gross Margin",
+        "max_gross_margin": "Max Gross Margin",
+        "min_ebitda_margin": "Min EBITDA Margin",
+        "max_ebitda_margin": "Max EBITDA Margin",
+        "has_options": "Has Options",
+        "only_holdings": "Only My Holdings",
+        "sector": "Sector"
+      }
+    },
+    "compare_drawer": {
+      "title": "Compare Stocks",
+      "selectedCount": "{{count}} selected",
+      "empty": "Select 2-5 stocks in the table to compare.",
+      "metric": "Metric"
+    },
+    "stock_insights": {
+      "title": "{{symbol}} Insights",
+      "subtitle": "Live yfinance snapshot",
+      "loading": "Loading live insights...",
+      "empty": "Click a symbol row to load yfinance insights.",
+      "priceTrend": "Price Trend",
+      "noPriceSeries": "No price series",
+      "liquidity": "Liquidity (Trading Readiness)",
+      "analystTargets": "Analyst Targets",
+      "rangeEarnings": "52W Range & Earnings",
+      "recommendationMix": "Recommendation Mix",
+      "latestNews": "Latest News",
+      "noNews": "No recent news from yfinance.",
+      "signals": {
+        "rsiOverbought": "RSI Overbought",
+        "rsiOversold": "RSI Oversold",
+        "rsiNeutral": "RSI Neutral",
+        "highValuation": "High Valuation",
+        "reasonableValuation": "Reasonable Valuation",
+        "highGrowth": "High Growth",
+        "negativeGrowth": "Negative Growth",
+        "highVolatility": "High Volatility"
+      },
+      "industryValuation": {
+        "title": "Industry Valuation Score",
+        "subtitle": "Percentile rank vs. sector peers",
+        "lowConfidence": "Limited sector peers — confidence may be lower",
+        "metricsUsed": "Metrics Used",
+        "labels": {
+          "Undervalued": "Undervalued",
+          "Fair": "Fair",
+          "Elevated": "Elevated",
+          "Expensive": "Expensive"
+        },
+        "fields": {
+          "revenue_growth": "Revenue Growth",
+          "gross_margin": "Gross Margin",
+          "price_to_sales": "P/S Ratio",
+          "ev_to_revenue": "EV/Revenue",
+          "roic": "ROIC",
+          "profit_margin": "Profit Margin",
+          "price_to_book": "P/B Ratio",
+          "roe": "ROE",
+          "dividend_yield": "Dividend Yield",
+          "debt_to_equity": "Debt/Equity",
+          "ev_to_ebitda": "EV/EBITDA",
+          "price_to_fcf": "P/FCF",
+          "trailing_pe": "Trailing P/E",
+          "current_ratio": "Current Ratio"
+        }
+      },
+      "wallStreet": {
+        "title": "Wall Street Deep Dive",
+        "subtitle": "Moat quality & institutional flow",
+        "panelA": {
+          "title": "Moat Quality Trends",
+          "grossMargin": "Gross Margin",
+          "fcfMargin": "FCF Margin",
+          "roic": "ROIC",
+          "stable": "Stable",
+          "improving": "Improving",
+          "declining": "Declining"
+        },
+        "panelB": {
+          "title": "Value Creation & Multiples",
+          "waccSpread": "ROIC vs WACC Spread",
+          "creatingValue": "Creating Value",
+          "destroyingValue": "Destroying Value",
+          "historicalPe": "5Y P/E Percentile",
+          "peNA": "N/A"
+        },
+        "panelC": {
+          "title": "Institutional Flow (180d)",
+          "insider": "Insider Net Actions",
+          "analyst": "Analyst Sentiment",
+          "buys": "Buys",
+          "sells": "Sells",
+          "upgrades": "Upgrades",
+          "downgrades": "Downgrades",
+          "bullish": "Bullish",
+          "bearish": "Bearish",
+          "neutral": "Neutral",
+          "noActivity": "No recent activity"
+        }
+      }
+    }
+  },
+  "watchlist": {
+    "title": "Watchlist Radar",
+    "subtitle": "Add tickers in seconds, then rank ideas by signal quality before acting.",
+    "refresh": "Refresh Signals",
+    "searchPlaceholder": "Search ticker or company name",
+    "add": "Add to Watchlist",
+    "adding": "Adding...",
+    "filterPlaceholder": "Filter existing watchlist",
+    "stats": {
+      "symbols": "Symbols",
+      "buyBias": "BUY Bias",
+      "holdBias": "HOLD Bias",
+      "sellRisk": "SELL Risk"
+    },
+    "alert": "Signals combine valuation, growth, quality, and yfinance technical momentum. Use as a decision aid, not financial advice.",
+    "empty": {
+      "title": "Watchlist is empty",
+      "subtitle": "Search a ticker and add it to start monitoring live buy/sell signals."
+    },
+    "card": {
+      "nameUnavailable": "Name unavailable",
+      "mktCap": "Mkt Cap: {{value}}",
+      "fwdPe": "Fwd P/E",
+      "roic": "ROIC",
+      "revGrowth": "Rev Growth",
+      "epsGrowth": "EPS Growth",
+      "valuation": {
+        "title": "Valuation Estimate",
+        "model": "Model",
+        "modelTooltip": "Optimize DCF Valuation",
+        "fairValue": "Fair Value",
+        "marginOfSafety": "Margin of Safety",
+        "impliedGrowth": "Market Implied Growth",
+        "gfScore": "GF Score"
+      },
+      "tradePlan": {
+        "title": "Suggested Trade Plan",
+        "entryZone": "Entry Zone",
+        "stopLoss": "Stop Loss",
+        "target": "Target (TP1)"
+      },
+      "signals": {
+        "BUY": "BUY",
+        "HOLD": "HOLD",
+        "SELL": "SELL"
+      },
+      "plans": {
+        "LONG": "LONG",
+        "WAIT": "WAIT",
+        "AVOID": "AVOID"
+      },
+      "signals": {
+        "reasons": {
+          "pe_attractive": "Forward P/E {{value}} stays in tradable value range.",
+          "pe_stretched": "Forward P/E {{value}} looks stretched.",
+          "revenue_growth_good": "Revenue growth {{value}}% supports trend continuation.",
+          "revenue_growth_negative": "Revenue growth turned negative.",
+          "eps_growth_good": "EPS growth {{value}}% confirms earnings momentum.",
+          "eps_growth_negative": "EPS growth is negative.",
+          "roic_strong": "ROIC {{value}}% indicates strong capital efficiency.",
+          "roic_weak": "ROIC is weak versus quality threshold.",
+          "pfcf_attractive": "P/FCF {{value}} is attractive.",
+          "pfcf_expensive": "P/FCF {{value}} is expensive.",
+          "rsi_oversold": "RSI {{value}} is near oversold zone.",
+          "rsi_overbought": "RSI {{value}} shows overbought risk.",
+          "low_52w_range": "Price sits near lower 52-week range.",
+          "high_52w_range": "Price is near 52-week high; risk/reward is tighter.",
+          "valuation_upside": "GF-value upside {{value}}% indicates valuation support.",
+          "valuation_premium": "GF-value premium {{value}}% suggests limited margin of safety.",
+          "extreme_premium": "Extreme premium zone; avoid aggressive adding.",
+          "mixed_data": "Signal is neutral because data is mixed."
+        }
+      },
+      "technicals": {
+        "warnings": {
+          "overbought": "Overbought (RSI: {{rsi}})",
+          "oversold": "Oversold (RSI: {{rsi}})",
+          "high_52w": "Near 52-Week High",
+          "low_52w": "Near 52-Week Low",
+          "generic": "{{msg}}"
+        }
+      },
+      "valuation": {
+        "summary": {
+          "discount": "GF-style blend indicates discount to intrinsic value (g={{g}}%, r={{r}}%, tg={{tg}}%, years={{years}}, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y FCF CAGR is ~{{implied_g}}%.",
+          "premium": "GF-style blend indicates premium (g={{g}}%, r={{r}}%, tg={{tg}}%, years={{years}}, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y FCF CAGR is ~{{implied_g}}%.",
+          "extreme_premium": "GF-style blend indicates extreme premium (g={{g}}%, r={{r}}%, tg={{tg}}%, years={{years}}, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y FCF CAGR is ~{{implied_g}}%.",
+          "fair": "GF-style blend indicates fair range (g={{g}}%, r={{r}}%, tg={{tg}}%, years={{years}}, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y FCF CAGR is ~{{implied_g}}%.",
+          "unavailable_data": "Valuation unavailable: need positive price, market cap, and free cash flow.",
+          "unavailable_shares": "Valuation unavailable: shares outstanding could not be inferred.",
+          "unavailable_metrics": "Valuation unavailable: need positive EPS or FCF per share.",
+          "invalid_math": "Valuation unavailable: assumptions produced invalid math."
+        }
+      },
+      "trade_plan": {
+        "summary": {
+          "bullish": "Bias is bullish. Scale in near support and keep strict risk limits.",
+          "mixed": "Signal is mixed. Wait for confirmation before full position sizing.",
+          "avoid": "Avoid new longs until trend and fundamentals improve.",
+          "no_price": "No valid price data; do not execute a trade plan."
+        }
+      },
+      "keySignals": "KEY SIGNALS",
+      "moreContext": "+ {{count}} more context...",
+      "coverage": "Coverage {{percent}}%",
+      "confidence": "Signal Confidence {{percent}}%",
+      "deepDive": "Deep Dive",
+      "remove": "Remove from watchlist"
+    }
+  },
   "import": {
     "title": "Import CSV Transactions",
     "steps": {
@@ -460,6 +862,37 @@
     "save": "Save"
   },
   "tools": {
+    "dcf": {
+      "title": "Valuation Lab",
+      "subtitle": "Professional-grade Intrinsic Value Modeling",
+      "externalReference": "External Reference",
+      "modelParameters": "Model Parameters",
+      "basedOn": "Based On",
+      "include": "Include",
+      "trajectory": "Growth Trajectory",
+      "terminal": "Terminal Stage",
+      "intrinsicValue": "Intrinsic Value",
+      "expectationAnalysis": "Expectation Analysis",
+      "aggressive": "Aggressive Expectations",
+      "conservative": "Conservative Expectations",
+      "marketImplied": "Market implies {{implied}} growth vs historical {{historical}}.",
+      "trendChart": "REVENUE & FCF TREND",
+      "historicalFinancials": "Historical Financials",
+      "fiscalPeriod": "FISCAL PERIOD",
+      "revenueM": "Revenue (M)",
+      "fcfM": "FCF (M)",
+      "epsNormalized": "EPS (Normalized)",
+      "stockPrice": "STOCK PRICE",
+      "labels": {
+        "stockPrice": "Stock Price",
+        "discountRate": "Discount Rate",
+        "tangibleBook": "Tangible Book",
+        "growthYears": "Growth Years",
+        "growthRate": "Growth Rate",
+        "terminalYears": "Terminal Years",
+        "terminalGrowth": "Terminal Growth"
+      }
+    },
     "calculator": {
       "title": "Position Size Calculator",
       "reset": "Reset",

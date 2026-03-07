@@ -12,6 +12,7 @@ from app.schemas.screener_preferences import (
 )
 from app.services.screener_preferences_service import ScreenerPreferencesService
 from app.services.screener_service import ScreenerService
+from app.services.industry_valuation import get_valuation_score_for_symbol
 
 router = APIRouter()
 
@@ -147,6 +148,62 @@ async def get_sync_status():
 async def get_symbol_insights(symbol: str):
     """Return live yfinance insights for one symbol."""
     return ScreenerService.get_symbol_insights(symbol)
+
+
+@router.get("/symbol/{symbol}/valuation-score")
+async def get_symbol_valuation_score(symbol: str):
+    """
+    Return the full Industry Valuation Score breakdown for a single symbol.
+    Pulls all sector peers from the DB, computes percentile-based scores, and
+    returns the composite score plus per-metric sub-scores.
+    """
+    import asyncio
+    from app.db.session import db
+
+    symbol_upper = symbol.upper()
+
+    # Fetch the stock's sector first
+    conn = db.get_connection()
+    try:
+        row = conn.execute(
+            "SELECT sector FROM screener_data WHERE symbol = ?", [symbol_upper]
+        ).fetchone()
+    finally:
+        conn.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail=f"{symbol_upper} not found in screener DB")
+
+    sector = row[0]
+
+    # Fetch all peers in the same sector (or all stocks if sector unknown)
+    result = await asyncio.to_thread(
+        ScreenerService.get_screener_stocks,
+        sector=sector,
+        sort_by="market_cap",
+        sort_order="desc",
+        limit=500,
+        offset=0,
+    )
+    peer_dicts = [s.model_dump() for s in result["items"]]
+
+    score = get_valuation_score_for_symbol(symbol_upper, peer_dicts)
+    if score is None:
+        raise HTTPException(status_code=404, detail=f"Could not compute score for {symbol_upper}")
+    return score
+
+
+@router.get("/symbol/{symbol}/moat")
+async def get_symbol_moat(symbol: str):
+    """
+    Return Wall Street deep-dive moat analysis for a symbol.
+    Panels: Moat Trends (GM / FCF Margin / ROIC), ROIC vs WACC, Historical P/E
+    percentile, Insider Activity (180d), Analyst Upgrades/Downgrades (180d).
+    """
+    import asyncio
+    from app.services.moat_service import moat_service
+    return await asyncio.to_thread(moat_service.get_moat_data, symbol.upper())
+
 
 
 @router.get("/market-pulse")

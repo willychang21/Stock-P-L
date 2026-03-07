@@ -208,7 +208,8 @@
   "errors": {
     "oops": "哎呀，出錯了。",
     "unexpected": "發生未預期的錯誤。",
-    "reload": "重新載入頁面"
+    "reload": "重新載入頁面",
+    "renderCrash": "頁面渲染錯誤"
   },
   "common": {
     "loading": "載入中...",
@@ -218,7 +219,9 @@
     "edit": "編輯",
     "delete": "刪除",
     "rowsPerPage": "每頁筆數：",
-    "of": "的"
+    "of": "的",
+    "updated": "更新時間",
+    "unknown": "未知"
   },
   "types": {
     "equity": "股票",
@@ -390,6 +393,405 @@
     "deleteConfirm": "確定要刪除嗎？這將連同刪除所有相關推薦。",
     "deleteRecConfirm": "確定要移除此推薦嗎？"
   },
+  "screener": {
+    "title": "股票篩選指揮中心",
+    "subtitle": "自訂欄位、儲存篩選、追蹤新命中股票",
+    "syncAll": "同步所有資料",
+    "viewsColumns": "檢視與欄位",
+    "filters": "篩選",
+    "searchPlaceholder": "在當前頁面搜尋代號、名稱、產業",
+    "saveScreen": "儲存篩選條件",
+    "checkAlerts": "檢查警示",
+    "compare": "比較",
+    "compareWithCount": "比較 ({{count}})",
+    "clearAll": "全部清除",
+    "menu": {
+      "coreColumns": "僅核心欄位",
+      "saveCurrentView": "儲存當前檢視",
+      "enableNotifications": "開啟瀏覽器通知",
+      "viewPrefix": "{{name}} 檢視",
+      "savedViews": "已儲存的檢視",
+      "value": "價值型",
+      "growth": "成長型",
+      "quality": "品質型"
+    },
+    "sync": {
+      "status": "同步狀態",
+      "running": "運行中",
+      "idle": "閒置",
+      "progress": "{{processed}}/{{total}} ({{percent}}%)"
+    },
+    "marketPulse": {
+      "title": "市場脈動",
+      "regime": "狀態",
+      "spy5d": "SPY 5D",
+      "qqq5d": "QQQ 5D",
+      "vix5d": "VIX 5D",
+      "vix": "VIX",
+      "updatedAt": "市場脈動 • {{time}}"
+    },
+    "stats": {
+      "visibleRows": "顯示列數",
+      "avgPe": "平均 P/E",
+      "avgRoic": "平均 ROIC",
+      "avgPeg": "平均 PEG"
+    },
+    "savedScreens": {
+      "title": "已儲存的篩選",
+      "alert": "警示",
+      "email": "電子郵件: {{email}}",
+      "inAppOnly": "僅應用程式內警示"
+    },
+    "savedViews": {
+      "title": "已儲存的檢視"
+    },
+    "empty": {
+      "noMatch": "沒有符合目前篩選條件的股票。",
+      "syncing": "股票資料庫正在從 yfinance 同步中。請點擊「同步所有資料」以填充篩選器。",
+      "clearFilters": "清除所有篩選"
+    },
+    "dialogs": {
+      "saveView": {
+        "title": "儲存當前檢視",
+        "nameLabel": "檢視名稱"
+      },
+      "saveScreen": {
+        "title": "儲存篩選與警示",
+        "nameLabel": "篩選名稱",
+        "emailLabel": "警示電子郵件 (選填)",
+        "emailPlaceholder": "name@example.com",
+        "helper": "應用程式內警示始終開啟。觸發警示時，電子郵件將透過郵件軟體開啟草稿。"
+      }
+    },
+    "table": {
+      "columns": {
+        "symbol": "代號",
+        "name": "名稱",
+        "sector": "產業",
+        "price": "價格",
+        "marketCap": "市值",
+        "forwardPe": "預估 P/E",
+        "trailingPe": "P/E",
+        "pegRatio": "PEG",
+        "priceToFcf": "P/FCF",
+        "roic": "ROIC",
+        "roe": "ROE",
+        "revenueGrowth": "營收成長",
+        "epsGrowth": "EPS 成長",
+        "fcf": "自由現金流",
+        "quality": "資料品質",
+        "freshness": "更新時間",
+        "grossMargin": "毛利率",
+        "ebitdaMargin": "EBITDA 利潤率",
+        "oneMonthReturn": "1 個月報酬率",
+        "threeMonthReturn": "3 個月報酬率",
+        "rsi14": "RSI(14)",
+        "annualVolatility": "年化波動率",
+        "valuationScore": "產業估值分"
+      },
+      "tooltips": {
+        "forwardPe": "預估 P/E = 價格 / 未來 12 個月預期 EPS。適用於前瞻性估值。",
+        "trailingPe": "P/E = 價格 / 過去 12 個月 EPS。在週期性盈利期間可能具有誤導性。",
+        "pegRatio": "PEG = P/E 除以 EPS 成長率。適用於穩定成長的假設。",
+        "priceToFcf": "P/FCF = 市值 / 自由現金流。對於銀行/保險公司，此指標意義較小。",
+        "roic": "ROIC = NOPAT / 投入資本。越高越好；請在同一行業內進行比較。",
+        "roe": "ROE = 淨利 / 股東權益。可能因高槓桿或低權益基數而虛高。",
+        "revenueGrowth": "營收年增率。請檢查成長品質，而不僅僅是標題數字。",
+        "epsGrowth": "EPS 年增率。對股票回購和會計效應敏感。",
+        "fcf": "自由現金流 = 營運現金流 - 資本支出。資本配置的關鍵指標。",
+        "quality": "資料品質分數 = 已填寫核心欄位 / 核心欄位總數。分數越低代表缺失的基礎資料越多。",
+        "freshness": "更新時間 = 自上次從 yfinance 更新以來的探索天數。較舊的資料具有較高的決策風險。",
+        "valuationScore": "產業估值分 (0–100)。在同產業中的百分位排名。80+ = 低估，60–79 = 合理，40–59 = 偏高，<40 = 昂貴。~ 前綴 = 同業樣本少於 5 支（信心度較低）。"
+      }
+    },
+    "filters_sidebar": {
+      "title": "進階篩選",
+      "valuation": "估值",
+      "profitability": "獲利能力",
+      "growth": "成長性",
+      "cashFlow": "現金流",
+      "sentiment": "情緒與持股",
+      "momentum": "動能與利潤率",
+      "other": "其他",
+      "labels": {
+        "marketCap": "市值",
+        "peRatio": "P/E 比例",
+        "pegRatio": "PEG 比例",
+        "psRatio": "P/S 比例",
+        "pbRatio": "P/B 比例",
+        "roe": "ROE (小數)",
+        "roic": "ROIC (小數)",
+        "profitMargin": "利潤率 (小數)",
+        "revenueGrowth": "營收成長 (小數)",
+        "epsGrowth": "EPS 成長 (小數)",
+        "fcf": "自由現金流",
+        "targetUpside": "目標漲幅 (小數)",
+        "analystRating": "分析師評等 (1-5)",
+        "shortInterest": "空頭餘額 (小數)",
+        "instOwnership": "機構持股 (小數)",
+        "insiderOwnership": "內部人持股 (小數)",
+        "beta": "Beta 系數",
+        "grossMargin": "毛利率 (小數)",
+        "ebitdaMargin": "EBITDA 利潤率 (小數)",
+        "sector": "產業 (精確名稱)",
+        "onlyHoldings": "僅我的持倉",
+        "hasOptions": "有期權"
+      },
+      "apply": "應用篩選",
+      "clear": "清除",
+      "min": "最小",
+      "max": "最大"
+    },
+    "filter_pills": {
+      "activeFilters": "目前篩選：",
+      "yes": "是",
+      "labels": {
+        "min_mkt_cap": "市值下限",
+        "max_mkt_cap": "市值上限",
+        "min_pe": "P/E 下限",
+        "max_pe": "P/E 上限",
+        "min_ps": "P/S 下限",
+        "max_ps": "P/S 上限",
+        "min_pb": "P/B 下限",
+        "max_pb": "P/B 上限",
+        "min_peg": "PEG 下限",
+        "max_peg": "PEG 上限",
+        "min_roe": "ROE 下限",
+        "max_roe": "ROE 上限",
+        "min_roic": "ROIC 下限",
+        "max_roic": "ROIC 上限",
+        "min_profit_margin": "淨利率下限",
+        "max_profit_margin": "淨利率上限",
+        "min_revenue_growth": "營營收成長下限",
+        "max_revenue_growth": "營收成長上限",
+        "min_eps_growth": "EPS 成長下限",
+        "max_eps_growth": "EPS 成長上限",
+        "min_fcf": "FCF 下限",
+        "max_fcf": "FCF 上限",
+        "min_target_upside": "目標漲幅下限",
+        "max_target_upside": "目標漲幅上限",
+        "min_recommendation_mean": "評等下限",
+        "max_recommendation_mean": "評等上限",
+        "min_short_percent": "空頭比例下限",
+        "max_short_percent": "空頭比例上限",
+        "min_inst_own": "機構持股下限",
+        "max_inst_own": "機構持股上限",
+        "min_insider_own": "內部持股下限",
+        "max_insider_own": "內部持股上限",
+        "min_beta": "Beta 下限",
+        "max_beta": "Beta 上限",
+        "min_gross_margin": "毛利率下限",
+        "max_gross_margin": "毛利率上限",
+        "min_ebitda_margin": "EBITDA 下限",
+        "max_ebitda_margin": "EBITDA 上限",
+        "has_options": "有期權",
+        "only_holdings": "僅我的持倉",
+        "sector": "產業"
+      }
+    },
+    "compare_drawer": {
+      "title": "股票比較",
+      "selectedCount": "已選擇 {{count}} 檔",
+      "empty": "請在表格中選擇 2-5 檔股票進行比較。",
+      "metric": "指標"
+    },
+    "stock_insights": {
+      "title": "{{symbol}} 分析",
+      "subtitle": "yfinance 即時快照",
+      "loading": "正在載入即時分析...",
+      "empty": "點擊股票代號以載入 yfinance 分析資訊。",
+      "priceTrend": "價格趨勢",
+      "noPriceSeries": "無價格序列",
+      "liquidity": "流動性 (交易準備)",
+      "analystTargets": "分析師目標",
+      "rangeEarnings": "52 週區間與財報",
+      "recommendationMix": "推薦組成",
+      "latestNews": "最新新聞",
+      "noNews": "yfinance 目前無相關新聞。",
+      "signals": {
+        "rsiOverbought": "RSI 超買",
+        "rsiOversold": "RSI 超賣",
+        "rsiNeutral": "RSI 中立",
+        "highValuation": "估值偏高",
+        "reasonableValuation": "估值合理",
+        "highGrowth": "高成長",
+        "negativeGrowth": "負成長",
+        "highVolatility": "高波動"
+      },
+      "industryValuation": {
+        "title": "產業估值分",
+        "subtitle": "在同產業中的百分位排名",
+        "lowConfidence": "同業樣本有限，信心度可能較低",
+        "metricsUsed": "使用指標",
+        "labels": {
+          "Undervalued": "低估",
+          "Fair": "合理",
+          "Elevated": "偏高",
+          "Expensive": "昂貴"
+        },
+        "fields": {
+          "revenue_growth": "營收成長",
+          "gross_margin": "毛利率",
+          "price_to_sales": "P/S",
+          "ev_to_revenue": "EV/Revenue",
+          "roic": "ROIC",
+          "profit_margin": "淨利率",
+          "price_to_book": "P/B",
+          "roe": "ROE",
+          "dividend_yield": "股息殖利率",
+          "debt_to_equity": "負債/股東權益",
+          "ev_to_ebitda": "EV/EBITDA",
+          "price_to_fcf": "P/FCF",
+          "trailing_pe": "本益比",
+          "current_ratio": "流動比率"
+        }
+      },
+      "wallStreet": {
+        "title": "華爾街深度解析",
+        "subtitle": "護城河品質與機構動向",
+        "panelA": {
+          "title": "護城河品質趨勢",
+          "grossMargin": "毛利率",
+          "fcfMargin": "FCF 利潤率",
+          "roic": "ROIC",
+          "stable": "持平",
+          "improving": "改善",
+          "declining": "惡化"
+        },
+        "panelB": {
+          "title": "價值創造與估值倍數",
+          "waccSpread": "ROIC vs WACC 利差",
+          "creatingValue": "創造價值",
+          "destroyingValue": "損害價值",
+          "historicalPe": "5年 P/E 百分位",
+          "peNA": "無資料"
+        },
+        "panelC": {
+          "title": "機構動向 (近半年)",
+          "insider": "內部人淨操作",
+          "analyst": "分析師評級",
+          "buys": "買入",
+          "sells": "賣出",
+          "upgrades": "調升",
+          "downgrades": "調降",
+          "bullish": "偏多",
+          "bearish": "偏空",
+          "neutral": "中立",
+          "noActivity": "近期無活動"
+        }
+      }
+    }
+  },
+  "watchlist": {
+    "title": "觀察清單雷達",
+    "subtitle": "快速新增標的，並在採取行動前根據訊號品質對想法進行排名。",
+    "refresh": "重新整理訊號",
+    "searchPlaceholder": "搜尋代號或公司名稱",
+    "add": "加入觀察清單",
+    "adding": "新增中...",
+    "filterPlaceholder": "篩選現有清單",
+    "stats": {
+      "symbols": "標的數",
+      "buyBias": "買入偏好",
+      "holdBias": "觀望偏好",
+      "sellRisk": "賣出風險"
+    },
+    "alert": "訊號結合了估值、成長、品質和 yfinance 技術動能。僅供決策參考，非財務建議。",
+    "empty": {
+      "title": "觀察清單為空",
+      "subtitle": "搜尋並新增標的，開始監控即時買賣訊號。"
+    },
+    "card": {
+      "nameUnavailable": "無名稱資料",
+      "mktCap": "市值: {{value}}",
+      "fwdPe": "預估 P/E",
+      "roic": "ROIC",
+      "revGrowth": "營收成長",
+      "epsGrowth": "EPS 成長",
+      "remove": "從觀察清單移除",
+      "keySignals": "關鍵訊號",
+      "moreContext": "+ 還有 {{count}} 個訊號...",
+      "coverage": "資料覆蓋率 {{percent}}%",
+      "confidence": "訊號信心度 {{percent}}%",
+      "deepDive": "深度分析",
+      "valuation": {
+        "title": "估值預測",
+        "model": "模型",
+        "modelTooltip": "優化 DCF 估值",
+        "fairValue": "合理價值",
+        "marginOfSafety": "安全邊際",
+        "impliedGrowth": "市場隱含成長率",
+        "gfScore": "GF 分數"
+      },
+      "tradePlan": {
+        "title": "建議交易計畫",
+        "entryZone": "進場區間",
+        "stopLoss": "停損價",
+        "target": "目標價 (TP1)"
+      },
+      "signals": {
+        "BUY": "買入",
+        "HOLD": "觀望",
+        "SELL": "賣出"
+      },
+      "plans": {
+        "LONG": "做多",
+        "WAIT": "觀望",
+        "AVOID": "避開"
+      }
+    },
+    "signals": {
+      "reasons": {
+        "pe_attractive": "預估 P/E {{value}} 處於合理交易區間。",
+        "pe_stretched": "預估 P/E {{value}} 估值偏高。",
+        "revenue_growth_good": "營收成長 {{value}}% 支持趨勢延續。",
+        "revenue_growth_negative": "營收成長轉為負值。",
+        "eps_growth_good": "EPS 成長 {{value}}% 確認獲利動能。",
+        "eps_growth_negative": "EPS 成長為負值。",
+        "roic_strong": "ROIC {{value}}% 顯示強大的資本效率。",
+        "roic_weak": "ROIC 低於品質門檻。",
+        "pfcf_attractive": "P/FCF {{value}} 具吸引力。",
+        "pfcf_expensive": "P/FCF {{value}} 估值過貴。",
+        "rsi_oversold": "RSI {{value}} 接近超賣區。",
+        "rsi_overbought": "RSI {{value}} 顯示超買風險。",
+        "low_52w_range": "價格處於 52 週低點附近。",
+        "high_52w_range": "價格接近 52 週高點，損益比較差。",
+        "valuation_upside": "GF 估值上升空間 {{value}}% 提供安全邊際。",
+        "valuation_premium": "GF 估值溢價 {{value}}%，安全邊際有限。",
+        "extreme_premium": "極度溢價區，應避免激進加碼。",
+        "mixed_data": "由於數據混雜，訊號偏向中立。"
+      }
+    },
+    "technicals": {
+      "warnings": {
+        "overbought": "超買 (RSI: {{rsi}})",
+        "oversold": "超賣 (RSI: {{rsi}})",
+        "high_52w": "接近 52 週高點",
+        "low_52w": "接近 52 週低點",
+        "generic": "{{msg}}"
+      }
+    },
+    "valuation": {
+      "summary": {
+        "discount": "GF 混合估值顯示低於內在價值 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}}); 市場隱含 10 年 FCF 年化成長率約為 ~{{implied_g}}%。",
+        "premium": "GF 混合估值顯示溢價狀態 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}}); 市場隱含 10 年 FCF 年化成長率約為 ~{{implied_g}}%。",
+        "extreme_premium": "GF 混合估值顯示極度溢價 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}}); 市場隱含 10 年 FCF 年化成長率約為 ~{{implied_g}}%。",
+        "fair": "GF 混合估值顯示處於合理區間 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}}); 市場隱含 10 年 FCF 年化成長率約為 ~{{implied_g}}%。",
+        "unavailable_data": "估值不可用：需要有效的價格、市值與現金流數據。",
+        "unavailable_shares": "估值不可用：無法推算流通股數。",
+        "unavailable_metrics": "估值不可用：需要正數的 EPS 或每股現金流數據。",
+        "invalid_math": "估值不可用：參數組合產生無效的數學結果。"
+      }
+    },
+    "trade_plan": {
+      "summary": {
+        "bullish": "偏向看多。建議在支撐位附近分批佈局，並嚴格遵守風險限制。",
+        "mixed": "訊號分歧。建議在建立完整倉位前等待進一步確認。",
+        "avoid": "在趨勢和基本面改善前，建議避開新的多頭部位。",
+        "no_price": "無有效價格數據，不執行交易計畫。"
+      }
+    }
+  },
   "import": {
     "title": "匯入 CSV 交易記錄",
     "steps": {
@@ -460,6 +862,37 @@
     "save": "儲存"
   },
   "tools": {
+    "dcf": {
+      "title": "估值實驗室",
+      "subtitle": "專業級內在價值建模",
+      "externalReference": "外部參考",
+      "modelParameters": "模型參數",
+      "basedOn": "計算基準",
+      "include": "包含",
+      "trajectory": "成長軌跡",
+      "terminal": "終端階段",
+      "intrinsicValue": "內在價值",
+      "expectationAnalysis": "預期分析",
+      "aggressive": "激進預期",
+      "conservative": "保守預期",
+      "marketImplied": "市場隱含 {{implied}} 成長，對比歷史 {{historical}}。",
+      "trendChart": "營收與自由現金流趨勢",
+      "historicalFinancials": "歷史財務數據",
+      "fiscalPeriod": "財報週期",
+      "revenueM": "營收 (百萬)",
+      "fcfM": "自由現金流 (百萬)",
+      "epsNormalized": "EPS (常態化)",
+      "stockPrice": "股價",
+      "labels": {
+        "stockPrice": "股票價格",
+        "discountRate": "折現率",
+        "tangibleBook": "有形帳面價值",
+        "growthYears": "成長年數",
+        "growthRate": "成長率",
+        "terminalYears": "終端年數",
+        "terminalGrowth": "終端成長率"
+      }
+    },
     "calculator": {
       "title": "部位規模計算機",
       "reset": "重置",

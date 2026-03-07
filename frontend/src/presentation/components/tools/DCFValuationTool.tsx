@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Card,
@@ -63,6 +64,7 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
   onClose,
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [historical, setHistorical] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -234,10 +236,10 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 4 }}>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: -1 }}>
-                {symbol} <Box component="span" sx={{ color: 'text.disabled', fontWeight: 400 }}>Valuation Lab</Box>
+                {symbol} <Box component="span" sx={{ color: 'text.disabled', fontWeight: 400 }}>{t('tools.dcf.title')}</Box>
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Professional-grade Intrinsic Value Modeling
+                {t('tools.dcf.subtitle')}
               </Typography>
             </Box>
             <Stack direction="row" spacing={1}>
@@ -248,7 +250,7 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
                 onClick={() => window.open(`https://www.gurufocus.com/stock/${symbol}/dcf`, '_blank')}
                 sx={{ display: { xs: 'none', sm: 'flex' }, borderRadius: 2 }}
               >
-                External Reference
+                {t('tools.dcf.externalReference')}
               </Button>
               {onClose && <IconButton onClick={onClose} sx={{ bgcolor: 'action.hover' }}><RemoveIcon /></IconButton>}
             </Stack>
@@ -259,18 +261,18 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
             <Grid item xs={12} lg={7}>
               <Card variant="outlined" sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <AssessmentIcon color="primary" /> Model Parameters
+                  <AssessmentIcon color="primary" /> {t('tools.dcf.modelParameters')}
                 </Typography>
 
                 <Grid container spacing={3}>
                   <Grid item xs={12} sm={6}>
-                    <TactileInput label="Stock Price" name="price" value={params.price} step={1} prefix="$" />
+                    <TactileInput label={t('tools.dcf.labels.stockPrice')} name="price" value={params.price} step={1} prefix="$" />
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <Box sx={{ mb: 2 }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
                         <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase' }}>
-                          Based On
+                          {t('tools.dcf.basedOn')}
                         </Typography>
                         <ToggleButtonGroup
                           size="small"
@@ -297,16 +299,16 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
                   </Grid>
 
                   <Grid item xs={12} sm={6}>
-                    <TactileInput label="Discount Rate" name="discount_rate" value={params.discount_rate} step={0.005} isPercent={true} />
+                    <TactileInput label={t('tools.dcf.labels.discountRate')} name="discount_rate" value={params.discount_rate} step={0.005} isPercent={true} />
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
                       <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase' }}>
-                        Tangible Book
+                        {t('tools.dcf.labels.tangibleBook')}
                       </Typography>
                       <FormControlLabel
                         control={<Switch size="small" checked={params.add_tangible_book} onChange={(e) => updateParam('add_tangible_book', e.target.checked)} />}
-                        label={<Typography variant="caption">Include</Typography>}
+                        label={<Typography variant="caption">{t('tools.dcf.include')}</Typography>}
                         sx={{ m: 0 }}
                       />
                     </Stack>
@@ -324,25 +326,25 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
                 </Grid>
 
                 <Box sx={{ mt: 4, p: 2, bgcolor: 'action.hover', borderRadius: 3 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, color: 'primary.main' }}>Growth Trajectory</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, color: 'primary.main' }}>{t('tools.dcf.trajectory')}</Typography>
                   <Grid container spacing={3}>
                     <Grid item xs={6}>
-                      <TactileInput label="Growth Years" name="growth_years" value={params.growth_years} step={1} />
+                      <TactileInput label={t('tools.dcf.labels.growthYears')} name="growth_years" value={params.growth_years} step={1} />
                     </Grid>
                     <Grid item xs={6}>
-                      <TactileInput label="Growth Rate" name="growth_rate" value={params.growth_rate} step={0.01} isPercent={true} />
+                      <TactileInput label={t('tools.dcf.labels.growthRate')} name="growth_rate" value={params.growth_rate} step={0.01} isPercent={true} />
                     </Grid>
                   </Grid>
                 </Box>
 
                 <Box sx={{ mt: 2, p: 2, bgcolor: 'action.hover', borderRadius: 3 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, color: 'secondary.main' }}>Terminal Stage</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, color: 'secondary.main' }}>{t('tools.dcf.terminal')}</Typography>
                   <Grid container spacing={3}>
                     <Grid item xs={6}>
-                      <TactileInput label="Terminal Years" name="terminal_years" value={params.terminal_years} step={1} />
+                      <TactileInput label={t('tools.dcf.labels.terminalYears')} name="terminal_years" value={params.terminal_years} step={1} />
                     </Grid>
                     <Grid item xs={6}>
-                      <TactileInput label="Terminal Growth" name="terminal_growth" value={params.terminal_growth} step={0.005} isPercent={true} />
+                      <TactileInput label={t('tools.dcf.labels.terminalGrowth')} name="terminal_growth" value={params.terminal_growth} step={0.005} isPercent={true} />
                     </Grid>
                   </Grid>
                 </Box>
@@ -364,7 +366,7 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
                     boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
                   }}
                 >
-                  <Typography variant="overline" sx={{ fontWeight: 700, opacity: 0.8, letterSpacing: 2 }}>Intrinsic Value</Typography>
+                  <Typography variant="overline" sx={{ fontWeight: 700, opacity: 0.8, letterSpacing: 2 }}>{t('tools.dcf.intrinsicValue')}</Typography>
                   <Typography variant="h1" sx={{ fontWeight: 900, my: 1 }}>
                     {formatCurrency(result?.fair_value)}
                   </Typography>
@@ -372,27 +374,30 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
                   <Stack direction="row" justifyContent="space-around">
                     <Box>
                       <Typography variant="h5" sx={{ fontWeight: 800 }}>{formatPercent(result?.margin_of_safety, 1)}</Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.8 }}>Margin of Safety</Typography>
+                      <Typography variant="caption" sx={{ opacity: 0.8 }}>{t('watchlist.card.valuation.marginOfSafety')}</Typography>
                     </Box>
                     <Box>
                       <Typography variant="h5" sx={{ fontWeight: 800 }}>{formatPercent(result?.implied_growth, 1)}</Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.8 }}>Implied Growth</Typography>
+                      <Typography variant="caption" sx={{ opacity: 0.8 }}>{t('watchlist.card.valuation.impliedGrowth')}</Typography>
                     </Box>
                   </Stack>
                 </Card>
 
                 <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>Expectation Analysis</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>{t('tools.dcf.expectationAnalysis')}</Typography>
                   <Stack direction="row" alignItems="center" spacing={2}>
                     <Box sx={{ p: 1.5, borderRadius: '50%', bgcolor: result?.implied_growth > historical?.growth_rates?.eps_nri_3y ? 'error.lighter' : 'success.lighter' }}>
                       {result?.implied_growth > historical?.growth_rates?.eps_nri_3y ? <TrendingUpIcon color="error" /> : <TrendingDownIcon color="success" />}
                     </Box>
                     <Box>
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {result?.implied_growth > historical?.growth_rates?.eps_nri_3y ? 'Aggressive Expectations' : 'Conservative Expectations'}
+                        {result?.implied_growth > historical?.growth_rates?.eps_nri_3y ? t('tools.dcf.aggressive') : t('tools.dcf.conservative')}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Market implies {formatPercent(result?.implied_growth, 1)} growth vs historical {formatPercent(historical?.growth_rates?.eps_nri_3y, 1)}.
+                        {t('tools.dcf.marketImplied', { 
+                          implied: formatPercent(result?.implied_growth, 1), 
+                          historical: formatPercent(historical?.growth_rates?.eps_nri_3y, 1) 
+                        })}
                       </Typography>
                     </Box>
                   </Stack>
@@ -400,7 +405,7 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
 
                 {/* Mini Chart */}
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, height: 200 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700, mb: 1, display: 'block', color: 'text.secondary' }}>REVENUE & FCF TREND</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700, mb: 1, display: 'block', color: 'text.secondary' }}>{t('tools.dcf.trendChart')}</Typography>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
                       <XAxis dataKey="year" hide />
@@ -417,11 +422,11 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
             <Grid item xs={12}>
               <Box sx={{ mt: 2 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 800 }}>Historical Financials</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>{t('tools.dcf.historicalFinancials')}</Typography>
                   <Stack direction="row" spacing={2}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <Box sx={{ w: 12, h: 12, bgcolor: 'primary.main', borderRadius: '50%' }} />
-                      <Typography variant="caption">Revenue</Typography>
+                      <Typography variant="caption">{t('screener.table.columns.name')}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <Box sx={{ w: 12, h: 12, bgcolor: 'secondary.main', borderRadius: '50%' }} />
@@ -433,7 +438,7 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ bgcolor: 'action.hover' }}>
-                        <TableCell sx={{ fontWeight: 700 }}>FISCAL PERIOD</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t('tools.dcf.fiscalPeriod')}</TableCell>
                         {historical?.years?.map((y: any) => (
                           <TableCell key={y.date} align="right" sx={{ fontWeight: 700 }}>{y.date?.substring(0, 7)}</TableCell>
                         ))}
@@ -441,25 +446,25 @@ export const DCFValuationTool: React.FC<DCFValuationToolProps> = ({
                     </TableHead>
                     <TableBody>
                       <TableRow hover>
-                        <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>Revenue (M)</TableCell>
+                        <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>{t('tools.dcf.revenueM')}</TableCell>
                         {historical?.years?.map((y: any) => (
                           <TableCell key={y.date} align="right" sx={{ fontWeight: 600 }}>{y.revenue ? formatNumber(y.revenue / 1e6, 0) : '-'}</TableCell>
                         ))}
                       </TableRow>
                       <TableRow hover>
-                        <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>FCF (M)</TableCell>
+                        <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>{t('tools.dcf.fcfM')}</TableCell>
                         {historical?.years?.map((y: any) => (
                           <TableCell key={y.date} align="right" sx={{ fontWeight: 600 }}>{y.fcf ? formatNumber(y.fcf / 1e6, 0) : '-'}</TableCell>
                         ))}
                       </TableRow>
                       <TableRow hover>
-                        <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>EPS (Normalized)</TableCell>
+                        <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>{t('tools.dcf.epsNormalized')}</TableCell>
                         {historical?.years?.map((y: any) => (
                           <TableCell key={y.date} align="right" sx={{ fontWeight: 600 }}>{y.eps_nri ? formatNumber(y.eps_nri, 2) : '-'}</TableCell>
                         ))}
                       </TableRow>
                       <TableRow sx={{ bgcolor: 'rgba(16,185,129,0.04)' }}>
-                        <TableCell sx={{ fontWeight: 800 }}>STOCK PRICE</TableCell>
+                        <TableCell sx={{ fontWeight: 800 }}>{t('tools.dcf.stockPrice')}</TableCell>
                         {historical?.years?.map((y: any) => (
                           <TableCell key={y.date} align="right" sx={{ fontWeight: 800, color: 'success.main' }}>
                             {y.price ? formatCurrency(y.price) : '-'}

@@ -10,6 +10,7 @@ import yfinance as yf
 
 from app.db.session import db
 from app.services.technical_service import technical_service
+from app.services.industry_valuation import compute_valuation_scores
 
 
 def _read_env_float(name: str, default: float) -> float:
@@ -407,14 +408,14 @@ class WatchlistService:
         ):
             return {
                 **unavailable_base,
-                "summary": "DCF unavailable: need positive price, market cap, and free cash flow.",
+                "summary": {"key": "watchlist.valuation.summary.unavailable_data", "params": {}},
             }
 
         shares_outstanding = market_cap / price if price > 0 else None
         if shares_outstanding is None or shares_outstanding <= 0:
             return {
                 **unavailable_base,
-                "summary": "DCF unavailable: shares outstanding could not be inferred.",
+                "summary": {"key": "watchlist.valuation.summary.unavailable_shares", "params": {}},
             }
             
         fcf_per_share = free_cash_flow / shares_outstanding if free_cash_flow else None
@@ -424,7 +425,7 @@ class WatchlistService:
         if base_val_per_share is None or base_val_per_share <= 0:
             return {
                 **unavailable_base,
-                "summary": "DCF unavailable: need positive EPS or FCF per share.",
+                "summary": {"key": "watchlist.valuation.summary.unavailable_metrics", "params": {}},
             }
 
         growth_inputs = [value for value in [revenue_growth, eps_growth] if value is not None]
@@ -466,7 +467,7 @@ class WatchlistService:
             return {
                 **unavailable_base,
                 "shares_outstanding": cls._round(shares_outstanding),
-                "summary": "DCF unavailable: assumptions produced invalid math.",
+                "summary": {"key": "watchlist.valuation.summary.invalid_math", "params": {}},
             }
 
         dcf_fair_value = max(fair_value, 0.0)
@@ -671,16 +672,18 @@ class WatchlistService:
             "gf_score": gf_score,
             "scenarios": scenarios,
             "confidence": confidence,
-            "summary": (
-                f"GF-style blend indicates {valuation_call} "
-                f"(g={fcf_growth_5y * 100:.1f}%, r={discount_rate * 100:.1f}%, tg={terminal_growth * 100:.1f}%, "
-                f"years={forecast_years}, w_dcf={dcf_weight:.2f}, w_rel={rel_weight:.2f})"
-                + (
-                    f"; market-implied 10Y FCF CAGR is ~{implied_growth_10y * 100:.1f}%."
-                    if implied_growth_10y is not None
-                    else "."
-                )
-            ),
+            "summary": {
+                "key": f"watchlist.valuation.summary.{valuation_label.lower()}",
+                "params": {
+                    "g": round(fcf_growth_5y * 100, 1),
+                    "r": round(discount_rate * 100, 1),
+                    "tg": round(terminal_growth * 100, 1),
+                    "years": forecast_years,
+                    "w_dcf": round(dcf_weight, 2),
+                    "w_rel": round(rel_weight, 2),
+                    "implied_g": round(implied_growth_10y * 100, 1) if implied_growth_10y is not None else None
+                }
+            },
         }
 
     @classmethod
@@ -691,79 +694,82 @@ class WatchlistService:
         valuation: dict[str, Any],
     ) -> dict[str, Any]:
         score = 0.0
-        positives: list[str] = []
-        negatives: list[str] = []
+        positives: list[dict[str, Any]] = []
+        negatives: list[dict[str, Any]] = []
         metric_count = 0
+
+        def add_msg(lst, key, **params):
+            lst.append({"key": f"watchlist.signals.reasons.{key}", "params": params})
 
         forward_pe = cls._to_float(snapshot.get("forward_pe"))
         if forward_pe is not None and forward_pe > 0:
             metric_count += 1
             if forward_pe <= 22:
                 score += 1
-                positives.append(f"Forward P/E {forward_pe:.1f} stays in tradable value range.")
+                add_msg(positives, "pe_attractive", value=round(forward_pe, 1))
             elif forward_pe >= 45:
                 score -= 1
-                negatives.append(f"Forward P/E {forward_pe:.1f} looks stretched.")
+                add_msg(negatives, "pe_stretched", value=round(forward_pe, 1))
 
         revenue_growth = cls._to_float(snapshot.get("revenue_growth"))
         if revenue_growth is not None:
             metric_count += 1
             if revenue_growth >= 0.15:
                 score += 1
-                positives.append(f"Revenue growth {revenue_growth * 100:.1f}% supports trend continuation.")
+                add_msg(positives, "revenue_growth_good", value=round(revenue_growth * 100, 1))
             elif revenue_growth <= 0:
                 score -= 1
-                negatives.append("Revenue growth turned negative.")
+                add_msg(negatives, "revenue_growth_negative")
 
         eps_growth = cls._to_float(snapshot.get("eps_growth"))
         if eps_growth is not None:
             metric_count += 1
             if eps_growth >= 0.15:
                 score += 1
-                positives.append(f"EPS growth {eps_growth * 100:.1f}% confirms earnings momentum.")
+                add_msg(positives, "eps_growth_good", value=round(eps_growth * 100, 1))
             elif eps_growth <= 0:
                 score -= 1
-                negatives.append("EPS growth is negative.")
+                add_msg(negatives, "eps_growth_negative")
 
         roic = cls._to_float(snapshot.get("roic"))
         if roic is not None:
             metric_count += 1
             if roic >= 0.12:
                 score += 1
-                positives.append(f"ROIC {roic * 100:.1f}% indicates strong capital efficiency.")
+                add_msg(positives, "roic_strong", value=round(roic * 100, 1))
             elif roic <= 0.05:
                 score -= 1
-                negatives.append("ROIC is weak versus quality threshold.")
+                add_msg(negatives, "roic_weak")
 
         price_to_fcf = cls._to_float(snapshot.get("price_to_fcf"))
         if price_to_fcf is not None and price_to_fcf > 0:
             metric_count += 1
             if price_to_fcf <= 25:
                 score += 1
-                positives.append(f"P/FCF {price_to_fcf:.1f} is attractive.")
+                add_msg(positives, "pfcf_attractive", value=round(price_to_fcf, 1))
             elif price_to_fcf >= 50:
                 score -= 1
-                negatives.append(f"P/FCF {price_to_fcf:.1f} is expensive.")
+                add_msg(negatives, "pfcf_expensive", value=round(price_to_fcf, 1))
 
         rsi14 = cls._to_float(technicals.get("rsi14"))
         if rsi14 is not None:
             metric_count += 1
             if rsi14 <= 35:
                 score += 0.5
-                positives.append(f"RSI {rsi14:.1f} is near oversold zone.")
+                add_msg(positives, "rsi_oversold", value=round(rsi14, 1))
             elif rsi14 >= 72:
                 score -= 1
-                negatives.append(f"RSI {rsi14:.1f} shows overbought risk.")
+                add_msg(negatives, "rsi_overbought", value=round(rsi14, 1))
 
         pos_52w = cls._to_float(technicals.get("fifty_two_week_position"))
         if pos_52w is not None:
             metric_count += 1
             if pos_52w <= 0.2:
                 score += 0.5
-                positives.append("Price sits near lower 52-week range.")
+                add_msg(positives, "low_52w_range")
             elif pos_52w >= 0.9:
                 score -= 0.5
-                negatives.append("Price is near 52-week high; risk/reward is tighter.")
+                add_msg(negatives, "high_52w_range")
 
         if str(valuation.get("status")) == "AVAILABLE":
             upside_pct = cls._to_float(valuation.get("upside_pct"))
@@ -771,15 +777,13 @@ class WatchlistService:
                 metric_count += 1
                 if upside_pct >= 0.30:
                     score += 1.0
-                    positives.append(f"GF-value upside {upside_pct * 100:.1f}% indicates valuation support.")
+                    add_msg(positives, "valuation_upside", value=round(upside_pct * 100, 1))
                 elif upside_pct <= -0.25:
                     score -= 1.0
-                    negatives.append(
-                        f"GF-value premium {abs(upside_pct) * 100:.1f}% suggests limited margin of safety."
-                    )
+                    add_msg(negatives, "valuation_premium", value=round(abs(upside_pct) * 100, 1))
                     if upside_pct <= -0.55:
                         score -= 0.4
-                        negatives.append("Extreme premium zone; avoid aggressive adding.")
+                        add_msg(negatives, "extreme_premium")
 
         if score >= 2.5:
             action = "BUY"
@@ -791,7 +795,7 @@ class WatchlistService:
             action = "HOLD"
             ordered_reasons = positives[:2] + negatives[:2]
 
-        reasons = ordered_reasons[:4] or ["Signal is neutral because data is mixed."]
+        reasons = ordered_reasons[:4] or [{"key": "watchlist.signals.reasons.mixed_data", "params": {}}]
         data_coverage = round(metric_count / (cls._BASE_METRIC_COUNT + 1), 2)
         confidence = int(45 + min(35, abs(score) * 12) + data_coverage * 18)
         confidence = max(25, min(95, confidence))
@@ -846,7 +850,7 @@ class WatchlistService:
                 "take_profit_2": None,
                 "rr_to_tp1": None,
                 "rr_to_tp2": None,
-                "summary": "No valid price data; do not execute a trade plan.",
+                "summary": {"key": "watchlist.trade_plan.summary.no_price", "params": {}},
             }
 
         support_anchor = price
@@ -875,7 +879,7 @@ class WatchlistService:
             else:
                 take_profit_1 = price * 1.12
                 take_profit_2 = price * 1.22
-            summary = "Bias is bullish. Scale in near support and keep strict risk limits."
+            summary_key = "bullish"
         elif action == "HOLD":
             plan_type = "WAIT"
             if fair_value is not None and fair_value > price:
@@ -884,12 +888,12 @@ class WatchlistService:
             else:
                 take_profit_1 = price * 1.08
                 take_profit_2 = price * 1.15
-            summary = "Signal is mixed. Wait for confirmation before full position sizing."
+            summary_key = "mixed"
         else:
             plan_type = "AVOID"
             take_profit_1 = None
             take_profit_2 = None
-            summary = "Avoid new longs until trend and fundamentals improve."
+            summary_key = "avoid"
 
         rr_to_tp1 = None
         rr_to_tp2 = None
@@ -908,7 +912,7 @@ class WatchlistService:
             "take_profit_2": cls._round(take_profit_2),
             "rr_to_tp1": cls._round(rr_to_tp1),
             "rr_to_tp2": cls._round(rr_to_tp2),
-            "summary": summary,
+            "summary": {"key": f"watchlist.trade_plan.summary.{summary_key}", "params": {}},
         }
 
     @classmethod
@@ -924,6 +928,23 @@ class WatchlistService:
         valuation = cls._compute_dcf_valuation(snapshot)
         signal = cls._compute_signal(snapshot, tech, valuation)
         trade_plan = cls._compute_trade_plan(snapshot, signal, valuation)
+
+        # Structure technical warnings
+        raw_warnings = tech.get("warnings") or []
+        structured_warnings = []
+        for w in raw_warnings:
+            if "Overbought" in w:
+                rsi = cls._to_float(tech.get("rsi14"))
+                structured_warnings.append({"key": "watchlist.technicals.warnings.overbought", "params": {"rsi": rsi}})
+            elif "Oversold" in w:
+                rsi = cls._to_float(tech.get("rsi14"))
+                structured_warnings.append({"key": "watchlist.technicals.warnings.oversold", "params": {"rsi": rsi}})
+            elif "Near 52-Week High" in w:
+                structured_warnings.append({"key": "watchlist.technicals.warnings.high_52w", "params": {}})
+            elif "Near 52-Week Low" in w:
+                structured_warnings.append({"key": "watchlist.technicals.warnings.low_52w", "params": {}})
+            else:
+                structured_warnings.append({"key": "watchlist.technicals.warnings.generic", "params": {"msg": w}})
 
         return {
             "symbol": symbol,
@@ -948,7 +969,7 @@ class WatchlistService:
             "technical": {
                 "rsi14": cls._to_float(tech.get("rsi14")),
                 "fifty_two_week_position": cls._to_float(tech.get("fifty_two_week_position")),
-                "warnings": tech.get("warnings") or [],
+                "warnings": structured_warnings,
             },
             "valuation": valuation,
             "trade_plan": trade_plan,
@@ -1037,6 +1058,47 @@ class WatchlistService:
             )
             for row in rows
         ]
+
+        # Attach industry-aware valuation scores
+        # Use screener snapshots as peer dicts; supplement with watchlist sector peers
+        # to ensure meaningful peer group (pull all stocks in each represented sector)
+        sectors_needed = {(screener_map.get(s) or {}).get("sector") for s in symbols} - {None}
+        peer_dicts: list[dict[str, Any]] = []
+        if sectors_needed:
+            conn = db.get_connection()
+            try:
+                placeholders = ", ".join(["?"] * len(sectors_needed))
+                rows_peers = conn.execute(
+                    f"""
+                    SELECT symbol, sector,
+                           revenue_growth, gross_margin, price_to_sales, ev_to_revenue, roic,
+                           profit_margin, price_to_book, roe, dividend_yield, debt_to_equity,
+                           ev_to_ebitda, price_to_fcf, trailing_pe, current_ratio
+                    FROM screener_data
+                    WHERE sector IN ({placeholders})
+                    """,
+                    list(sectors_needed),
+                ).fetchall()
+            finally:
+                conn.close()
+            cols = [
+                "symbol", "sector",
+                "revenue_growth", "gross_margin", "price_to_sales", "ev_to_revenue", "roic",
+                "profit_margin", "price_to_book", "roe", "dividend_yield", "debt_to_equity",
+                "ev_to_ebitda", "price_to_fcf", "trailing_pe", "current_ratio",
+            ]
+            peer_dicts = [dict(zip(cols, r)) for r in rows_peers]
+
+        val_scores = compute_valuation_scores(peer_dicts) if peer_dicts else {}
+
+        for item in items:
+            sym = item.get("symbol", "")
+            result = val_scores.get(sym)
+            if result:
+                item["valuation_score"] = result["score"]
+                item["valuation_label"] = result["label"]
+                item["valuation_low_confidence"] = result["low_confidence"]
+
         return {"total": len(items), "items": items}
 
     @classmethod
