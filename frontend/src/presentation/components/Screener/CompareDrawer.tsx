@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Drawer,
   Box,
@@ -20,21 +21,6 @@ interface CompareDrawerProps {
   stocks: ScreenerStock[];
 }
 
-const metricRows: Array<{ key: keyof ScreenerStock; label: string; type: 'currency' | 'number' | 'percent' | 'text' }> = [
-  { key: 'sector', label: 'Sector', type: 'text' },
-  { key: 'price', label: 'Price', type: 'currency' },
-  { key: 'market_cap', label: 'Market Cap', type: 'currency' },
-  { key: 'forward_pe', label: 'Fwd P/E', type: 'number' },
-  { key: 'trailing_pe', label: 'P/E', type: 'number' },
-  { key: 'peg_ratio', label: 'PEG', type: 'number' },
-  { key: 'price_to_fcf', label: 'P/FCF', type: 'number' },
-  { key: 'roic', label: 'ROIC', type: 'percent' },
-  { key: 'roe', label: 'ROE', type: 'percent' },
-  { key: 'revenue_growth', label: 'Revenue Growth', type: 'percent' },
-  { key: 'eps_growth', label: 'EPS Growth', type: 'percent' },
-  { key: 'free_cash_flow', label: 'Free Cash Flow', type: 'currency' },
-];
-
 const formatCurrency = (value: number | undefined) => {
   if (value === undefined || value === null) return '-';
   if (Math.abs(value) >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
@@ -52,6 +38,23 @@ const formatValue = (value: any, type: 'currency' | 'number' | 'percent' | 'text
 };
 
 const CompareDrawer: React.FC<CompareDrawerProps> = ({ open, onClose, stocks }) => {
+  const { t } = useTranslation();
+
+  const metricRows: Array<{ key: keyof ScreenerStock; label: string; type: 'currency' | 'number' | 'percent' | 'text' }> = [
+    { key: 'sector', label: t('screener.table.columns.sector'), type: 'text' },
+    { key: 'price', label: t('screener.table.columns.price'), type: 'currency' },
+    { key: 'market_cap', label: t('screener.table.columns.marketCap'), type: 'currency' },
+    { key: 'forward_pe', label: t('screener.table.columns.forwardPe'), type: 'number' },
+    { key: 'trailing_pe', label: t('screener.table.columns.trailingPe'), type: 'number' },
+    { key: 'peg_ratio', label: t('screener.table.columns.pegRatio'), type: 'number' },
+    { key: 'price_to_fcf', label: t('screener.table.columns.priceToFcf'), type: 'number' },
+    { key: 'roic', label: t('screener.table.columns.roic'), type: 'percent' },
+    { key: 'roe', label: t('screener.table.columns.roe'), type: 'percent' },
+    { key: 'revenue_growth', label: t('screener.table.columns.revenueGrowth'), type: 'percent' },
+    { key: 'eps_growth', label: t('screener.table.columns.epsGrowth'), type: 'percent' },
+    { key: 'free_cash_flow', label: t('screener.table.columns.fcf'), type: 'currency' },
+  ];
+
   return (
     <Drawer
       anchor="right"
@@ -67,8 +70,8 @@ const CompareDrawer: React.FC<CompareDrawerProps> = ({ open, onClose, stocks }) 
     >
       <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box>
-          <Typography variant="h6">Compare Stocks</Typography>
-          <Typography variant="body2" color="text.secondary">{stocks.length} selected</Typography>
+          <Typography variant="h6">{t('screener.compare_drawer.title')}</Typography>
+          <Typography variant="body2" color="text.secondary">{t('screener.compare_drawer.selectedCount', { count: stocks.length })}</Typography>
         </Box>
         <IconButton onClick={onClose}>
           <CloseIcon />
@@ -77,12 +80,12 @@ const CompareDrawer: React.FC<CompareDrawerProps> = ({ open, onClose, stocks }) 
 
       <Box sx={{ p: 2, overflowX: 'auto' }}>
         {stocks.length === 0 ? (
-          <Typography color="text.secondary">Select 2-5 stocks in the table to compare.</Typography>
+          <Typography color="text.secondary">{t('screener.compare_drawer.empty')}</Typography>
         ) : (
           <Table size="small" sx={{ minWidth: 680 }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Metric</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t('screener.compare_drawer.metric')}</TableCell>
                 {stocks.map(stock => (
                   <TableCell key={stock.symbol} align="right" sx={{ fontWeight: 700 }}>
                     <Chip size="small" label={stock.symbol} color="primary" variant="outlined" />

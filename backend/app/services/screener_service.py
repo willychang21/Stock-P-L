@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 from concurrent.futures import ThreadPoolExecutor
 from app.db.session import db
 from app.schemas.screener import ScreenerStock
+from app.services.industry_valuation import compute_valuation_scores, get_valuation_score_for_symbol
 
 class ScreenerService:
     _sync_in_progress = False
@@ -488,6 +489,7 @@ class ScreenerService:
                 return val
 
             items = []
+            raw_dicts: List[Dict[str, Any]] = []
             for row in rows:
                 data = dict(zip(cols, row))
                 data["dividend_yield"] = ScreenerService._normalize_dividend_yield(data.get("dividend_yield"))
@@ -497,7 +499,19 @@ class ScreenerService:
                     if fcf_val is not None and mcap_val is not None and fcf_val > 0:
                         data["price_to_fcf"] = mcap_val / fcf_val
                 sanitized_data = {k: sanitize(v) for k, v in data.items()}
-                items.append(ScreenerStock(**sanitized_data))
+                raw_dicts.append(sanitized_data)
+
+            # Compute industry-aware valuation scores across all returned rows
+            val_scores = compute_valuation_scores(raw_dicts)
+
+            for d in raw_dicts:
+                sym = d.get("symbol", "")
+                result = val_scores.get(sym)
+                if result:
+                    d["valuation_score"] = result["score"]
+                    d["valuation_label"] = result["label"]
+                    d["valuation_low_confidence"] = result["low_confidence"]
+                items.append(ScreenerStock(**d))
                 
             return {"total": total, "items": items}
         finally:

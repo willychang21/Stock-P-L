@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Container,
@@ -27,6 +28,9 @@ import {
   IconButton,
   Switch,
   FormControlLabel,
+  SxProps,
+  Theme,
+  Divider,
 } from '@mui/material';
 import {
   FilterList as FilterIcon,
@@ -51,6 +55,59 @@ import {
   ScreenerStock,
   ScreenerFilters,
 } from '../../domain/models/ScreenerStock';
+
+// --- Styles ---
+const pageStyles: Record<string, SxProps<Theme>> = {
+  headerCard: {
+    mb: 3,
+    p: { xs: 2, md: 3 },
+    borderRadius: 3,
+    border: '1px solid rgba(129,140,248,0.2)',
+    background:
+      'radial-gradient(circle at 15% 20%, rgba(79,70,229,0.2) 0%, rgba(12,15,30,0.9) 40%, rgba(8,10,20,0.95) 100%)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+  },
+  syncPaper: {
+    mb: 2,
+    px: 2,
+    py: 1.5,
+    borderRadius: 2,
+    border: '1px solid rgba(255,255,255,0.08)',
+    bgcolor: 'rgba(20,22,33,0.75)',
+    backdropFilter: 'blur(8px)',
+  },
+  pulsePaper: {
+    mb: 2,
+    px: 2,
+    py: 1.5,
+    borderRadius: 2,
+    border: '1px solid rgba(52,211,153,0.25)',
+    bgcolor: 'rgba(12,34,28,0.45)',
+    backdropFilter: 'blur(8px)',
+  },
+  statsCard: {
+    height: '100%',
+    border: '1px solid rgba(255,255,255,0.05)',
+    bgcolor: 'rgba(255,255,255,0.01)',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+    },
+    '& .MuiTypography-h5': {
+      fontVariantNumeric: 'tabular-nums',
+      fontWeight: 800,
+    },
+  },
+  tableContainer: {
+    width: '100%',
+    overflow: 'hidden',
+    borderRadius: '16px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    background:
+      'linear-gradient(to bottom right, rgba(255,255,255,0.02), rgba(255,255,255,0))',
+  },
+};
 
 interface SyncStatus {
   is_running: boolean;
@@ -109,6 +166,7 @@ const CORE_COLUMNS = [
   'trailing_pe',
   'peg_ratio',
   'roe',
+  'valuation_score',
   'data_quality_score',
   'freshness_days',
 ];
@@ -128,6 +186,7 @@ const createDefaultVisibilityModel = (): GridColumnVisibilityModel => ({
   trailing_pe: true,
   peg_ratio: true,
   roe: true,
+  valuation_score: true,
   data_quality_score: true,
   freshness_days: true,
 });
@@ -166,6 +225,7 @@ const PRESET_VIEWS: SavedView[] = [
 ];
 
 const ScreenerPage: React.FC = () => {
+  const { t } = useTranslation();
   const [stocks, setStocks] = useState<ScreenerStock[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -192,7 +252,9 @@ const ScreenerPage: React.FC = () => {
   const [columnVisibilityModel, setColumnVisibilityModel] =
     useState<GridColumnVisibilityModel>(createDefaultVisibilityModel());
 
-  const [viewMenuAnchor, setViewMenuAnchor] = useState<null | HTMLElement>(null);
+  const [viewMenuAnchor, setViewMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
   const [saveViewOpen, setSaveViewOpen] = useState(false);
   const [saveScreenOpen, setSaveScreenOpen] = useState(false);
   const [newViewName, setNewViewName] = useState('');
@@ -316,7 +378,13 @@ const ScreenerPage: React.FC = () => {
   };
 
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
-    if (key === 'sort_by' || key === 'sort_order' || key === 'limit' || key === 'offset') return false;
+    if (
+      key === 'sort_by' ||
+      key === 'sort_order' ||
+      key === 'limit' ||
+      key === 'offset'
+    )
+      return false;
     return value !== undefined && value !== '';
   }).length;
 
@@ -333,11 +401,18 @@ const ScreenerPage: React.FC = () => {
     ];
 
     return stocks.map(stock => {
-      const filled = coreFields.filter(field => stock[field] !== undefined && stock[field] !== null).length;
+      const filled = coreFields.filter(
+        field => stock[field] !== undefined && stock[field] !== null
+      ).length;
       const quality = Math.round((filled / coreFields.length) * 100);
       const updatedAt = stock.updated_at ? new Date(stock.updated_at) : null;
       const freshnessDays = updatedAt
-        ? Math.max(0, Math.floor((Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)))
+        ? Math.max(
+            0,
+            Math.floor(
+              (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)
+            )
+          )
         : 999;
 
       return {
@@ -355,13 +430,17 @@ const ScreenerPage: React.FC = () => {
       const symbol = stock.symbol?.toLowerCase() ?? '';
       const name = stock.name?.toLowerCase() ?? '';
       const sector = stock.sector?.toLowerCase() ?? '';
-      return symbol.includes(term) || name.includes(term) || sector.includes(term);
+      return (
+        symbol.includes(term) || name.includes(term) || sector.includes(term)
+      );
     });
   }, [enhancedStocks, searchText]);
 
   const selectedStocks = useMemo(() => {
     const map = new Map(visibleStocks.map(s => [s.symbol, s]));
-    return selectedSymbols.map(symbol => map.get(symbol)).filter(Boolean) as ScreenerStock[];
+    return selectedSymbols
+      .map(symbol => map.get(symbol))
+      .filter(Boolean) as ScreenerStock[];
   }, [visibleStocks, selectedSymbols]);
 
   const summary = useMemo(() => {
@@ -541,6 +620,7 @@ const ScreenerPage: React.FC = () => {
     if (!symbol) return;
     setInsightSymbol(symbol);
     setInsightOpen(true);
+    setInsightOpen(true);
     setInsightLoading(true);
     try {
       const data = await ScreenerService.getSymbolInsights(symbol);
@@ -557,16 +637,7 @@ const ScreenerPage: React.FC = () => {
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Fade in timeout={700}>
         <Box>
-          <Box
-            sx={{
-              mb: 3,
-              p: { xs: 2, md: 3 },
-              borderRadius: 3,
-              border: '1px solid rgba(129,140,248,0.2)',
-              background:
-                'radial-gradient(circle at 15% 20%, rgba(79,70,229,0.26) 0%, rgba(12,15,30,0.88) 40%, rgba(8,10,20,0.95) 100%)',
-            }}
-          >
+          <Box sx={pageStyles.headerCard}>
             <Stack
               direction={{ xs: 'column', md: 'row' }}
               spacing={2}
@@ -574,51 +645,70 @@ const ScreenerPage: React.FC = () => {
               justifyContent="space-between"
             >
               <Box>
-                <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 0.5 }}>
-                  Screener Command Center
+                <Typography
+                  variant="h3"
+                  sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 0.5 }}
+                >
+                  {t('screener.title')}
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  自訂欄位、儲存篩選、追蹤新命中股票
+                  {t('screener.subtitle')}
                 </Typography>
               </Box>
 
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{ width: { xs: '100%', md: 'auto' } }}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1.5}
+                sx={{ width: { xs: '100%', md: 'auto' } }}
+              >
                 <Button
                   variant="outlined"
                   startIcon={<SyncIcon />}
                   onClick={triggerSyncAll}
-                  sx={{ borderColor: 'rgba(129,140,248,0.5)' }}
+                  sx={{
+                    borderColor: 'rgba(129,140,248,0.4)',
+                    '&:hover': { borderColor: 'primary.main' },
+                  }}
                 >
-                  Sync All Data
+                  {t('screener.syncAll')}
                 </Button>
                 <Button
                   variant="outlined"
                   startIcon={<ViewColumnIcon />}
                   onClick={e => setViewMenuAnchor(e.currentTarget)}
                 >
-                  Views & Columns
+                  {t('screener.viewsColumns')}
                 </Button>
                 <Button
                   variant="contained"
                   startIcon={<FilterIcon />}
                   onClick={() => setSidebarOpen(true)}
+                  sx={{ px: 3 }}
                 >
-                  Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
+                  {t('screener.filters')}{' '}
+                  {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
                 </Button>
               </Stack>
             </Stack>
 
-            <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.25} sx={{ mt: 2.5 }}>
+            <Stack
+              direction={{ xs: 'column', lg: 'row' }}
+              spacing={1.5}
+              sx={{ mt: 3 }}
+            >
               <TextField
                 size="small"
-                placeholder="Search symbol, name, sector on current page"
+                placeholder={t('screener.searchPlaceholder')}
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
                 sx={{ minWidth: { xs: '100%', lg: 420 } }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon fontSize="small" />
+                      <SearchIcon
+                        fontSize="small"
+                        sx={{ color: 'text.secondary' }}
+                      />
                     </InputAdornment>
                   ),
                 }}
@@ -629,38 +719,50 @@ const ScreenerPage: React.FC = () => {
                   <Chip
                     key={preset.id}
                     icon={<BoltIcon />}
-                    label={preset.name}
+                    label={t(
+                      `screener.menu.${preset.name.toLowerCase()}`,
+                      preset.name
+                    )}
                     onClick={() => applyView(preset)}
                     variant="outlined"
-                    sx={{ borderColor: 'rgba(52,211,153,0.5)' }}
+                    sx={{
+                      borderColor: 'rgba(52,211,153,0.3)',
+                      '&:hover': { borderColor: 'secondary.main' },
+                    }}
                   />
                 ))}
                 <Chip
                   icon={<BookmarkAddIcon />}
-                  label="Save Screen"
+                  label={t('screener.saveScreen')}
                   onClick={() => setSaveScreenOpen(true)}
                   variant="outlined"
+                  clickable
                 />
                 <Chip
                   icon={<NotificationsActiveIcon />}
-                  label="Check Alerts"
+                  label={t('screener.checkAlerts')}
                   onClick={checkAlerts}
                   variant="outlined"
+                  clickable
                 />
                 <Chip
                   icon={<CompareArrowsIcon />}
-                  label={`Compare (${selectedSymbols.length})`}
+                  label={t('screener.compareWithCount', {
+                    count: selectedSymbols.length,
+                  })}
                   onClick={() => setCompareOpen(true)}
                   variant="outlined"
+                  clickable
                   color={selectedSymbols.length >= 2 ? 'primary' : 'default'}
                 />
                 {activeFilterCount > 0 && (
                   <Chip
                     icon={<ClearIcon />}
-                    label="Clear All"
+                    label={t('screener.clearAll')}
                     onClick={clearFilters}
                     variant="outlined"
                     color="warning"
+                    clickable
                   />
                 )}
               </Stack>
@@ -671,25 +773,72 @@ const ScreenerPage: React.FC = () => {
             anchorEl={viewMenuAnchor}
             open={Boolean(viewMenuAnchor)}
             onClose={() => setViewMenuAnchor(null)}
+            PaperProps={{ sx: { minWidth: 200, mt: 1 } }}
           >
-            <MenuItem onClick={() => { resetToCoreColumns(); setViewMenuAnchor(null); }}>Core Columns Only</MenuItem>
-            <MenuItem onClick={() => { setSaveViewOpen(true); setViewMenuAnchor(null); }}>Save Current View</MenuItem>
-            <MenuItem onClick={() => { requestNotificationPermission(); setViewMenuAnchor(null); }}>Enable Browser Notifications</MenuItem>
+            <MenuItem
+              onClick={() => {
+                resetToCoreColumns();
+                setViewMenuAnchor(null);
+              }}
+            >
+              {t('screener.menu.coreColumns')}
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setSaveViewOpen(true);
+                setViewMenuAnchor(null);
+              }}
+            >
+              {t('screener.menu.saveCurrentView')}
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                requestNotificationPermission();
+                setViewMenuAnchor(null);
+              }}
+            >
+              {t('screener.menu.enableNotifications')}
+            </MenuItem>
+            <Divider />
             {PRESET_VIEWS.map(view => (
-              <MenuItem key={view.id} onClick={() => { applyView(view); setViewMenuAnchor(null); }}>
-                {view.name} View
+              <MenuItem
+                key={view.id}
+                onClick={() => {
+                  applyView(view);
+                  setViewMenuAnchor(null);
+                }}
+              >
+                {t('screener.menu.viewPrefix', {
+                  name: t(
+                    `screener.menu.${view.name.toLowerCase()}`,
+                    view.name
+                  ),
+                })}
               </MenuItem>
             ))}
-            {savedViews.length > 0 && <MenuItem disabled>Saved Views</MenuItem>}
+            {savedViews.length > 0 && (
+              <MenuItem
+                disabled
+                sx={{ opacity: 0.6, fontSize: '0.75rem', mt: 1 }}
+              >
+                {t('screener.menu.savedViews')}
+              </MenuItem>
+            )}
             {savedViews.map(view => (
-              <MenuItem key={view.id} onClick={() => { applyView(view); setViewMenuAnchor(null); }}>
+              <MenuItem
+                key={view.id}
+                onClick={() => {
+                  applyView(view);
+                  setViewMenuAnchor(null);
+                }}
+              >
                 {view.name}
               </MenuItem>
             ))}
           </Menu>
 
           {syncError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
               {syncError}
             </Alert>
           )}
@@ -700,40 +849,72 @@ const ScreenerPage: React.FC = () => {
                 <Alert
                   key={`${event.id}-${idx}`}
                   severity="info"
+                  variant="outlined"
+                  sx={{ borderRadius: 2, bgcolor: 'rgba(2,132,199,0.05)' }}
                   action={
                     event.email ? (
-                      <Button color="inherit" size="small" onClick={() => openEmailDraft(event)}>
+                      <Button
+                        color="info"
+                        size="small"
+                        onClick={() => openEmailDraft(event)}
+                      >
                         Email
                       </Button>
                     ) : undefined
                   }
                 >
-                  <strong>{event.screenName}</strong> new matches: {event.symbols.join(', ')}
+                  <strong>{event.screenName}</strong> new matches:{' '}
+                  {event.symbols.join(', ')}
                 </Alert>
               ))}
             </Stack>
           )}
 
           {syncStatus && (
-            <Paper
-              elevation={0}
-              sx={{
-                mb: 2,
-                px: 2,
-                py: 1.25,
-                borderRadius: 2,
-                border: '1px solid rgba(255,255,255,0.08)',
-                bgcolor: 'rgba(20,22,33,0.75)',
-              }}
-            >
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Sync Status: {syncStatus.is_running ? 'Running' : 'Idle'}
+            <Paper elevation={0} sx={pageStyles.syncPaper}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                justifyContent="space-between"
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+              >
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: syncStatus.is_running
+                        ? 'secondary.main'
+                        : 'text.disabled',
+                    }}
+                  />
+                  {t('screener.sync.status')}:{' '}
+                  {syncStatus.is_running
+                    ? t('screener.sync.running')
+                    : t('screener.sync.idle')}
                 </Typography>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  {syncStatus.is_running && <CircularProgress size={14} thickness={6} />}
-                  <Typography variant="body2">
-                    {syncStatus.processed}/{syncStatus.total} ({syncProgressPercent}%)
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  {syncStatus.is_running && (
+                    <CircularProgress
+                      size={14}
+                      thickness={6}
+                      color="secondary"
+                    />
+                  )}
+                  <Typography
+                    variant="body2"
+                    sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}
+                  >
+                    {t('screener.sync.progress', {
+                      processed: syncStatus.processed,
+                      total: syncStatus.total,
+                      percent: syncProgressPercent,
+                    })}
                   </Typography>
                 </Stack>
               </Stack>
@@ -741,105 +922,176 @@ const ScreenerPage: React.FC = () => {
           )}
 
           {marketPulse && (
-            <Paper
-              elevation={0}
-              sx={{
-                mb: 2,
-                px: 2,
-                py: 1.25,
-                borderRadius: 2,
-                border: '1px solid rgba(52,211,153,0.25)',
-                bgcolor: 'rgba(12,34,28,0.45)',
-              }}
-            >
+            <Paper elevation={0} sx={pageStyles.pulsePaper}>
               <Stack
                 direction={{ xs: 'column', md: 'row' }}
-                spacing={1}
+                spacing={1.5}
                 alignItems={{ xs: 'flex-start', md: 'center' }}
                 justifyContent="space-between"
               >
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                  <Chip label={`Regime: ${marketPulse.regime || 'N/A'}`} color={marketPulse.regime === 'Risk On' ? 'success' : marketPulse.regime === 'Risk Off' ? 'error' : 'default'} size="small" variant="outlined" />
-                  <Chip label={`SPY 5D ${formatPercent(marketPulse.spy_5d)}`} size="small" variant="outlined" />
-                  <Chip label={`QQQ 5D ${formatPercent(marketPulse.qqq_5d)}`} size="small" variant="outlined" />
-                  <Chip label={`VIX 5D ${formatPercent(marketPulse.vix_5d)}`} size="small" variant="outlined" />
-                  <Chip label={`VIX ${marketPulse.vix_level?.toFixed(2) || '-'}`} size="small" variant="outlined" />
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  flexWrap="wrap"
+                  useFlexGap
+                >
+                  <Chip
+                    label={`${t('screener.marketPulse.regime')}: ${marketPulse.regime || 'N/A'}`}
+                    color={
+                      marketPulse.regime === 'Risk On'
+                        ? 'success'
+                        : marketPulse.regime === 'Risk Off'
+                          ? 'error'
+                          : 'default'
+                    }
+                    size="small"
+                    variant="filled"
+                    sx={{ fontWeight: 700 }}
+                  />
+                  <Chip
+                    label={`${t('screener.marketPulse.spy5d')} ${formatPercent(marketPulse.spy_5d)}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontVariantNumeric: 'tabular-nums' }}
+                  />
+                  <Chip
+                    label={`${t('screener.marketPulse.qqq5d')} ${formatPercent(marketPulse.qqq_5d)}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontVariantNumeric: 'tabular-nums' }}
+                  />
+                  <Chip
+                    label={`${t('screener.marketPulse.vix5d')} ${formatPercent(marketPulse.vix_5d)}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontVariantNumeric: 'tabular-nums' }}
+                  />
+                  <Chip
+                    label={`${t('screener.marketPulse.vix')} ${marketPulse.vix_level?.toFixed(2) || '-'}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontVariantNumeric: 'tabular-nums' }}
+                  />
                 </Stack>
                 <Typography variant="caption" color="text.secondary">
-                  Market Pulse {marketPulse.updated_at ? `• ${marketPulse.updated_at}` : ''}
+                  {t('screener.marketPulse.updatedAt', {
+                    time: marketPulse.updated_at || '',
+                  })}
                 </Typography>
               </Stack>
             </Paper>
           )}
 
-          <Grid container spacing={1.5} sx={{ mb: 2 }}>
-            <Grid item xs={6} md={3}>
-              <Card>
-                <CardContent sx={{ py: 1.6 }}>
-                  <Typography variant="caption" color="text.secondary">Visible Rows</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>{summary.count}</Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Card>
-                <CardContent sx={{ py: 1.6 }}>
-                  <Typography variant="caption" color="text.secondary">Avg P/E</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                    {summary.avgPe ? summary.avgPe.toFixed(1) : '-'}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Card>
-                <CardContent sx={{ py: 1.6 }}>
-                  <Typography variant="caption" color="text.secondary">Avg ROIC</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                    {summary.avgRoic !== null ? `${(summary.avgRoic * 100).toFixed(1)}%` : '-'}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Card>
-                <CardContent sx={{ py: 1.6 }}>
-                  <Typography variant="caption" color="text.secondary">Avg PEG</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                    {summary.avgPeg !== null ? summary.avgPeg.toFixed(2) : '-'}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            {[
+              { label: t('screener.stats.visibleRows'), value: summary.count },
+              {
+                label: t('screener.stats.avgPe'),
+                value: summary.avgPe ? summary.avgPe.toFixed(1) : '-',
+              },
+              {
+                label: t('screener.stats.avgRoic'),
+                value:
+                  summary.avgRoic !== null
+                    ? `${(summary.avgRoic * 100).toFixed(1)}%`
+                    : '-',
+              },
+              {
+                label: t('screener.stats.avgPeg'),
+                value:
+                  summary.avgPeg !== null ? summary.avgPeg.toFixed(2) : '-',
+              },
+            ].map((stat, idx) => (
+              <Grid item xs={6} md={3} key={idx}>
+                <Card sx={pageStyles.statsCard}>
+                  <CardContent sx={{ py: 2 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      fontWeight={600}
+                      display="block"
+                      gutterBottom
+                    >
+                      {stat.label}
+                    </Typography>
+                    <Typography variant="h5">{stat.value}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
 
           {savedScreens.length > 0 && (
-            <Paper sx={{ p: 1.5, mb: 2, border: '1px solid rgba(255,255,255,0.08)' }}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>Saved Screens</Typography>
+            <Paper
+              sx={{
+                p: 2,
+                mb: 2,
+                borderRadius: 2,
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 700 }}>
+                {t('screener.savedScreens.title')}
+              </Typography>
               <List dense sx={{ py: 0 }}>
                 {savedScreens.map(screen => (
                   <ListItem
                     key={screen.id}
                     secondaryAction={
-                      <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Stack direction="row" spacing={1} alignItems="center">
                         <FormControlLabel
-                          control={<Switch size="small" checked={screen.alerts_enabled} onChange={(_, checked) => toggleScreenAlert(screen.id, checked)} />}
-                          label="Alert"
+                          control={
+                            <Switch
+                              size="small"
+                              checked={screen.alerts_enabled}
+                              onChange={(_, checked) =>
+                                toggleScreenAlert(screen.id, checked)
+                              }
+                            />
+                          }
+                          label={t('screener.savedScreens.alert')}
+                          sx={{
+                            m: 0,
+                            '& .MuiFormControlLabel-label': {
+                              fontSize: '0.75rem',
+                            },
+                          }}
                         />
-                        <IconButton size="small" onClick={() => deleteSavedScreen(screen.id)}>
+                        <IconButton
+                          size="small"
+                          onClick={() => deleteSavedScreen(screen.id)}
+                          aria-label={t('common.delete')}
+                        >
                           <DeleteOutlineIcon fontSize="small" />
                         </IconButton>
                       </Stack>
                     }
-                    sx={{ px: 0 }}
+                    sx={{
+                      px: 1,
+                      borderRadius: 1,
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' },
+                    }}
                   >
                     <ListItemText
                       primary={
-                        <Button size="small" onClick={() => setFilters({ ...filters, ...screen.filters })} sx={{ justifyContent: 'flex-start' }}>
+                        <Button
+                          size="small"
+                          onClick={() =>
+                            setFilters({ ...filters, ...screen.filters })
+                          }
+                          sx={{ justifyContent: 'flex-start', fontWeight: 600 }}
+                        >
                           {screen.name}
                         </Button>
                       }
-                      secondary={screen.email ? `Email: ${screen.email}` : 'In-app alert only'}
+                      secondary={
+                        screen.email
+                          ? t('screener.savedScreens.email', {
+                              email: screen.email,
+                            })
+                          : t('screener.savedScreens.inAppOnly')
+                      }
                     />
                   </ListItem>
                 ))}
@@ -848,8 +1100,17 @@ const ScreenerPage: React.FC = () => {
           )}
 
           {savedViews.length > 0 && (
-            <Paper sx={{ p: 1.5, mb: 2, border: '1px solid rgba(255,255,255,0.08)' }}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>Saved Views</Typography>
+            <Paper
+              sx={{
+                p: 2,
+                mb: 2,
+                borderRadius: 2,
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 700 }}>
+                {t('screener.savedViews.title')}
+              </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {savedViews.map(view => (
                   <Chip
@@ -859,6 +1120,7 @@ const ScreenerPage: React.FC = () => {
                     onDelete={() => deleteSavedView(view.id)}
                     variant="outlined"
                     color="primary"
+                    sx={{ fontWeight: 600 }}
                   />
                 ))}
               </Stack>
@@ -867,26 +1129,22 @@ const ScreenerPage: React.FC = () => {
 
           <FilterPills filters={filters} onRemove={handleRemoveFilter} />
 
-          <Paper
-            elevation={0}
-            sx={{
-              width: '100%',
-              overflow: 'hidden',
-              borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              background: 'linear-gradient(to bottom right, rgba(255,255,255,0.02), rgba(255,255,255,0))',
-            }}
-          >
+          <Paper elevation={0} sx={pageStyles.tableContainer}>
             {total === 0 && !loading ? (
               <Box sx={{ p: 10, textAlign: 'center' }}>
                 <Typography variant="h6" color="text.secondary" gutterBottom>
                   {activeFilterCount > 0
-                    ? 'No stocks match your current filter criteria.'
-                    : 'The stock database is still syncing from yfinance. Start Sync All Data to populate screener universe.'}
+                    ? t('screener.empty.noMatch')
+                    : t('screener.empty.syncing')}
                 </Typography>
                 {activeFilterCount > 0 && (
-                  <Button startIcon={<ClearIcon />} onClick={clearFilters}>
-                    Clear all filters
+                  <Button
+                    startIcon={<ClearIcon />}
+                    onClick={clearFilters}
+                    variant="outlined"
+                    sx={{ mt: 2 }}
+                  >
+                    {t('screener.empty.clearFilters')}
                   </Button>
                 )}
               </Box>
@@ -903,7 +1161,7 @@ const ScreenerPage: React.FC = () => {
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
                 onSortChange={handleSortChange}
-                onSelectionChange={(symbols) => {
+                onSelectionChange={symbols => {
                   const capped = symbols.slice(0, 5);
                   setSelectedSymbols(capped);
                 }}
@@ -938,31 +1196,35 @@ const ScreenerPage: React.FC = () => {
       />
 
       <Dialog open={saveViewOpen} onClose={() => setSaveViewOpen(false)}>
-        <DialogTitle>Save Current View</DialogTitle>
+        <DialogTitle>{t('screener.dialogs.saveView.title')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
             fullWidth
-            label="View Name"
+            label={t('screener.dialogs.saveView.nameLabel')}
             value={newViewName}
             onChange={e => setNewViewName(e.target.value)}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSaveViewOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={saveCurrentView}>Save</Button>
+          <Button onClick={() => setSaveViewOpen(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="contained" onClick={saveCurrentView}>
+            {t('common.save')}
+          </Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={saveScreenOpen} onClose={() => setSaveScreenOpen(false)}>
-        <DialogTitle>Save Screen + Alerts</DialogTitle>
+        <DialogTitle>{t('screener.dialogs.saveScreen.title')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
             fullWidth
-            label="Screen Name"
+            label={t('screener.dialogs.saveScreen.nameLabel')}
             value={newScreenName}
             onChange={e => setNewScreenName(e.target.value)}
             sx={{ mb: 1 }}
@@ -970,18 +1232,22 @@ const ScreenerPage: React.FC = () => {
           <TextField
             margin="dense"
             fullWidth
-            label="Alert Email (optional)"
+            label={t('screener.dialogs.saveScreen.emailLabel')}
             value={newScreenEmail}
             onChange={e => setNewScreenEmail(e.target.value)}
-            placeholder="name@example.com"
+            placeholder={t('screener.dialogs.saveScreen.emailPlaceholder')}
           />
           <Typography variant="caption" color="text.secondary">
-            In-app alerts are always enabled. Email opens draft via mail client when alert is triggered.
+            {t('screener.dialogs.saveScreen.helper')}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSaveScreenOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={saveCurrentScreen}>Save</Button>
+          <Button onClick={() => setSaveScreenOpen(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="contained" onClick={saveCurrentScreen}>
+            {t('common.save')}
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>

@@ -45,6 +45,13 @@ export interface ScreenerStock {
   sector?: string;
   industry?: string;
   updated_at: string;
+  // Runtime-computed by backend (valuation scoring)
+  valuation_score?: number;
+  valuation_label?: string;
+  valuation_low_confidence?: boolean;
+  // Frontend-computed (quality/freshness)
+  data_quality_score?: number;
+  freshness_days?: number;
 }
 
 export interface ScreenerResponse {

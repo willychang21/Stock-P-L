@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Drawer,
   Box,
@@ -39,6 +40,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
   onApply,
   onClear,
 }) => {
+  const { t } = useTranslation();
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
 
@@ -69,7 +71,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         <Grid item xs={6}>
           <TextField
             fullWidth
-            label="Min"
+            label={t('screener.filters_sidebar.min')}
             name={minName}
             type="number"
             value={(filters as any)[minName] ?? ''}
@@ -81,7 +83,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         <Grid item xs={6}>
           <TextField
             fullWidth
-            label="Max"
+            label={t('screener.filters_sidebar.max')}
             name={maxName}
             type="number"
             value={(filters as any)[maxName] ?? ''}
@@ -112,9 +114,9 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
       <Box sx={{ display: 'flex', alignItems: 'center', p: 2, justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <FilterIcon sx={{ color: 'primary.light' }} />
-          <Typography variant="h6">Advanced Filters</Typography>
+          <Typography variant="h6">{t('screener.filters_sidebar.title')}</Typography>
         </Box>
-        <IconButton onClick={onClose}>
+        <IconButton onClick={onClose} aria-label={t('common.close')}>
           <CloseIcon />
         </IconButton>
       </Box>
@@ -123,79 +125,79 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
       <Box sx={{ overflowY: 'auto', flexGrow: 1, p: 2 }}>
         <Accordion defaultExpanded elevation={0} sx={{ '&:before': { display: 'none' }, bgcolor: 'transparent' }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Valuation</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{t('screener.filters_sidebar.valuation')}</Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>
-            {renderRangeFilter('Market Cap', 'min_mkt_cap', 'max_mkt_cap', '$')}
-            {renderRangeFilter('P/E Ratio', 'min_pe', 'max_pe')}
-            {renderRangeFilter('PEG Ratio', 'min_peg', 'max_peg')}
-            {renderRangeFilter('P/S Ratio', 'min_ps', 'max_ps')}
-            {renderRangeFilter('P/B Ratio', 'min_pb', 'max_pb')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.marketCap'), 'min_mkt_cap', 'max_mkt_cap', '$')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.peRatio'), 'min_pe', 'max_pe')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.pegRatio'), 'min_peg', 'max_peg')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.psRatio'), 'min_ps', 'max_ps')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.pbRatio'), 'min_pb', 'max_pb')}
           </AccordionDetails>
         </Accordion>
 
         <Accordion defaultExpanded elevation={0} sx={{ bgcolor: 'transparent' }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Profitability</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{t('screener.filters_sidebar.profitability')}</Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>
-            {renderRangeFilter('ROE (decimal)', 'min_roe', 'max_roe')}
-            {renderRangeFilter('ROIC (decimal)', 'min_roic', 'max_roic')}
-            {renderRangeFilter('Profit Margin (decimal)', 'min_profit_margin', 'max_profit_margin')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.roe'), 'min_roe', 'max_roe')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.roic'), 'min_roic', 'max_roic')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.profitMargin'), 'min_profit_margin', 'max_profit_margin')}
           </AccordionDetails>
         </Accordion>
 
         <Accordion elevation={0} sx={{ bgcolor: 'transparent' }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Growth</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{t('screener.filters_sidebar.growth')}</Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>
-            {renderRangeFilter('Revenue Growth (decimal)', 'min_revenue_growth', 'max_revenue_growth')}
-            {renderRangeFilter('EPS Growth (decimal)', 'min_eps_growth', 'max_eps_growth')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.revenueGrowth'), 'min_revenue_growth', 'max_revenue_growth')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.epsGrowth'), 'min_eps_growth', 'max_eps_growth')}
           </AccordionDetails>
         </Accordion>
 
         <Accordion elevation={0} sx={{ bgcolor: 'transparent' }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Cash Flow</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{t('screener.filters_sidebar.cashFlow')}</Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>
-            {renderRangeFilter('Free Cash Flow', 'min_fcf', 'max_fcf', '$')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.fcf'), 'min_fcf', 'max_fcf', '$')}
           </AccordionDetails>
         </Accordion>
 
         <Accordion elevation={0} sx={{ bgcolor: 'transparent' }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Sentiment & Ownership</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{t('screener.filters_sidebar.sentiment')}</Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>
-            {renderRangeFilter('Target Upside (decimal)', 'min_target_upside', 'max_target_upside')}
-            {renderRangeFilter('Analyst Rating (1-5)', 'min_recommendation_mean', 'max_recommendation_mean')}
-            {renderRangeFilter('Short Interest (decimal)', 'min_short_percent', 'max_short_percent')}
-            {renderRangeFilter('Inst. Ownership (decimal)', 'min_inst_own', 'max_inst_own')}
-            {renderRangeFilter('Insider Ownership (decimal)', 'min_insider_own', 'max_insider_own')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.targetUpside'), 'min_target_upside', 'max_target_upside')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.analystRating'), 'min_recommendation_mean', 'max_recommendation_mean')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.shortInterest'), 'min_short_percent', 'max_short_percent')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.instOwnership'), 'min_inst_own', 'max_inst_own')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.insiderOwnership'), 'min_insider_own', 'max_insider_own')}
           </AccordionDetails>
         </Accordion>
 
         <Accordion elevation={0} sx={{ bgcolor: 'transparent' }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Momentum & Margins</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{t('screener.filters_sidebar.momentum')}</Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>
-            {renderRangeFilter('Beta', 'min_beta', 'max_beta')}
-            {renderRangeFilter('Gross Margin (decimal)', 'min_gross_margin', 'max_gross_margin')}
-            {renderRangeFilter('EBITDA Margin (decimal)', 'min_ebitda_margin', 'max_ebitda_margin')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.beta'), 'min_beta', 'max_beta')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.grossMargin'), 'min_gross_margin', 'max_gross_margin')}
+            {renderRangeFilter(t('screener.filters_sidebar.labels.ebitdaMargin'), 'min_ebitda_margin', 'max_ebitda_margin')}
           </AccordionDetails>
         </Accordion>
 
         <Accordion elevation={0} sx={{ bgcolor: 'transparent' }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Other</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{t('screener.filters_sidebar.other')}</Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>
             <TextField
               fullWidth
-              label="Sector (exact name)"
+              label={t('screener.filters_sidebar.labels.sector')}
               name="sector"
               value={filters.sector ?? ''}
               onChange={handleInputChange}
@@ -210,7 +212,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
                   onChange={handleInputChange}
                 />
               }
-              label="Only My Holdings"
+              label={t('screener.filters_sidebar.labels.onlyHoldings')}
             />
             <Box sx={{ mt: 0.5 }}>
               <FormControlLabel
@@ -221,7 +223,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
                     onChange={handleInputChange}
                   />
                 }
-                label="Has Options"
+                label={t('screener.filters_sidebar.labels.hasOptions')}
               />
             </Box>
           </AccordionDetails>
@@ -231,10 +233,10 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
       <Divider />
       <Box sx={{ p: 2, display: 'flex', gap: 1.5 }}>
         <Button variant="contained" fullWidth onClick={() => { onApply(); onClose(); }}>
-          Apply Filters
+          {t('screener.filters_sidebar.apply')}
         </Button>
         <Button variant="outlined" fullWidth onClick={onClear}>
-          Clear
+          {t('screener.filters_sidebar.clear')}
         </Button>
       </Box>
     </Drawer>

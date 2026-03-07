@@ -49,6 +49,10 @@ class ScreenerStock(BaseModel):
     sector: Optional[str] = None
     industry: Optional[str] = None
     updated_at: datetime
+    # Runtime-computed — not stored in DB
+    valuation_score: Optional[float] = None
+    valuation_label: Optional[str] = None
+    valuation_low_confidence: Optional[bool] = None
 
 class ScreenerResponse(BaseModel):
     total: int

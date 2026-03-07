@@ -64,6 +64,40 @@ cd frontend && npm run build
 - Swagger UI at `http://localhost:3001/docs` when backend is running.
 - Frontend path aliases: `@domain`, `@application`, `@infrastructure`, `@presentation` (configured in `vite.config.ts` and `tsconfig.json`).
 
+## Agent Skill Activation Guidelines
+
+To ensure the highest engineering and design standards, proactively activate the following skills based on the task context:
+
+### 🎨 Frontend & Design
+
+- **Task:** UI design, component creation, layout adjustment, or "making it look better".
+  - **Skill:** `ui-ux-pro-max` (design systems, palettes), `frontend-design` (creative aesthetics).
+- **Task:** Reviewing existing UI for accessibility or compliance.
+  - **Skill:** `web-design-guidelines`.
+- **Task:** Writing/Refactoring React/TypeScript components or performance tuning.
+  - **Skill:** `vercel-react-best-practices`.
+- **Task:** Working with MUI components or theme customization.
+  - **Skill:** `mui`.
+
+### ⚙️ Backend & API
+
+- **Task:** Developing FastAPI endpoints, Pydantic models, or async database logic.
+  - **Skill:** `fastapi-expert` or `fastapi-templates`.
+
+### 📈 Finance & Data
+
+- **Task:** Fetching stock prices, financial statements, or analyzing tickers.
+  - **Skill:** `yfinance` or `stock-analysis`.
+
+### 🛠️ Tooling & Quality
+
+- **Task:** E2E testing, browser automation, or web scraping.
+  - **Skill:** `playwright-skill`.
+- **Task:** Managing translations, locale files, or RTL support.
+  - **Skill:** `i18n-localization`.
+- **Task:** Writing or improving project documentation/READMEs.
+  - **Skill:** `crafting-effective-readmes`.
+
 ## Verification
 
 Always verify changes with:
@@ -71,12 +105,3 @@ Always verify changes with:
 1. `npm run build` in `frontend/` — catches TypeScript errors
 2. Run relevant tests (`pytest` or `npm test`)
 3. Check both frontend (5173) and backend (3001) are running after changes
-
-## Additional Context
-
-For deeper context on specific topics, see:
-
-- Architecture design: @specs/
-- Backend API routes: @backend/app/api/
-- Database schema: @backend/app/db/init_db.py
-- Frontend routing & pages: @frontend/src/presentation/

@@ -9,19 +9,24 @@ export interface WatchlistSearchItem {
   market_cap?: number;
 }
 
+export interface I18nMessage {
+  key: string;
+  params?: Record<string, any>;
+}
+
 export interface WatchlistSignal {
   action: WatchSignalAction;
   score: number;
   confidence: number;
   data_coverage: number;
   freshness_days?: number;
-  reasons: string[];
+  reasons: I18nMessage[];
 }
 
 export interface WatchlistTechnical {
   rsi14?: number;
   fifty_two_week_position?: number;
-  warnings: string[];
+  warnings: I18nMessage[];
 }
 
 export interface WatchlistValuation {
@@ -56,7 +61,7 @@ export interface WatchlistValuation {
     fair_value: number;
   }[];
   confidence: number;
-  summary: string;
+  summary: I18nMessage;
 }
 
 export type WatchPlanType = 'LONG' | 'WAIT' | 'AVOID';
@@ -70,7 +75,7 @@ export interface WatchlistTradePlan {
   take_profit_2?: number;
   rr_to_tp1?: number;
   rr_to_tp2?: number;
-  summary: string;
+  summary: I18nMessage;
 }
 
 export interface WatchlistItem {
@@ -96,6 +101,10 @@ export interface WatchlistItem {
   technical: WatchlistTechnical;
   valuation: WatchlistValuation;
   trade_plan: WatchlistTradePlan;
+  // Runtime-computed industry valuation score
+  valuation_score?: number;
+  valuation_label?: string;
+  valuation_low_confidence?: boolean;
 }
 
 export interface WatchlistResponse {

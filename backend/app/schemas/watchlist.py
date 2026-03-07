@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+
+class I18nMessage(BaseModel):
+    key: str
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 class WatchlistSearchItem(BaseModel):
@@ -30,13 +35,13 @@ class WatchlistSignal(BaseModel):
     confidence: int
     data_coverage: float
     freshness_days: int | None = None
-    reasons: list[str] = Field(default_factory=list)
+    reasons: list[I18nMessage] = Field(default_factory=list)
 
 
 class WatchlistTechnical(BaseModel):
     rsi14: float | None = None
     fifty_two_week_position: float | None = None
-    warnings: list[str] = Field(default_factory=list)
+    warnings: list[I18nMessage] = Field(default_factory=list)
 
 
 class WatchlistValuationScenario(BaseModel):
@@ -73,7 +78,7 @@ class WatchlistValuation(BaseModel):
     gf_score: int | None = None
     scenarios: list[WatchlistValuationScenario] = Field(default_factory=list)
     confidence: int
-    summary: str
+    summary: I18nMessage
 
 
 class WatchlistTradePlan(BaseModel):
@@ -85,7 +90,7 @@ class WatchlistTradePlan(BaseModel):
     take_profit_2: float | None = None
     rr_to_tp1: float | None = None
     rr_to_tp2: float | None = None
-    summary: str
+    summary: I18nMessage
 
 
 class WatchlistDCFSimulationRequest(BaseModel):
@@ -132,6 +137,10 @@ class WatchlistItem(BaseModel):
     technical: WatchlistTechnical
     valuation: WatchlistValuation
     trade_plan: WatchlistTradePlan
+    # Runtime-computed — not stored in DB
+    valuation_score: float | None = None
+    valuation_label: str | None = None
+    valuation_low_confidence: bool | None = None
 
 
 class WatchlistResponse(BaseModel):
