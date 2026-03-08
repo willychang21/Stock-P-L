@@ -76,6 +76,8 @@ To ensure the highest engineering and design standards, proactively activate the
   - **Skill:** `web-design-guidelines`.
 - **Task:** Writing/Refactoring React/TypeScript components or performance tuning.
   - **Skill:** `vercel-react-best-practices`.
+- **Task:** Working with React component composition patterns.
+  - **Skill:** `vercel-composition-patterns`.
 - **Task:** Working with MUI components or theme customization.
   - **Skill:** `mui`.
 
@@ -87,7 +89,9 @@ To ensure the highest engineering and design standards, proactively activate the
 ### 📈 Finance & Data
 
 - **Task:** Fetching stock prices, financial statements, or analyzing tickers.
-  - **Skill:** `yfinance` or `stock-analysis`.
+  - **Skill:** `stock-analysis`.
+- **Task:** Fetching stock prices API from Yahoo Finance.
+  - **Skill:** `yfinance`
 
 ### 🛠️ Tooling & Quality
 
