@@ -705,6 +705,38 @@
       "executionOverlay": "Show execution overlay",
       "executionHint": "Short-term strategy is not fully defined yet; this overlay stays optional and should not drive the core long-term call."
     },
+    "coverage": {
+      "frameworks": {
+        "GENERAL": "General",
+        "CYCLICAL": "Cyclical",
+        "FINANCIAL": "Financial",
+        "UNPROFITABLE": "Unprofitable Growth"
+      },
+      "tooltip": {
+        "framework": "Framework: {{value}}",
+        "fundamentals": "Fundamentals {{value}}",
+        "technical": "Technical {{value}}",
+        "valuation": "Valuation {{value}}",
+        "missing": "Still missing: {{value}}",
+        "complete": "Core inputs are fully loaded."
+      },
+      "groups": {
+        "valuation_multiple": "valuation multiple",
+        "growth": "growth",
+        "earnings": "earnings growth",
+        "returns": "returns profile",
+        "cashflow": "cash flow read",
+        "margins": "margin profile",
+        "balance_sheet": "balance sheet",
+        "capital": "capital structure",
+        "sales_multiple": "sales multiple",
+        "unit_economics": "unit economics",
+        "market_sponsorship": "market sponsorship",
+        "rsi14": "RSI",
+        "price_position": "52-week position",
+        "valuation_context": "valuation context"
+      }
+    },
     "presets": {
       "ALL": "All {{count}}",
       "READY": "Ready Now {{count}}",
@@ -712,7 +744,7 @@
       "CYCLE": "Cycle Check {{count}}",
       "PULLBACK": "Wait Pullback {{count}}",
       "RISK": "Risk Monitor {{count}}",
-      "STALE": "Refresh First {{count}}"
+      "RESEARCH": "Research Queue {{count}}"
     },
     "sort": {
       "label": "Sort By",
@@ -747,12 +779,16 @@
         "title": "Structural Trap",
         "helper": "The balance sheet or earnings quality still looks too fragile for a clean long-term entry."
       },
+      "research": {
+        "title": "Research Queue",
+        "helper": "Coverage is still too thin or valuation is incomplete, so these names should not compete with decision-ready ideas."
+      },
       "stale": {
         "title": "Refresh First",
         "helper": "Do not commit capital before the data or coverage improves."
       }
     },
-    "alert": "This page is optimized for long-term investing: structural trap risk and cycle risk are scored separately, so a low P/E does not automatically read as a buying opportunity.",
+    "alert": "This page is optimized for long-term investing: structural trap risk and cycle risk are scored separately, and incomplete names are pushed into a research queue instead of competing with decision-ready ideas.",
     "empty": {
       "title": "Watchlist is empty",
       "subtitle": "Start with high-conviction names, then let the data rank quality, risk, and entry readiness.",
@@ -783,9 +819,17 @@
         "conviction": "Conviction",
         "headlinePe": "Headline P/E",
         "cycleAdjustedPe": "Cycle-adjusted P/E",
+        "cycleProfile": "Cycle Profile",
         "quality": "Quality",
         "timing": "Timing",
         "riskScore": "Structural Risk {{value}}"
+      },
+      "states": {
+        "READY": "READY",
+        "WAIT_PULLBACK": "WAIT PULLBACK",
+        "WAIT_CONFIRMATION": "WAIT",
+        "RESEARCH_ONLY": "RESEARCH ONLY",
+        "AVOID": "AVOID"
       },
       "sections": {
         "quality": "Quality & Compounding Engine",
@@ -890,7 +934,9 @@
         "low_roic": "ROIC is only {{value}}%, pointing to weak capital efficiency.",
         "balance_sheet_stress": "Debt / Equity at {{value}} adds pressure if the cycle turns.",
         "weak_liquidity": "Current ratio of {{value}} leaves limited near-term liquidity cushion.",
+        "negative_margin": "Operating margins are still negative at {{value}}%, which is not consistent with a clean quality call.",
         "thin_margin": "Margins are only {{value}}%, leaving little protection against execution misses.",
+        "negative_roe": "ROE is still negative at {{value}}%, so capital returns have not normalized yet.",
         "negative_fcf": "Free cash flow is negative, so the discount may simply price cash burn.",
         "missing_cashflow": "Cash flow visibility is thin, so surface-level cheapness is not enough.",
         "cheap_but_low_quality": "There may be {{upside}}% upside, but quality is only {{quality}}; that is a classic cheap-but-fragile setup.",
@@ -925,6 +971,7 @@
         "non_cyclical": "The business does not screen like a classic price taker; quality score {{quality}} supports a steadier earnings profile.",
         "memory": "Industry setup looks like memory / storage, where supply swings can distort headline P/E.",
         "materials": "Industry setup looks commodity-like, so earnings can overshoot and then mean-revert.",
+        "tech_cycle": "This looks like a hardware / semiconductor rebound setup, where low forward P/E often reflects cyclical earnings rather than durable cheapness.",
         "transport": "Freight and transport earnings usually move with utilization and pricing cycles.",
         "commodity": "The industry still looks supply-driven, not purely pricing-power-driven.",
         "energy": "Energy-style industries often look cheapest near the earnings peak.",
@@ -932,6 +979,7 @@
         "headline_pe": "Headline P/E is only {{value}}x, so it deserves a cycle-adjusted read instead of a surface-level cheapness call.",
         "peak_signals": "Strong recent growth and margins point to earnings running hotter than a normal cycle state.",
         "trough_signals": "Margins and growth still look depressed, which can make the current multiple understate recovery value.",
+        "forward_rebound": "Trailing / forward P/E spread is {{value}}x, which usually points to a rebound phase rather than a steady-state earnings base.",
         "near_high": "The stock is still trading near its highs, which often happens when cyclical earnings are strong."
       }
     },
@@ -968,6 +1016,9 @@
         "stale_data": "Data is already {{value}} day(s) old, so refresh before deciding.",
         "confidence_high": "Model confidence is {{value}}%, so the current view deserves more weight.",
         "confidence_low": "Model confidence is {{value}}%, so keep it in research mode for now.",
+        "research_only": "Coverage is only {{value}}%, so this still belongs in the research queue.",
+        "coverage_thin": "Coverage is only {{value}}%, so the setup is not fully decision-ready yet.",
+        "aging_data": "Data is already {{value}} day(s) old, so timing confidence should be discounted.",
         "cycle_peak_high": "Peak-earnings risk is {{value}}, so a low P/E is not enough to justify entry yet.",
         "cycle_peak_medium": "Cycle risk is {{value}}, so wait for a better price or cleaner operating proof."
       }

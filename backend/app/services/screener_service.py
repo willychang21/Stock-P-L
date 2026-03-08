@@ -115,6 +115,343 @@ class ScreenerService:
         except (TypeError, ValueError):
             return None
 
+    @staticmethod
+    def _build_requests_session():
+        import requests
+
+        session = requests.Session()
+        session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                )
+            }
+        )
+        return session
+
+    @classmethod
+    def _fetch_and_store_symbol(
+        cls,
+        symbol: str,
+        session: Optional[Any] = None,
+    ) -> bool:
+        owns_session = session is None
+        active_session = session or cls._build_requests_session()
+
+        try:
+            ticker = yf.Ticker(symbol, session=active_session)
+            info = ticker.info or {}
+            fast_info = ticker.fast_info or {}
+
+            # Keep sparse but valid responses instead of discarding the whole symbol.
+            if len(info) < 5 and not fast_info:
+                return False
+
+            name = info.get("shortName") or info.get("longName") or symbol
+            price = (
+                info.get("currentPrice")
+                or info.get("regularMarketPrice")
+                or info.get("previousClose")
+                or fast_info.get("lastPrice")
+                or fast_info.get("regularMarketPreviousClose")
+            )
+            market_cap = info.get("marketCap") or fast_info.get("marketCap")
+
+            trailing_pe = info.get("trailingPE")
+            forward_pe = info.get("forwardPE")
+            ps = info.get("priceToSalesTrailing12Months") or info.get("priceToSales")
+            pb = info.get("priceToBook")
+            peg = info.get("trailingPegRatio") or info.get("pegRatio")
+
+            roe = cls._normalize_percent(
+                info.get("returnOnEquity") or info.get("returnOnEquityTrailing12Months")
+            )
+            roa = info.get("returnOnAssets")
+
+            rev_growth = info.get("revenueGrowth")
+            eps_growth = info.get("earningsQuarterlyGrowth") or info.get("earningsGrowth")
+
+            if rev_growth is None or eps_growth is None:
+                try:
+                    income_stmt = ticker.quarterly_income_stmt
+                    if (
+                        income_stmt is not None
+                        and not income_stmt.empty
+                        and income_stmt.shape[1] >= 2
+                    ):
+                        latest = income_stmt.iloc[:, 0]
+                        prev = income_stmt.iloc[:, 1]
+                        latest_revenue = cls._to_float(
+                            latest.get("Total Revenue") or latest.get("Operating Revenue")
+                        )
+                        prev_revenue = cls._to_float(
+                            prev.get("Total Revenue") or prev.get("Operating Revenue")
+                        )
+                        latest_net_income = cls._to_float(
+                            latest.get("Net Income")
+                            or latest.get("Net Income Common Stockholders")
+                        )
+                        prev_net_income = cls._to_float(
+                            prev.get("Net Income")
+                            or prev.get("Net Income Common Stockholders")
+                        )
+
+                        if rev_growth is None and latest_revenue and prev_revenue:
+                            rev_growth = (latest_revenue - prev_revenue) / abs(prev_revenue)
+                        if eps_growth is None and latest_net_income and prev_net_income:
+                            eps_growth = (latest_net_income - prev_net_income) / abs(
+                                prev_net_income
+                            )
+                except Exception:
+                    pass
+
+            div_yield = cls._normalize_dividend_yield(info.get("dividendYield"))
+            payout = info.get("payoutRatio")
+            h52 = (
+                info.get("fiftyTwoWeekHigh")
+                or fast_info.get("yearHigh")
+                or fast_info.get("fiftyTwoWeekHigh")
+            )
+            l52 = (
+                info.get("fiftyTwoWeekLow")
+                or fast_info.get("yearLow")
+                or fast_info.get("fiftyTwoWeekLow")
+            )
+
+            recommendation_mean = info.get("recommendationMean")
+            target_mean_price = info.get("targetMeanPrice")
+
+            if recommendation_mean is None or target_mean_price is None:
+                try:
+                    analyst_targets = ticker.analyst_price_targets
+                    if analyst_targets is not None:
+                        target_mean_price = target_mean_price or analyst_targets.get("mean")
+                except Exception:
+                    pass
+
+            if recommendation_mean is None:
+                try:
+                    rec_summary = ticker.recommendations_summary
+                    if rec_summary is not None:
+                        if hasattr(rec_summary, "to_dict"):
+                            summary_dict = rec_summary.to_dict()
+                            recommendation_mean = (
+                                summary_dict.get("mean")
+                                or summary_dict.get("recommendationMean")
+                            )
+                        elif isinstance(rec_summary, dict):
+                            recommendation_mean = (
+                                rec_summary.get("mean")
+                                or rec_summary.get("recommendationMean")
+                            )
+                except Exception:
+                    pass
+
+            target_upside = None
+            if target_mean_price and price and price > 0:
+                target_upside = (target_mean_price - price) / price
+
+            short_percent = info.get("shortPercentOfFloat")
+            inst_own_percent = info.get("heldPercentInstitutions")
+            insider_own_percent = info.get("heldPercentInsiders")
+
+            if inst_own_percent is None or insider_own_percent is None:
+                try:
+                    maj_holders = ticker.major_holders
+                    if maj_holders is not None and not maj_holders.empty:
+                        for _, row in maj_holders.iterrows():
+                            val = row[0]
+                            label = str(row[1])
+                            if "Institutions" in label:
+                                inst_own_percent = (
+                                    float(str(val).strip("%")) / 100
+                                    if isinstance(val, str)
+                                    else val
+                                )
+                            if "Insiders" in label:
+                                insider_own_percent = (
+                                    float(str(val).strip("%")) / 100
+                                    if isinstance(val, str)
+                                    else val
+                                )
+                except Exception:
+                    pass
+
+            beta = info.get("beta")
+            gross_margin = info.get("grossMargins")
+            ebitda_margin = info.get("ebitdaMargins")
+
+            fcf = info.get("freeCashflow")
+            if fcf is None:
+                try:
+                    cashflow = ticker.cashflow
+                    if cashflow is not None and not cashflow.empty:
+                        latest_cf = cashflow.iloc[:, 0]
+                        fcf = latest_cf.get("Free Cash Flow")
+                except Exception:
+                    pass
+            p_fcf = None
+            fcf_val = cls._to_float(fcf)
+            mcap_val = cls._to_float(market_cap)
+            if fcf_val is not None and mcap_val is not None and fcf_val > 0:
+                p_fcf = mcap_val / fcf_val
+
+            total_debt = info.get("totalDebt")
+            total_cash = info.get("totalCash")
+            total_equity = info.get("totalEquity") or info.get("totalStockholderEquity")
+
+            if (market_cap and market_cap > 10_000_000_000) and (
+                total_equity is None or total_debt is None
+            ):
+                try:
+                    bs = ticker.balance_sheet
+                    if not bs.empty:
+                        latest = bs.iloc[:, 0]
+                        total_equity = (
+                            total_equity
+                            or latest.get("Stockholders Equity")
+                            or latest.get("Total Stockholder Equity")
+                            or latest.get("Common Stock Equity")
+                        )
+                        total_debt = (
+                            total_debt
+                            or latest.get("Total Debt")
+                            or latest.get("Long Term Debt")
+                        )
+                        total_cash = (
+                            total_cash or latest.get("Cash And Cash Equivalents")
+                        )
+                except Exception:
+                    pass
+
+            op_inc = info.get("operatingIncome") or info.get("ebitda")
+            if op_inc is None and info.get("operatingMargins") and info.get("totalRevenue"):
+                op_inc = info.get("operatingMargins") * info.get("totalRevenue")
+
+            roic = None
+            if op_inc and total_equity:
+                invested_cap = (total_debt or 0) + total_equity - (total_cash or 0)
+                denom = invested_cap if invested_cap > (total_equity * 0.2) else total_equity
+                roic = (op_inc * 0.79) / denom
+
+            has_options = False
+            try:
+                has_options = len(ticker.options) > 0
+            except Exception:
+                pass
+
+            conn = db.get_connection()
+            try:
+                conn.execute(
+                    """
+                        INSERT OR REPLACE INTO screener_data (
+                            symbol, name, price, market_cap, trailing_pe, forward_pe,
+                            price_to_sales, price_to_book, ev_to_ebitda, ev_to_revenue,
+                            peg_ratio, profit_margin, operating_margin, roe, roa,
+                            revenue_growth, earnings_growth, eps_growth, dividend_yield, payout_ratio,
+                            debt_to_equity, current_ratio, fifty_day_sma, two_hundred_day_sma,
+                            fifty_two_week_high, fifty_two_week_low, price_to_fcf,
+                            free_cash_flow, roic, total_debt, total_equity, total_cash,
+                            operating_income, tax_rate, target_upside, recommendation_mean,
+                            short_percent, inst_own_percent, insider_own_percent, beta, gross_margin, ebitda_margin,
+                            has_options, sector, industry, updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    [
+                        symbol.upper(),
+                        name,
+                        float(price) if price else None,
+                        market_cap,
+                        trailing_pe,
+                        forward_pe,
+                        ps,
+                        pb,
+                        info.get("enterpriseToEbitda"),
+                        info.get("enterpriseToRevenue"),
+                        peg,
+                        info.get("profitMargins"),
+                        info.get("operatingMargins"),
+                        roe,
+                        roa,
+                        rev_growth,
+                        info.get("earningsQuarterlyGrowth"),
+                        eps_growth,
+                        div_yield,
+                        payout,
+                        info.get("debtToEquity"),
+                        info.get("currentRatio"),
+                        info.get("fiftyDayAverage"),
+                        info.get("twoHundredDayAverage"),
+                        h52,
+                        l52,
+                        p_fcf,
+                        fcf,
+                        roic,
+                        total_debt,
+                        total_equity,
+                        total_cash,
+                        op_inc,
+                        0.21,
+                        target_upside,
+                        recommendation_mean,
+                        short_percent,
+                        inst_own_percent,
+                        insider_own_percent,
+                        beta,
+                        gross_margin,
+                        ebitda_margin,
+                        has_options,
+                        info.get("sector"),
+                        info.get("industry"),
+                        datetime.now(),
+                    ],
+                )
+            finally:
+                conn.close()
+            return True
+        except Exception as e:
+            if "Rate limited" in str(e):
+                print("🛑 Rate limited. Applying backoff...")
+                time.sleep(5)
+            return False
+        finally:
+            if owns_session:
+                try:
+                    active_session.close()
+                except Exception:
+                    pass
+
+    @classmethod
+    def hydrate_symbols(
+        cls,
+        tickers: List[str],
+        max_workers: int = 4,
+    ) -> Dict[str, bool]:
+        symbols = []
+        seen = set()
+        for ticker in tickers:
+            symbol = str(ticker or "").strip().upper()
+            if not symbol or symbol in seen:
+                continue
+            seen.add(symbol)
+            symbols.append(symbol)
+
+        if not symbols:
+            return {}
+
+        session = cls._build_requests_session()
+        try:
+            with ThreadPoolExecutor(max_workers=min(len(symbols), max_workers)) as executor:
+                futures = {
+                    symbol: executor.submit(cls._fetch_and_store_symbol, symbol, session)
+                    for symbol in symbols
+                }
+                return {symbol: future.result() for symbol, future in futures.items()}
+        finally:
+            session.close()
+
     @classmethod
     def get_sync_status(cls) -> Dict[str, Any]:
         return dict(cls._sync_progress)
@@ -138,229 +475,8 @@ class ScreenerService:
             total_tickers = len(tickers)
             print(f"🚀 Starting background sync worker for {total_tickers} tickers...")
             start_time = time.time()
-            
-            import requests
-            session = requests.Session()
-            session.headers.update({"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"})
-
-            def fetch_and_save(symbol):
-                try:
-                    ticker = yf.Ticker(symbol, session=session)
-                    info = ticker.info
-                    fast_info = ticker.fast_info or {}
-                    
-                    # Validate payload
-                    if not info or len(info) < 5: 
-                        return False
-
-                    # Extract basic info
-                    name = info.get("shortName") or info.get("longName") or symbol
-                    price = (
-                        info.get("currentPrice")
-                        or info.get("regularMarketPrice")
-                        or info.get("previousClose")
-                        or fast_info.get("lastPrice")
-                        or fast_info.get("regularMarketPreviousClose")
-                    )
-                    market_cap = info.get("marketCap") or fast_info.get("marketCap")
-                    
-                    # Ratios
-                    trailing_pe = info.get("trailingPE")
-                    forward_pe = info.get("forwardPE")
-                    ps = info.get("priceToSalesTrailing12Months") or info.get("priceToSales")
-                    pb = info.get("priceToBook")
-                    peg = info.get("trailingPegRatio") or info.get("pegRatio")
-                    
-                    # Profitability
-                    roe = cls._normalize_percent(
-                        info.get("returnOnEquity") or info.get("returnOnEquityTrailing12Months")
-                    )
-                    roa = info.get("returnOnAssets")
-                    
-                    rev_growth = info.get("revenueGrowth")
-                    eps_growth = info.get("earningsQuarterlyGrowth") or info.get("earningsGrowth")
-
-                    if rev_growth is None or eps_growth is None:
-                        try:
-                            income_stmt = ticker.quarterly_income_stmt
-                            if income_stmt is not None and not income_stmt.empty and income_stmt.shape[1] >= 2:
-                                latest = income_stmt.iloc[:, 0]
-                                prev = income_stmt.iloc[:, 1]
-                                latest_revenue = cls._to_float(
-                                    latest.get("Total Revenue") or latest.get("Operating Revenue")
-                                )
-                                prev_revenue = cls._to_float(
-                                    prev.get("Total Revenue") or prev.get("Operating Revenue")
-                                )
-                                latest_net_income = cls._to_float(
-                                    latest.get("Net Income") or latest.get("Net Income Common Stockholders")
-                                )
-                                prev_net_income = cls._to_float(
-                                    prev.get("Net Income") or prev.get("Net Income Common Stockholders")
-                                )
-
-                                if rev_growth is None and latest_revenue and prev_revenue:
-                                    rev_growth = (latest_revenue - prev_revenue) / abs(prev_revenue)
-                                if eps_growth is None and latest_net_income and prev_net_income:
-                                    eps_growth = (latest_net_income - prev_net_income) / abs(prev_net_income)
-                        except Exception:
-                            pass
-                    
-                    # Dividends & Price Ranges
-                    div_yield = cls._normalize_dividend_yield(info.get("dividendYield"))
-                    payout = info.get("payoutRatio")
-                    h52 = (
-                        info.get("fiftyTwoWeekHigh")
-                        or fast_info.get("yearHigh")
-                        or fast_info.get("fiftyTwoWeekHigh")
-                    )
-                    l52 = (
-                        info.get("fiftyTwoWeekLow")
-                        or fast_info.get("yearLow")
-                        or fast_info.get("fiftyTwoWeekLow")
-                    )
-                    
-                    # Sentiment and Momentum
-                    recommendation_mean = info.get("recommendationMean")
-                    target_mean_price = info.get("targetMeanPrice")
-                    
-                    # Fallback for recommendation and targets if missing from info
-                    if recommendation_mean is None or target_mean_price is None:
-                        try:
-                            analyst_targets = ticker.analyst_price_targets
-                            if analyst_targets is not None:
-                                target_mean_price = target_mean_price or analyst_targets.get('mean')
-                        except Exception:
-                            pass
-
-                    if recommendation_mean is None:
-                        try:
-                            rec_summary = ticker.recommendations_summary
-                            if rec_summary is not None:
-                                if hasattr(rec_summary, "to_dict"):
-                                    summary_dict = rec_summary.to_dict()
-                                    recommendation_mean = (
-                                        summary_dict.get("mean")
-                                        or summary_dict.get("recommendationMean")
-                                    )
-                                elif isinstance(rec_summary, dict):
-                                    recommendation_mean = (
-                                        rec_summary.get("mean")
-                                        or rec_summary.get("recommendationMean")
-                                    )
-                        except Exception:
-                            pass
-
-                    target_upside = None
-                    if target_mean_price and price and price > 0:
-                        target_upside = (target_mean_price - price) / price
-                    
-                    short_percent = info.get("shortPercentOfFloat")
-                    inst_own_percent = info.get("heldPercentInstitutions")
-                    insider_own_percent = info.get("heldPercentInsiders")
-                    
-                    # Fallback for ownership data using explicit holder modules
-                    if inst_own_percent is None or insider_own_percent is None:
-                        try:
-                            maj_holders = ticker.major_holders
-                            if maj_holders is not None and not maj_holders.empty:
-                                for _, row in maj_holders.iterrows():
-                                    val = row[0]
-                                    label = str(row[1])
-                                    if 'Institutions' in label:
-                                        inst_own_percent = float(str(val).strip('%'))/100 if isinstance(val, str) else val
-                                    if 'Insiders' in label:
-                                        insider_own_percent = float(str(val).strip('%'))/100 if isinstance(val, str) else val
-                        except: pass
-                        
-                    beta = info.get("beta")
-                    gross_margin = info.get("grossMargins")
-                    ebitda_margin = info.get("ebitdaMargins")
-                    
-                    # Free Cash Flow & P/FCF
-                    fcf = info.get("freeCashflow")
-                    if fcf is None:
-                        try:
-                            cashflow = ticker.cashflow
-                            if cashflow is not None and not cashflow.empty:
-                                latest_cf = cashflow.iloc[:, 0]
-                                fcf = latest_cf.get("Free Cash Flow")
-                        except Exception:
-                            pass
-                    p_fcf = None
-                    fcf_val = cls._to_float(fcf)
-                    mcap_val = cls._to_float(market_cap)
-                    if fcf_val is not None and mcap_val is not None and fcf_val > 0:
-                        p_fcf = mcap_val / fcf_val
-
-                    # Balance Sheet Components for ROIC
-                    total_debt = info.get("totalDebt")
-                    total_cash = info.get("totalCash")
-                    total_equity = info.get("totalEquity") or info.get("totalStockholderEquity")
-                    
-                    # Deep fetch if critical financial data is missing (only for mid/large caps to save time)
-                    if (market_cap and market_cap > 10000000000) and (total_equity is None or total_debt is None):
-                        try:
-                            bs = ticker.balance_sheet
-                            if not bs.empty:
-                                latest = bs.iloc[:, 0]
-                                total_equity = total_equity or latest.get("Stockholders Equity") or latest.get("Total Stockholder Equity") or latest.get("Common Stock Equity")
-                                total_debt = total_debt or latest.get("Total Debt") or latest.get("Long Term Debt")
-                                total_cash = total_cash or latest.get("Cash And Cash Equivalents")
-                        except: pass
-
-                    # ROIC Calculation
-                    op_inc = info.get("operatingIncome") or info.get("ebitda")
-                    if op_inc is None and info.get("operatingMargins") and info.get("totalRevenue"):
-                        op_inc = info.get("operatingMargins") * info.get("totalRevenue")
-                    
-                    roic = None
-                    if op_inc and total_equity:
-                        invested_cap = (total_debt or 0) + total_equity - (total_cash or 0)
-                        denom = invested_cap if invested_cap > (total_equity * 0.2) else total_equity
-                        roic = (op_inc * 0.79) / denom
-
-                    # Persist to DB
-                    conn = db.get_connection()
-                    try:
-                        has_options = False
-                        try:
-                            has_options = len(ticker.options) > 0
-                        except Exception:
-                            pass
-
-                        conn.execute("""
-                            INSERT OR REPLACE INTO screener_data (
-                                symbol, name, price, market_cap, trailing_pe, forward_pe, 
-                                price_to_sales, price_to_book, ev_to_ebitda, ev_to_revenue, 
-                                peg_ratio, profit_margin, operating_margin, roe, roa, 
-                                revenue_growth, earnings_growth, eps_growth, dividend_yield, payout_ratio, 
-                                debt_to_equity, current_ratio, fifty_day_sma, two_hundred_day_sma, 
-                                fifty_two_week_high, fifty_two_week_low, price_to_fcf,
-                                free_cash_flow, roic, total_debt, total_equity, total_cash, 
-                                operating_income, tax_rate, target_upside, recommendation_mean, 
-                                short_percent, inst_own_percent, insider_own_percent, beta, gross_margin, ebitda_margin, 
-                                has_options, sector, industry, updated_at
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, [
-                            symbol.upper(), name, float(price) if price else None, market_cap, trailing_pe, forward_pe,
-                            ps, pb, info.get("enterpriseToEbitda"), info.get("enterpriseToRevenue"),
-                            peg, info.get("profitMargins"), info.get("operatingMargins"), roe, roa,
-                            rev_growth, info.get("earningsQuarterlyGrowth"), eps_growth, div_yield, payout,
-                            info.get("debtToEquity"), info.get("currentRatio"), info.get("fiftyDayAverage"), info.get("twoHundredDayAverage"),
-                            h52, l52, p_fcf,
-                            fcf, roic, total_debt, total_equity, total_cash, op_inc, 0.21,
-                            target_upside, recommendation_mean, short_percent, inst_own_percent, insider_own_percent, beta, gross_margin, ebitda_margin,
-                            has_options, info.get("sector"), info.get("industry"), datetime.now()
-                        ])
-                    finally: 
-                        conn.close()
-                    return True
-                except Exception as e:
-                    if "Rate limited" in str(e):
-                        print(f"🛑 Rate limited. Applying backoff...")
-                        time.sleep(30)
-                    return False
+            session = None
+            session = cls._build_requests_session()
 
             # Batch processing to manage memory and API thresholds
             processed = 0
@@ -370,7 +486,12 @@ class ScreenerService:
                 chunk = tickers[i:i+chunk_size]
                 
                 with ThreadPoolExecutor(max_workers=10) as executor:
-                    results = list(executor.map(fetch_and_save, chunk))
+                    results = list(
+                        executor.map(
+                            lambda symbol: cls._fetch_and_store_symbol(symbol, session),
+                            chunk,
+                        )
+                    )
                 
                 processed += len(chunk)
                 cls._sync_progress["processed"] = processed
@@ -384,6 +505,11 @@ class ScreenerService:
                 
             print(f"✅ Sync run completed in {time.time() - start_time:.1f}s")
         finally: 
+            try:
+                if session is not None:
+                    session.close()
+            except Exception:
+                pass
             cls._sync_in_progress = False
             cls._sync_progress["is_running"] = False
             cls._sync_progress["completed_at"] = datetime.now()

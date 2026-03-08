@@ -705,6 +705,38 @@
       "executionOverlay": "顯示執行 overlay",
       "executionHint": "短線策略尚未完全定義；此 overlay 僅保留進出場參考，不主導長線決策。"
     },
+    "coverage": {
+      "frameworks": {
+        "GENERAL": "一般公司",
+        "CYCLICAL": "景氣循環",
+        "FINANCIAL": "金融業",
+        "UNPROFITABLE": "未獲利成長"
+      },
+      "tooltip": {
+        "framework": "框架：{{value}}",
+        "fundamentals": "基本面 {{value}}",
+        "technical": "技術面 {{value}}",
+        "valuation": "估值 {{value}}",
+        "missing": "目前還缺：{{value}}",
+        "complete": "核心輸入已完整載入。"
+      },
+      "groups": {
+        "valuation_multiple": "估值倍數",
+        "growth": "營收成長",
+        "earnings": "獲利成長",
+        "returns": "資本報酬",
+        "cashflow": "現金流判讀",
+        "margins": "利潤率輪廓",
+        "balance_sheet": "資產負債表",
+        "capital": "資本結構",
+        "sales_multiple": "營收倍數",
+        "unit_economics": "單位經濟",
+        "market_sponsorship": "市場覆蓋",
+        "rsi14": "RSI",
+        "price_position": "52 週位置",
+        "valuation_context": "估值上下文"
+      }
+    },
     "presets": {
       "ALL": "全部 {{count}}",
       "READY": "可準備進場 {{count}}",
@@ -712,7 +744,7 @@
       "CYCLE": "景氣檢查 {{count}}",
       "PULLBACK": "等待回檔 {{count}}",
       "RISK": "高風險監控 {{count}}",
-      "STALE": "待刷新資料 {{count}}"
+      "RESEARCH": "研究佇列 {{count}}"
     },
     "sort": {
       "label": "排序方式",
@@ -747,12 +779,16 @@
         "title": "基本面陷阱",
         "helper": "資產負債表或獲利品質仍偏脆弱，還不是乾淨的長線進場點。"
       },
+      "research": {
+        "title": "研究佇列",
+        "helper": "資料覆蓋不足或估值尚未完整，這些名字不該和決策就緒標的一起競爭排序。"
+      },
       "stale": {
         "title": "先刷新資料",
         "helper": "資料或覆蓋率不足前，不要急著下判斷。"
       }
     },
-    "alert": "此頁優先服務長線投資：基本面陷阱風險與景氣循環風險分開評估，因此低 P/E 不會自動被視為買點。",
+    "alert": "此頁優先服務長線投資：基本面陷阱風險與景氣循環風險分開評估，資料不完整的名字也會被推入研究佇列，不和決策就緒標的一起排序。",
     "empty": {
       "title": "觀察清單為空",
       "subtitle": "先加入高 conviction 標的，再讓數據把品質、風險與進場條件排出優先順序。",
@@ -783,9 +819,17 @@
         "conviction": "綜合信念",
         "headlinePe": "表面 P/E",
         "cycleAdjustedPe": "週期調整 P/E",
+        "cycleProfile": "景氣輪廓",
         "quality": "品質分數",
         "timing": "時機分數",
         "riskScore": "基本面風險 {{value}}"
+      },
+      "states": {
+        "READY": "可準備進場",
+        "WAIT_PULLBACK": "等待回檔",
+        "WAIT_CONFIRMATION": "等待確認",
+        "RESEARCH_ONLY": "僅供研究",
+        "AVOID": "先避開"
       },
       "sections": {
         "quality": "品質與複利引擎",
@@ -890,7 +934,9 @@
         "low_roic": "ROIC 僅 {{value}}%，表示資本效率偏弱。",
         "balance_sheet_stress": "Debt / Equity {{value}} 偏高，景氣反轉時壓力會更大。",
         "weak_liquidity": "Current ratio 僅 {{value}}，短期流動性緩衝不足。",
+        "negative_margin": "獲利率仍為 {{value}}%，還沒到能給高品質結論的狀態。",
         "thin_margin": "獲利率只有 {{value}}%，缺乏抵禦逆風的安全墊。",
+        "negative_roe": "ROE 仍為 {{value}}%，股東資本報酬尚未正常化。",
         "negative_fcf": "自由現金流為負，便宜估值可能只是現金燃燒的折價。",
         "missing_cashflow": "現金流資料不足，不能只靠表面估值下結論。",
         "cheap_but_low_quality": "看似有 {{upside}}% upside，但品質只有 {{quality}} 分，屬於典型便宜但脆弱的組合。",
@@ -925,6 +971,7 @@
         "non_cyclical": "這檔不太像典型價格接受者；品質分數 {{quality}} 也支持較穩定的獲利輪廓。",
         "memory": "產業看起來屬於 memory / storage，供給波動很容易扭曲表面 P/E。",
         "materials": "產業特性偏 commodity，獲利容易先衝高再均值回歸。",
+        "tech_cycle": "這更像硬體 / 半導體復甦型 setup，低 forward P/E 可能反映的是景氣循環，不是結構性便宜。",
         "transport": "運輸與貨運獲利通常跟利用率與報價循環一起波動。",
         "commodity": "這個產業仍明顯受供需驅動，不是單純靠定價權。",
         "energy": "能源類產業常常在獲利高點時看起來最便宜。",
@@ -932,6 +979,7 @@
         "headline_pe": "表面 P/E 只有 {{value}}x，不能只看便宜，應先做景氣調整。",
         "peak_signals": "近期成長與獲利率偏強，代表當前獲利可能高於正常週期水位。",
         "trough_signals": "獲利率與成長仍偏弱，代表目前倍數可能低估景氣回升後的賺錢能力。",
+        "forward_rebound": "Trailing / forward P/E 落差達 {{value}}x，通常代表獲利正在復甦，而不是穩態獲利基準。",
         "near_high": "股價仍在相對高檔，這常發生在週期股獲利最強的階段。"
       }
     },
@@ -968,6 +1016,9 @@
         "stale_data": "資料已超過 {{value}} 天未更新，先刷新再下判斷。",
         "confidence_high": "模型信心度 {{value}}%，可以更重視當前結論。",
         "confidence_low": "模型信心度 {{value}}%，目前只適合放在研究名單。",
+        "research_only": "資料覆蓋率只有 {{value}}%，目前仍屬研究佇列。",
+        "coverage_thin": "資料覆蓋率只有 {{value}}%，還不到完整決策狀態。",
+        "aging_data": "資料已過 {{value}} 天，時機判斷應打折。",
         "cycle_peak_high": "Peak-earnings risk {{value}} 分，不能只因為低 P/E 就直接進場。",
         "cycle_peak_medium": "景氣循環風險 {{value}} 分，先等更好的價格或更乾淨的營運證據。"
       }

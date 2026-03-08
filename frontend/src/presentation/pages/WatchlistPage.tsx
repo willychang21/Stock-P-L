@@ -53,7 +53,6 @@ import {
   WatchlistSearchItem,
 } from '../../domain/models/Watchlist';
 import { Dialog, DialogContent } from '@mui/material';
-import ValuationScoreCell from '../components/Screener/ValuationScoreCell';
 import {
   formatCurrency,
   formatNumber,
@@ -68,7 +67,7 @@ type WatchlistPreset =
   | 'CYCLE'
   | 'PULLBACK'
   | 'RISK'
-  | 'STALE';
+  | 'RESEARCH';
 type WatchlistSort =
   | 'CONVICTION'
   | 'TIMING'
@@ -77,7 +76,7 @@ type WatchlistSort =
   | 'CYCLE'
   | 'RISK';
 
-const WATCHLIST_VIEW_PREFERENCES_KEY = 'watchlist-view-preferences-v2';
+const WATCHLIST_VIEW_PREFERENCES_KEY = 'watchlist-view-preferences-v3';
 
 const LazyStockInsightDrawer = React.lazy(
   () => import('../components/Screener/StockInsightDrawer')
@@ -115,7 +114,7 @@ const getStoredWatchlistPreferences = () => {
       'CYCLE',
       'PULLBACK',
       'RISK',
-      'STALE',
+      'RESEARCH',
     ];
     const allowedSorts: WatchlistSort[] = [
       'CONVICTION',
@@ -153,16 +152,6 @@ const planColor = (
   return 'info';
 };
 
-const timingColor = (
-  status: WatchlistItem['timing']['status']
-): 'success' | 'warning' | 'info' | 'default' | 'error' => {
-  if (status === 'READY') return 'success';
-  if (status === 'WAIT_PULLBACK') return 'warning';
-  if (status === 'WAIT_CONFIRMATION') return 'info';
-  if (status === 'STALE') return 'default';
-  return 'error';
-};
-
 const valueTrapColor = (
   level: WatchlistItem['value_trap']['level']
 ): 'success' | 'warning' | 'error' => {
@@ -188,6 +177,35 @@ const cycleRegimeColor = (
   return 'warning';
 };
 
+type WatchlistDisplayState =
+  | 'READY'
+  | 'WAIT_PULLBACK'
+  | 'WAIT_CONFIRMATION'
+  | 'RESEARCH_ONLY'
+  | 'AVOID';
+
+const getDisplayState = (item: WatchlistItem): WatchlistDisplayState => {
+  if (item.timing.status === 'AVOID') {
+    return 'AVOID';
+  }
+
+  if (item.signal.data_coverage < 0.6 || item.timing.status === 'STALE') {
+    return 'RESEARCH_ONLY';
+  }
+
+  return item.timing.status;
+};
+
+const displayStateColor = (
+  state: WatchlistDisplayState
+): 'success' | 'warning' | 'info' | 'default' | 'error' => {
+  if (state === 'READY') return 'success';
+  if (state === 'WAIT_PULLBACK') return 'warning';
+  if (state === 'RESEARCH_ONLY') return 'default';
+  if (state === 'AVOID') return 'error';
+  return 'info';
+};
+
 const qualityTone = (
   outlook: WatchlistItem['quality']['outlook']
 ): 'success' | 'info' | 'warning' | 'error' => {
@@ -198,21 +216,14 @@ const qualityTone = (
 };
 
 const getUpsidePct = (item: WatchlistItem) => item.valuation.upside_pct ?? -1;
-const getReferencePe = (item: WatchlistItem) => {
-  const peValues = [item.forward_pe, item.trailing_pe].filter(
-    (value): value is number => value !== undefined && value !== null && value > 0
-  );
-
-  if (peValues.length === 0) {
-    return undefined;
-  }
-
-  return peValues.reduce((sum, value) => sum + value, 0) / peValues.length;
-};
+const getHeadlinePe = (item: WatchlistItem) =>
+  item.forward_pe && item.forward_pe > 0 ? item.forward_pe : item.trailing_pe;
 const getCycleAdjustedPe = (item: WatchlistItem) =>
   item.cycle_profile.normalized_pe;
 const formatPeMultiple = (value?: number) =>
   value === undefined || value === null ? '-' : `${formatNumber(value, 1)}x`;
+const formatCoverageBucket = (bucket?: { have: number; total: number }) =>
+  bucket ? `${bucket.have}/${bucket.total}` : '-';
 
 const getConvictionScore = (item: WatchlistItem) => {
   const upsideScore = clamp(((getUpsidePct(item) + 0.2) / 0.6) * 100, 0, 100);
@@ -223,7 +234,7 @@ const getConvictionScore = (item: WatchlistItem) => {
     clamp(
       item.quality.score * 0.28 +
         item.timing.score * 0.25 +
-      item.signal.confidence * 0.15 +
+        item.signal.confidence * 0.15 +
         upsideScore * 0.14 +
         structuralSafetyScore * 0.10 +
         cycleSafetyScore * 0.08,
@@ -234,9 +245,11 @@ const getConvictionScore = (item: WatchlistItem) => {
 };
 
 const matchesPreset = (item: WatchlistItem, preset: WatchlistPreset) => {
+  const displayState = getDisplayState(item);
+
   switch (preset) {
     case 'READY':
-      return item.timing.status === 'READY';
+      return displayState === 'READY';
     case 'COMPOUNDER':
       return item.quality.score >= 75 && item.value_trap.level === 'LOW';
     case 'CYCLE':
@@ -245,15 +258,15 @@ const matchesPreset = (item: WatchlistItem, preset: WatchlistPreset) => {
         item.cycle_profile.peak_earnings_risk !== 'LOW'
       );
     case 'PULLBACK':
-      return item.timing.status === 'WAIT_PULLBACK';
+      return displayState === 'WAIT_PULLBACK';
     case 'RISK':
       return (
         item.value_trap.level === 'HIGH' ||
-        item.timing.status === 'AVOID' ||
+        displayState === 'AVOID' ||
         item.cycle_profile.peak_earnings_risk === 'HIGH'
       );
-    case 'STALE':
-      return item.timing.status === 'STALE' || item.signal.data_coverage < 0.7;
+    case 'RESEARCH':
+      return displayState === 'RESEARCH_ONLY';
     case 'ALL':
     default:
       return true;
@@ -488,16 +501,15 @@ const WatchlistPage: React.FC = () => {
 
   const stats = useMemo(
     () => ({
-      ready: filteredItems.filter(item => item.timing.status === 'READY')
+      ready: filteredItems.filter(item => getDisplayState(item) === 'READY')
         .length,
       cycle: filteredItems.filter(
         item => item.cycle_profile.peak_earnings_risk === 'HIGH'
       ).length,
       trap: filteredItems.filter(item => item.value_trap.level === 'HIGH')
         .length,
-      stale: filteredItems.filter(
-        item =>
-          item.timing.status === 'STALE' || item.signal.data_coverage < 0.7
+      research: filteredItems.filter(
+        item => getDisplayState(item) === 'RESEARCH_ONLY'
       ).length,
       avgQuality:
         filteredItems.length > 0
@@ -513,7 +525,7 @@ const WatchlistPage: React.FC = () => {
   const presetCounts = useMemo(
     () => ({
       ALL: watchlist.length,
-      READY: watchlist.filter(item => item.timing.status === 'READY').length,
+      READY: watchlist.filter(item => getDisplayState(item) === 'READY').length,
       COMPOUNDER: watchlist.filter(
         item => item.quality.score >= 75 && item.value_trap.level === 'LOW'
       ).length,
@@ -527,12 +539,11 @@ const WatchlistPage: React.FC = () => {
       RISK: watchlist.filter(
         item =>
           item.value_trap.level === 'HIGH' ||
-          item.timing.status === 'AVOID' ||
+          getDisplayState(item) === 'AVOID' ||
           item.cycle_profile.peak_earnings_risk === 'HIGH'
       ).length,
-      STALE: watchlist.filter(
-        item =>
-          item.timing.status === 'STALE' || item.signal.data_coverage < 0.7
+      RESEARCH: watchlist.filter(
+        item => getDisplayState(item) === 'RESEARCH_ONLY'
       ).length,
     }),
     [watchlist]
@@ -813,7 +824,7 @@ const WatchlistPage: React.FC = () => {
                     'CYCLE',
                     'PULLBACK',
                     'RISK',
-                    'STALE',
+                    'RESEARCH',
                   ] as WatchlistPreset[]
                 ).map(option => (
                   <Chip
@@ -872,9 +883,9 @@ const WatchlistPage: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6} xl={3}>
               <SummaryCard
-                title={t('watchlist.summary.stale.title')}
-                value={stats.stale}
-                helper={t('watchlist.summary.stale.helper')}
+                title={t('watchlist.summary.research.title')}
+                value={stats.research}
+                helper={t('watchlist.summary.research.helper')}
                 icon={<RefreshIcon fontSize="small" />}
                 accent={theme.palette.info.main}
               />
@@ -919,6 +930,7 @@ const WatchlistPage: React.FC = () => {
                 const industryLabel = [item.sector, item.industry]
                   .filter(Boolean)
                   .join(' / ');
+                const displayState = getDisplayState(item);
 
                 return (
                   <Grid key={item.symbol} item xs={12} xl={6}>
@@ -926,14 +938,14 @@ const WatchlistPage: React.FC = () => {
                       sx={{
                         height: '100%',
                         border: `1px solid ${alpha(
-                          item.timing.status === 'READY'
+                          displayState === 'READY'
                             ? theme.palette.success.main
                             : item.value_trap.level === 'HIGH'
                               ? theme.palette.error.main
                               : item.cycle_profile.peak_earnings_risk === 'HIGH'
                                 ? theme.palette.warning.main
                               : theme.palette.common.white,
-                          item.timing.status === 'READY' ||
+                          displayState === 'READY' ||
                             item.value_trap.level === 'HIGH' ||
                             item.cycle_profile.peak_earnings_risk === 'HIGH'
                             ? 0.24
@@ -947,6 +959,7 @@ const WatchlistPage: React.FC = () => {
                           theme.palette.common.black,
                           0.14
                         )}`,
+                        opacity: displayState === 'RESEARCH_ONLY' ? 0.88 : 1,
                       }}
                     >
                       <CardContent sx={{ p: { xs: 2, md: 2.5 } }}>
@@ -975,9 +988,9 @@ const WatchlistPage: React.FC = () => {
                                 </Typography>
                                 <Chip
                                   size="small"
-                                  color={timingColor(item.timing.status)}
+                                  color={displayStateColor(displayState)}
                                   label={t(
-                                    `watchlist.timing.statuses.${item.timing.status}`
+                                    `watchlist.card.states.${displayState}`
                                   )}
                                 />
                                 {item.cycle_profile.is_cyclical && (
@@ -1015,11 +1028,6 @@ const WatchlistPage: React.FC = () => {
                                   label={t(
                                     `watchlist.quality.outlook.${item.quality.outlook}`
                                   )}
-                                />
-                                <ValuationScoreCell
-                                  score={item.valuation_score}
-                                  label={item.valuation_label}
-                                  lowConfidence={item.valuation_low_confidence}
                                 />
                               </Stack>
 
@@ -1137,7 +1145,7 @@ const WatchlistPage: React.FC = () => {
                               <Grid item xs={6} md={3}>
                                 <MetricTile
                                   label={t('watchlist.card.metrics.headlinePe')}
-                                  value={formatPeMultiple(getReferencePe(item))}
+                                  value={formatPeMultiple(getHeadlinePe(item))}
                                   tone={
                                     item.cycle_profile.peak_earnings_risk ===
                                     'HIGH'
@@ -1158,10 +1166,12 @@ const WatchlistPage: React.FC = () => {
                                   label={t('watchlist.card.metrics.timing')}
                                   value={formatNumber(item.timing.score, 0)}
                                   tone={
-                                    item.timing.status === 'READY'
+                                    displayState === 'READY'
                                       ? 'success'
-                                      : item.timing.status === 'AVOID'
+                                      : displayState === 'AVOID'
                                         ? 'error'
+                                        : displayState === 'RESEARCH_ONLY'
+                                          ? 'neutral'
                                         : 'warning'
                                   }
                                 />
@@ -1408,7 +1418,7 @@ const WatchlistPage: React.FC = () => {
                                         'watchlist.card.metrics.headlinePe'
                                       )}
                                       value={formatPeMultiple(
-                                        getReferencePe(item)
+                                        getHeadlinePe(item)
                                       )}
                                       tone="neutral"
                                     />
@@ -1416,11 +1426,19 @@ const WatchlistPage: React.FC = () => {
                                   <Grid item xs={6}>
                                     <MetricTile
                                       label={t(
-                                        'watchlist.card.metrics.cycleAdjustedPe'
+                                        item.cycle_profile.is_cyclical
+                                          ? 'watchlist.card.metrics.cycleAdjustedPe'
+                                          : 'watchlist.card.metrics.cycleProfile'
                                       )}
-                                      value={formatPeMultiple(
-                                        getCycleAdjustedPe(item)
-                                      )}
+                                      value={
+                                        item.cycle_profile.is_cyclical
+                                          ? formatPeMultiple(
+                                              getCycleAdjustedPe(item)
+                                            )
+                                          : t(
+                                              `watchlist.cycle.regimes.${item.cycle_profile.earnings_regime}`
+                                            )
+                                      }
                                       tone={
                                         item.cycle_profile.peak_earnings_risk ===
                                         'HIGH'
@@ -1651,15 +1669,70 @@ const WatchlistPage: React.FC = () => {
                               flexWrap="wrap"
                               sx={{ rowGap: 0.75 }}
                             >
-                              <Chip
-                                size="small"
-                                variant="outlined"
-                                label={t('watchlist.card.coverage', {
-                                  percent: (
-                                    item.signal.data_coverage * 100
-                                  ).toFixed(0),
-                                })}
-                              />
+                              <Tooltip
+                                arrow
+                                title={
+                                  item.signal.coverage_breakdown ? (
+                                    <Stack spacing={0.5} sx={{ py: 0.25 }}>
+                                      <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                        {t('watchlist.coverage.tooltip.framework', {
+                                          value: t(
+                                            `watchlist.coverage.frameworks.${item.signal.coverage_breakdown.framework}`
+                                          ),
+                                        })}
+                                      </Typography>
+                                      <Typography variant="caption">
+                                        {t('watchlist.coverage.tooltip.fundamentals', {
+                                          value: formatCoverageBucket(
+                                            item.signal.coverage_breakdown.fundamentals
+                                          ),
+                                        })}
+                                      </Typography>
+                                      <Typography variant="caption">
+                                        {t('watchlist.coverage.tooltip.technical', {
+                                          value: formatCoverageBucket(
+                                            item.signal.coverage_breakdown.technical
+                                          ),
+                                        })}
+                                      </Typography>
+                                      <Typography variant="caption">
+                                        {t('watchlist.coverage.tooltip.valuation', {
+                                          value: formatCoverageBucket(
+                                            item.signal.coverage_breakdown.valuation
+                                          ),
+                                        })}
+                                      </Typography>
+                                      <Typography
+                                        variant="caption"
+                                        color="inherit"
+                                        sx={{ opacity: 0.86 }}
+                                      >
+                                        {item.signal.coverage_breakdown.missing_groups.length > 0
+                                          ? t('watchlist.coverage.tooltip.missing', {
+                                              value: item.signal.coverage_breakdown.missing_groups
+                                                .map(group =>
+                                                  t(`watchlist.coverage.groups.${group}`)
+                                                )
+                                                .join(', '),
+                                            })
+                                          : t('watchlist.coverage.tooltip.complete')}
+                                      </Typography>
+                                    </Stack>
+                                  ) : (
+                                    ''
+                                  )
+                                }
+                              >
+                                <Chip
+                                  size="small"
+                                  variant="outlined"
+                                  label={t('watchlist.card.coverage', {
+                                    percent: (
+                                      item.signal.data_coverage * 100
+                                    ).toFixed(0),
+                                  })}
+                                />
+                              </Tooltip>
                               <Chip
                                 size="small"
                                 variant="outlined"

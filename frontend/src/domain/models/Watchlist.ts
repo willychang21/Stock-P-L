@@ -14,11 +14,25 @@ export interface I18nMessage {
   params?: Record<string, any>;
 }
 
+export interface WatchlistCoverageBucket {
+  have: number;
+  total: number;
+}
+
+export interface WatchlistCoverageBreakdown {
+  framework: 'GENERAL' | 'CYCLICAL' | 'FINANCIAL' | 'UNPROFITABLE';
+  fundamentals: WatchlistCoverageBucket;
+  technical: WatchlistCoverageBucket;
+  valuation: WatchlistCoverageBucket;
+  missing_groups: string[];
+}
+
 export interface WatchlistSignal {
   action: WatchSignalAction;
   score: number;
   confidence: number;
   data_coverage: number;
+  coverage_breakdown?: WatchlistCoverageBreakdown;
   freshness_days?: number;
   reasons: I18nMessage[];
 }

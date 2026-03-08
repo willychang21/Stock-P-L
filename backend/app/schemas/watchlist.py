@@ -11,6 +11,19 @@ class I18nMessage(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
 
 
+class WatchlistCoverageBucket(BaseModel):
+    have: int
+    total: int
+
+
+class WatchlistCoverageBreakdown(BaseModel):
+    framework: Literal["GENERAL", "CYCLICAL", "FINANCIAL", "UNPROFITABLE"]
+    fundamentals: WatchlistCoverageBucket
+    technical: WatchlistCoverageBucket
+    valuation: WatchlistCoverageBucket
+    missing_groups: list[str] = Field(default_factory=list)
+
+
 class WatchlistSearchItem(BaseModel):
     symbol: str
     name: str | None = None
@@ -34,6 +47,7 @@ class WatchlistSignal(BaseModel):
     score: float
     confidence: int
     data_coverage: float
+    coverage_breakdown: WatchlistCoverageBreakdown | None = None
     freshness_days: int | None = None
     reasons: list[I18nMessage] = Field(default_factory=list)
 
