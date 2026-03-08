@@ -29,6 +29,41 @@ export interface WatchlistTechnical {
   warnings: I18nMessage[];
 }
 
+export interface WatchlistQualityProfile {
+  score: number;
+  outlook: 'ELITE' | 'STRONG' | 'AVERAGE' | 'SPECULATIVE';
+  profitability?: number;
+  growth?: number;
+  financial_strength?: number;
+  valuation_support?: number;
+  summary: I18nMessage;
+}
+
+export interface WatchlistValueTrapRisk {
+  level: 'LOW' | 'MEDIUM' | 'HIGH';
+  score: number;
+  reasons: I18nMessage[];
+}
+
+export interface WatchlistCycleProfile {
+  is_cyclical: boolean;
+  price_taker: boolean;
+  earnings_regime: 'STEADY' | 'TROUGH' | 'MID' | 'PEAK';
+  peak_earnings_risk: 'LOW' | 'MEDIUM' | 'HIGH';
+  score: number;
+  normalized_pe?: number;
+  summary: I18nMessage;
+  reasons: I18nMessage[];
+}
+
+export interface WatchlistTimingSignal {
+  status: 'READY' | 'WAIT_PULLBACK' | 'WAIT_CONFIRMATION' | 'STALE' | 'AVOID';
+  score: number;
+  freshness_days?: number;
+  summary: I18nMessage;
+  conditions: I18nMessage[];
+}
+
 export interface WatchlistValuation {
   model: 'DCF';
   status: 'AVAILABLE' | 'UNAVAILABLE';
@@ -99,6 +134,10 @@ export interface WatchlistItem {
   note?: string;
   signal: WatchlistSignal;
   technical: WatchlistTechnical;
+  quality: WatchlistQualityProfile;
+  value_trap: WatchlistValueTrapRisk;
+  cycle_profile: WatchlistCycleProfile;
+  timing: WatchlistTimingSignal;
   valuation: WatchlistValuation;
   trade_plan: WatchlistTradePlan;
   // Runtime-computed industry valuation score

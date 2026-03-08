@@ -683,40 +683,129 @@
     }
   },
   "watchlist": {
-    "title": "觀察清單雷達",
-    "subtitle": "快速新增標的，並在採取行動前根據訊號品質對想法進行排名。",
-    "refresh": "重新整理訊號",
+    "title": "長線觀察清單",
+    "subtitle": "用 buy-side 研究流程排列標的：先看品質，再把基本面陷阱和景氣循環風險分開檢查，最後才判斷進場時機是否成熟。",
+    "refresh": "重新整理框架",
+    "searchLabel": "新增標的",
     "searchPlaceholder": "搜尋代號或公司名稱",
     "add": "加入觀察清單",
     "adding": "新增中...",
-    "filterPlaceholder": "篩選現有清單",
+    "filterLabel": "篩選觀察清單",
+    "filterPlaceholder": "搜尋代號、公司名稱、產業或景氣階段",
     "stats": {
       "symbols": "標的數",
       "buyBias": "買入偏好",
       "holdBias": "觀望偏好",
       "sellRisk": "賣出風險"
     },
-    "alert": "訊號結合了估值、成長、品質和 yfinance 技術動能。僅供決策參考，非財務建議。",
+    "hero": {
+      "mode": "長線研究模式",
+      "coverage": "顯示 {{shown}} / {{total}} 檔",
+      "avgQuality": "平均品質 {{value}}",
+      "executionOverlay": "顯示執行 overlay",
+      "executionHint": "短線策略尚未完全定義；此 overlay 僅保留進出場參考，不主導長線決策。"
+    },
+    "presets": {
+      "ALL": "全部 {{count}}",
+      "READY": "可準備進場 {{count}}",
+      "COMPOUNDER": "高品質複利 {{count}}",
+      "CYCLE": "景氣檢查 {{count}}",
+      "PULLBACK": "等待回檔 {{count}}",
+      "RISK": "高風險監控 {{count}}",
+      "STALE": "待刷新資料 {{count}}"
+    },
+    "sort": {
+      "label": "排序方式",
+      "options": {
+        "CONVICTION": "綜合信念",
+        "TIMING": "進場時機",
+        "UPSIDE": "安全邊際",
+        "QUALITY": "品質分數",
+        "CYCLE": "景氣循環風險",
+        "RISK": "綜合風險"
+      }
+    },
+    "resetView": "重置視圖",
+    "loading": {
+      "insights": "載入深度分析中...",
+      "valuation": "載入估值工具中..."
+    },
+    "summary": {
+      "ready": {
+        "title": "可準備進場",
+        "helper": "品質、估值與時機三者已同時對齊。"
+      },
+      "cycle": {
+        "title": "獲利高點風險",
+        "helper": "低 P/E 可能只是景氣高點時 E 太高，不一定代表真的便宜。"
+      },
+      "pullback": {
+        "title": "等待回檔",
+        "helper": "公司不錯，但價格與位置還能更舒服。"
+      },
+      "trap": {
+        "title": "基本面陷阱",
+        "helper": "資產負債表或獲利品質仍偏脆弱，還不是乾淨的長線進場點。"
+      },
+      "stale": {
+        "title": "先刷新資料",
+        "helper": "資料或覆蓋率不足前，不要急著下判斷。"
+      }
+    },
+    "alert": "此頁優先服務長線投資：基本面陷阱風險與景氣循環風險分開評估，因此低 P/E 不會自動被視為買點。",
     "empty": {
       "title": "觀察清單為空",
-      "subtitle": "搜尋並新增標的，開始監控即時買賣訊號。"
+      "subtitle": "先加入高 conviction 標的，再讓數據把品質、風險與進場條件排出優先順序。",
+      "filteredTitle": "目前篩選條件下沒有標的",
+      "filteredSubtitle": "調整 preset、排序或關鍵字，重新查看長線候選名單。"
     },
     "card": {
       "nameUnavailable": "無名稱資料",
-      "mktCap": "市值: {{value}}",
+      "mktCap": "市值 {{value}}",
       "fwdPe": "預估 P/E",
       "roic": "ROIC",
       "revGrowth": "營收成長",
       "epsGrowth": "EPS 成長",
       "remove": "從觀察清單移除",
+      "removeAria": "從觀察清單移除 {{symbol}}",
       "keySignals": "關鍵訊號",
       "moreContext": "+ 還有 {{count}} 個訊號...",
-      "coverage": "資料覆蓋率 {{percent}}%",
-      "confidence": "訊號信心度 {{percent}}%",
+      "coverage": "覆蓋率 {{percent}}%",
+      "confidence": "信心度 {{percent}}%",
+      "freshness": "資料 {{value}} 天前",
+      "freshnessUnknown": "資料時間未知",
       "deepDive": "深度分析",
+      "noWarnings": "目前沒有明顯熱度警示。",
+      "metrics": {
+        "price": "現價",
+        "margin": "安全邊際",
+        "fairValueRange": "合理價值區間",
+        "conviction": "綜合信念",
+        "headlinePe": "表面 P/E",
+        "cycleAdjustedPe": "週期調整 P/E",
+        "quality": "品質分數",
+        "timing": "時機分數",
+        "riskScore": "基本面風險 {{value}}"
+      },
+      "sections": {
+        "quality": "品質與複利引擎",
+        "primaryDrivers": "目前最有利的主因",
+        "structuralTrap": "基本面陷阱風險",
+        "technicalHeat": "技術熱度",
+        "cycleCheck": "景氣循環檢查",
+        "timing": "進場時機",
+        "valuation": "估值摘要",
+        "execution": "Execution Overlay"
+      },
+      "quality": {
+        "profitability": "獲利能力",
+        "growth": "成長耐久度",
+        "financialStrength": "財務強度",
+        "valuationSupport": "估值支撐"
+      },
       "valuation": {
         "title": "估值預測",
-        "model": "模型",
+        "model": "Valuation Lab",
         "modelTooltip": "優化 DCF 估值",
         "fairValue": "合理價值",
         "marginOfSafety": "安全邊際",
@@ -727,7 +816,8 @@
         "title": "建議交易計畫",
         "entryZone": "進場區間",
         "stopLoss": "停損價",
-        "target": "目標價 (TP1)"
+        "target": "目標價 (TP1)",
+        "rr": "R / R"
       },
       "signals": {
         "BUY": "買入",
@@ -748,16 +838,16 @@
         "revenue_growth_negative": "營收成長轉為負值。",
         "eps_growth_good": "EPS 成長 {{value}}% 確認獲利動能。",
         "eps_growth_negative": "EPS 成長為負值。",
-        "roic_strong": "ROIC {{value}}% 顯示強大的資本效率。",
+        "roic_strong": "ROIC {{value}}% 顯示資本配置效率強。",
         "roic_weak": "ROIC 低於品質門檻。",
         "pfcf_attractive": "P/FCF {{value}} 具吸引力。",
         "pfcf_expensive": "P/FCF {{value}} 估值過貴。",
         "rsi_oversold": "RSI {{value}} 接近超賣區。",
         "rsi_overbought": "RSI {{value}} 顯示超買風險。",
         "low_52w_range": "價格處於 52 週低點附近。",
-        "high_52w_range": "價格接近 52 週高點，損益比較差。",
-        "valuation_upside": "GF 估值上升空間 {{value}}% 提供安全邊際。",
-        "valuation_premium": "GF 估值溢價 {{value}}%，安全邊際有限。",
+        "high_52w_range": "價格接近 52 週高點，賠率較差。",
+        "valuation_upside": "估值上升空間 {{value}}% 提供安全邊際。",
+        "valuation_premium": "估值溢價 {{value}}%，安全邊際有限。",
         "extreme_premium": "極度溢價區，應避免激進加碼。",
         "mixed_data": "由於數據混雜，訊號偏向中立。"
       }
@@ -771,12 +861,123 @@
         "generic": "{{msg}}"
       }
     },
+    "quality": {
+      "outlook": {
+        "ELITE": "Elite Compounder",
+        "STRONG": "Strong Compounder",
+        "AVERAGE": "Needs Selectivity",
+        "SPECULATIVE": "Speculative"
+      },
+      "summary": {
+        "elite": "品質 {{score}} 分。獲利、成長與財務結構都足夠強，屬於可以等價格、但不該等太久的核心名單。",
+        "strong": "品質 {{score}} 分。公司體質不錯，但仍要留意估值與執行節點，適合等待更好的價位或確認訊號。",
+        "average": "品質 {{score}} 分。公司有亮點，但耐久度與體質還不夠全面，不能只因為便宜就買。",
+        "speculative": "品質 {{score}} 分。現在更像待觀察名單，不應在數據還不完整前給太高權重。"
+      }
+    },
+    "valueTrap": {
+      "levels": {
+        "LOW": "低基本面風險",
+        "MEDIUM": "中等基本面風險",
+        "HIGH": "高基本面風險"
+      },
+      "reasons": {
+        "resilient": "目前沒有明顯 value trap 特徵；品質分數 {{quality}} 仍具支撐。",
+        "revenue_negative": "營收已轉負，便宜可能反映需求走弱。",
+        "revenue_stalling": "營收成長只剩 {{value}}%，需確認不是結構性放緩。",
+        "eps_negative": "EPS 已轉負，獲利品質明顯惡化。",
+        "eps_stalling": "EPS 成長只剩 {{value}}%，便宜可能是預期下修的前兆。",
+        "low_roic": "ROIC 僅 {{value}}%，表示資本效率偏弱。",
+        "balance_sheet_stress": "Debt / Equity {{value}} 偏高，景氣反轉時壓力會更大。",
+        "weak_liquidity": "Current ratio 僅 {{value}}，短期流動性緩衝不足。",
+        "thin_margin": "獲利率只有 {{value}}%，缺乏抵禦逆風的安全墊。",
+        "negative_fcf": "自由現金流為負，便宜估值可能只是現金燃燒的折價。",
+        "missing_cashflow": "現金流資料不足，不能只靠表面估值下結論。",
+        "cheap_but_low_quality": "看似有 {{upside}}% upside，但品質只有 {{quality}} 分，屬於典型便宜但脆弱的組合。",
+        "falling_knife": "價格已貼近 52 週低點，且基本面仍在轉弱，像下跌中的刀子。",
+        "leverage_without_growth": "槓桿偏高卻沒有明確成長，容易落入資產負債表風險。"
+      }
+    },
+    "cycle": {
+      "badges": {
+        "cyclical": "景氣循環股",
+        "steady": "穩定獲利",
+        "priceTaker": "價格接受者"
+      },
+      "regimes": {
+        "STEADY": "穩定獲利",
+        "TROUGH": "景氣谷底",
+        "MID": "中週期",
+        "PEAK": "接近高點"
+      },
+      "risk": {
+        "LOW": "低循環風險",
+        "MEDIUM": "循環風險",
+        "HIGH": "獲利高點"
+      },
+      "summary": {
+        "steady": "這檔不太像典型的價格接受者週期股，表面 P/E 相對可以直接解讀。",
+        "peak": "這檔仍帶有明顯景氣循環特徵，而且目前獲利偏熱。低 P/E 可能只是高點獲利，不應直接當成便宜。",
+        "trough": "這檔仍是週期型公司，但目前獲利看起來偏低迷，表面倍數可能低估中週期賺錢能力。",
+        "mid": "這檔仍屬於景氣循環股，但目前獲利比較接近中週期，而不是極端高點或谷底。"
+      },
+      "reasons": {
+        "non_cyclical": "這檔不太像典型價格接受者；品質分數 {{quality}} 也支持較穩定的獲利輪廓。",
+        "memory": "產業看起來屬於 memory / storage，供給波動很容易扭曲表面 P/E。",
+        "materials": "產業特性偏 commodity，獲利容易先衝高再均值回歸。",
+        "transport": "運輸與貨運獲利通常跟利用率與報價循環一起波動。",
+        "commodity": "這個產業仍明顯受供需驅動，不是單純靠定價權。",
+        "energy": "能源類產業常常在獲利高點時看起來最便宜。",
+        "price_taker": "這檔更像價格接受者，供給緊縮時當期獲利可能高於中週期常態。",
+        "headline_pe": "表面 P/E 只有 {{value}}x，不能只看便宜，應先做景氣調整。",
+        "peak_signals": "近期成長與獲利率偏強，代表當前獲利可能高於正常週期水位。",
+        "trough_signals": "獲利率與成長仍偏弱，代表目前倍數可能低估景氣回升後的賺錢能力。",
+        "near_high": "股價仍在相對高檔，這常發生在週期股獲利最強的階段。"
+      }
+    },
+    "timing": {
+      "statuses": {
+        "READY": "Ready",
+        "WAIT_PULLBACK": "等回檔",
+        "WAIT_CONFIRMATION": "等確認",
+        "STALE": "先刷新資料",
+        "AVOID": "先避開"
+      },
+      "summary": {
+        "ready": "時機分數 {{score}}。估值、品質與位置已接近同步，可開始準備分批布局。",
+        "wait_pullback": "時機分數 {{score}}。公司依然值得追蹤，但價格偏熱，等更好的風險報酬比。",
+        "wait_confirmation": "時機分數 {{score}}。標的可繼續留在名單中，但仍缺一兩個關鍵確認訊號。",
+        "stale": "時機分數 {{score}}。資料有點舊，先更新再決定是否投入資本。",
+        "avoid": "時機分數 {{score}}。目前不只是價格問題，風險輪廓本身就不夠吸引人。"
+      },
+      "conditions": {
+        "valuation_window": "估值提供約 {{value}}% 的安全邊際，賠率開始合理。",
+        "valuation_support": "仍有 {{value}}% 的估值支撐，但還不算非常便宜。",
+        "premium_price": "目前價格比合理價值高出約 {{value}}%，先不要急著追價。",
+        "limited_data": "可用資料有限，暫時只能保守解讀。",
+        "quality_compounder": "品質 {{value}} 分，屬於值得等待價格的公司。",
+        "quality_unproven": "品質只有 {{value}} 分，還不能假設它能順利穿越景氣循環。",
+        "trap_high": "陷阱風險 {{value}} 分，便宜不一定代表安全。",
+        "trap_medium": "陷阱風險 {{value}} 分，需要更多營運證據才適合加碼。",
+        "trap_low": "陷阱風險 {{value}} 分，基本面脆弱度相對可控。",
+        "pullback_entry": "RSI {{value}} 顯示已有回檔，進場位置開始改善。",
+        "overbought": "RSI {{value}} 偏熱，現在進場容易買在短期情緒高點。",
+        "off_high": "價格不在高檔區，長線進場壓力較小。",
+        "near_high": "價格太接近 52 週高點，先保留耐心。",
+        "fresh_data": "資料 {{value}} 天內更新，判斷可信度較高。",
+        "stale_data": "資料已超過 {{value}} 天未更新，先刷新再下判斷。",
+        "confidence_high": "模型信心度 {{value}}%，可以更重視當前結論。",
+        "confidence_low": "模型信心度 {{value}}%，目前只適合放在研究名單。",
+        "cycle_peak_high": "Peak-earnings risk {{value}} 分，不能只因為低 P/E 就直接進場。",
+        "cycle_peak_medium": "景氣循環風險 {{value}} 分，先等更好的價格或更乾淨的營運證據。"
+      }
+    },
     "valuation": {
       "summary": {
-        "discount": "GF 混合估值顯示低於內在價值 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}}); 市場隱含 10 年 FCF 年化成長率約為 ~{{implied_g}}%。",
-        "premium": "GF 混合估值顯示溢價狀態 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}}); 市場隱含 10 年 FCF 年化成長率約為 ~{{implied_g}}%。",
-        "extreme_premium": "GF 混合估值顯示極度溢價 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}}); 市場隱含 10 年 FCF 年化成長率約為 ~{{implied_g}}%。",
-        "fair": "GF 混合估值顯示處於合理區間 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}}); 市場隱含 10 年 FCF 年化成長率約為 ~{{implied_g}}%。",
+        "discount": "GF 混合估值顯示低於內在價值 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}})；市場隱含 10 年年化成長率約 {{implied_g}}%。",
+        "premium": "GF 混合估值顯示溢價狀態 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}})；市場隱含 10 年年化成長率約 {{implied_g}}%。",
+        "extreme_premium": "GF 混合估值顯示極度溢價 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}})；市場隱含 10 年年化成長率約 {{implied_g}}%。",
+        "fair": "GF 混合估值顯示處於合理區間 (g={{g}}%, r={{r}}%, tg={{tg}}%, 權重: dcf={{w_dcf}}, 乘數={{w_rel}})；市場隱含 10 年年化成長率約 {{implied_g}}%。",
         "unavailable_data": "估值不可用：需要有效的價格、市值與現金流數據。",
         "unavailable_shares": "估值不可用：無法推算流通股數。",
         "unavailable_metrics": "估值不可用：需要正數的 EPS 或每股現金流數據。",

@@ -3,18 +3,72 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { createTheme } from '@mui/material/styles';
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
 import CssBaseline from '@mui/material/CssBaseline';
+import Typography from '@mui/material/Typography';
 import { Layout } from './presentation/components/Layout';
-import { Dashboard } from './presentation/pages/Dashboard';
-import { Transactions } from './presentation/pages/Transactions';
-import { PerformanceAnalysis } from './presentation/pages/PerformanceAnalysis';
-import { BenchmarkComparison } from './presentation/pages/BenchmarkComparison';
-import { InfluencerTrackerPage } from './presentation/pages/InfluencerTrackerPage';
-import { Settings } from './presentation/pages/Settings';
-import ScreenerPage from './presentation/pages/ScreenerPage';
-import WatchlistPage from './presentation/pages/WatchlistPage';
 import './infrastructure/i18n/config';
 import './index.css';
+
+const Dashboard = React.lazy(() =>
+  import('./presentation/pages/Dashboard').then(module => ({
+    default: module.Dashboard,
+  }))
+);
+const Transactions = React.lazy(() =>
+  import('./presentation/pages/Transactions').then(module => ({
+    default: module.Transactions,
+  }))
+);
+const PerformanceAnalysis = React.lazy(() =>
+  import('./presentation/pages/PerformanceAnalysis').then(module => ({
+    default: module.PerformanceAnalysis,
+  }))
+);
+const BenchmarkComparison = React.lazy(() =>
+  import('./presentation/pages/BenchmarkComparison').then(module => ({
+    default: module.BenchmarkComparison,
+  }))
+);
+const InfluencerTrackerPage = React.lazy(() =>
+  import('./presentation/pages/InfluencerTrackerPage').then(module => ({
+    default: module.InfluencerTrackerPage,
+  }))
+);
+const ScreenerPage = React.lazy(
+  () => import('./presentation/pages/ScreenerPage')
+);
+const WatchlistPage = React.lazy(
+  () => import('./presentation/pages/WatchlistPage')
+);
+const Settings = React.lazy(() =>
+  import('./presentation/pages/Settings').then(module => ({
+    default: module.Settings,
+  }))
+);
+
+const RouteFallback = () => (
+  <Box
+    sx={{
+      minHeight: '60vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 1.5,
+    }}
+  >
+    <CircularProgress size={28} />
+    <Typography variant="body2" color="text.secondary">
+      Loading view...
+    </Typography>
+  </Box>
+);
+
+const withRouteSuspense = (element: React.ReactElement) => (
+  <React.Suspense fallback={<RouteFallback />}>{element}</React.Suspense>
+);
 
 // Create dark theme with distinctive typography per frontend-design skill
 const darkTheme = createTheme({
@@ -237,14 +291,32 @@ function App() {
     >
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="transactions" element={<Transactions />} />
-          <Route path="analysis" element={<PerformanceAnalysis />} />
-          <Route path="benchmark" element={<BenchmarkComparison />} />
-          <Route path="influencers" element={<InfluencerTrackerPage />} />
-          <Route path="screener" element={<ScreenerPage />} />
-          <Route path="watchlist" element={<WatchlistPage />} />
-          <Route path="settings" element={<Settings />} />
+          <Route index element={withRouteSuspense(<Dashboard />)} />
+          <Route
+            path="transactions"
+            element={withRouteSuspense(<Transactions />)}
+          />
+          <Route
+            path="analysis"
+            element={withRouteSuspense(<PerformanceAnalysis />)}
+          />
+          <Route
+            path="benchmark"
+            element={withRouteSuspense(<BenchmarkComparison />)}
+          />
+          <Route
+            path="influencers"
+            element={withRouteSuspense(<InfluencerTrackerPage />)}
+          />
+          <Route
+            path="screener"
+            element={withRouteSuspense(<ScreenerPage />)}
+          />
+          <Route
+            path="watchlist"
+            element={withRouteSuspense(<WatchlistPage />)}
+          />
+          <Route path="settings" element={withRouteSuspense(<Settings />)} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -35,6 +35,66 @@ class WatchlistService:
     _DCF_TERMINAL_GROWTH = _read_env_float("WATCHLIST_DCF_TERMINAL_GROWTH", 0.04)
     _DCF_GROWTH_MIN = _read_env_float("WATCHLIST_DCF_GROWTH_MIN", 0.05)
     _DCF_GROWTH_MAX = _read_env_float("WATCHLIST_DCF_GROWTH_MAX", 0.20)
+    _CYCLICAL_SECTOR_WEIGHTS = {
+        "energy": 18,
+        "basic materials": 16,
+        "materials": 16,
+        "industrials": 8,
+    }
+    _CYCLICAL_GROUPS = (
+        {
+            "keywords": ("memory", "dram", "nand", "flash", "storage"),
+            "weight": 32,
+            "reason": "memory",
+        },
+        {
+            "keywords": ("steel", "aluminum", "copper", "mining", "ore"),
+            "weight": 28,
+            "reason": "materials",
+        },
+        {
+            "keywords": ("shipping", "freight", "tanker", "container", "airline"),
+            "weight": 30,
+            "reason": "transport",
+        },
+        {
+            "keywords": ("chemical", "fertilizer", "paper", "pulp", "panel", "display", "solar"),
+            "weight": 26,
+            "reason": "commodity",
+        },
+        {
+            "keywords": ("oil", "gas", "exploration", "drilling", "refining"),
+            "weight": 30,
+            "reason": "energy",
+        },
+    )
+    _PRICE_TAKER_KEYWORDS = (
+        "memory",
+        "dram",
+        "nand",
+        "flash",
+        "storage",
+        "steel",
+        "aluminum",
+        "copper",
+        "shipping",
+        "freight",
+        "tanker",
+        "container",
+        "chemical",
+        "fertilizer",
+        "paper",
+        "pulp",
+        "panel",
+        "display",
+        "solar",
+        "oil",
+        "gas",
+        "exploration",
+        "drilling",
+        "refining",
+        "commodity",
+    )
 
     @staticmethod
     def _to_float(value: Any) -> float | None:
@@ -61,6 +121,10 @@ class WatchlistService:
         if not values:
             return None
         return sum(values) / len(values)
+
+    @staticmethod
+    def _contains_any_keyword(text: str, keywords: tuple[str, ...]) -> bool:
+        return any(keyword in text for keyword in keywords)
 
     @classmethod
     def search_symbols(cls, q: str, limit: int = 12) -> list[dict[str, Any]]:
@@ -821,6 +885,557 @@ class WatchlistService:
         }
 
     @staticmethod
+    def _score_to_percent(value: int | None, default: int = 5) -> int:
+        rank = value if value is not None else default
+        return int(round(max(0, min(10, rank)) * 10))
+
+    @classmethod
+    def _compute_quality_profile(cls, valuation: dict[str, Any]) -> dict[str, Any]:
+        profitability_rank = valuation.get("profitability_rank")
+        growth_rank = valuation.get("growth_rank")
+        financial_strength_rank = valuation.get("financial_strength_rank")
+        valuation_rank = valuation.get("valuation_rank")
+
+        score = int(
+            round(
+                cls._clamp(
+                    (
+                        (profitability_rank or 5) * 0.35
+                        + (growth_rank or 5) * 0.25
+                        + (financial_strength_rank or 5) * 0.25
+                        + (valuation_rank or 5) * 0.15
+                    )
+                    * 10,
+                    0,
+                    100,
+                )
+            )
+        )
+
+        if score >= 80:
+            outlook = "ELITE"
+        elif score >= 68:
+            outlook = "STRONG"
+        elif score >= 55:
+            outlook = "AVERAGE"
+        else:
+            outlook = "SPECULATIVE"
+
+        return {
+            "score": score,
+            "outlook": outlook,
+            "profitability": profitability_rank,
+            "growth": growth_rank,
+            "financial_strength": financial_strength_rank,
+            "valuation_support": valuation_rank,
+            "summary": {
+                "key": f"watchlist.quality.summary.{outlook.lower()}",
+                "params": {
+                    "score": score,
+                    "profitability": cls._score_to_percent(profitability_rank),
+                    "growth": cls._score_to_percent(growth_rank),
+                    "financial_strength": cls._score_to_percent(financial_strength_rank),
+                    "valuation_support": cls._score_to_percent(valuation_rank),
+                },
+            },
+        }
+
+    @classmethod
+    def _compute_value_trap_risk(
+        cls,
+        snapshot: dict[str, Any],
+        technicals: dict[str, Any],
+        valuation: dict[str, Any],
+        quality: dict[str, Any],
+    ) -> dict[str, Any]:
+        revenue_growth = cls._to_float(snapshot.get("revenue_growth"))
+        eps_growth = cls._to_float(snapshot.get("eps_growth"))
+        roic = cls._to_float(snapshot.get("roic"))
+        profit_margin = cls._to_float(snapshot.get("profit_margin"))
+        debt_to_equity = cls._to_float(snapshot.get("debt_to_equity"))
+        current_ratio = cls._to_float(snapshot.get("current_ratio"))
+        free_cash_flow = cls._to_float(snapshot.get("free_cash_flow"))
+        upside_pct = cls._to_float(valuation.get("upside_pct"))
+        pos_52w = cls._to_float(technicals.get("fifty_two_week_position"))
+        quality_score = int(quality.get("score") or 50)
+
+        risk_score = 0
+        reasons: list[dict[str, Any]] = []
+
+        def add(points: int, key: str, **params: Any) -> None:
+            nonlocal risk_score
+            risk_score += points
+            reasons.append(
+                {
+                    "key": f"watchlist.valueTrap.reasons.{key}",
+                    "params": params,
+                }
+            )
+
+        if revenue_growth is not None:
+            if revenue_growth <= 0:
+                add(18, "revenue_negative")
+            elif revenue_growth < 0.05:
+                add(10, "revenue_stalling", value=round(revenue_growth * 100, 1))
+
+        if eps_growth is not None:
+            if eps_growth <= 0:
+                add(18, "eps_negative")
+            elif eps_growth < 0.05:
+                add(10, "eps_stalling", value=round(eps_growth * 100, 1))
+
+        if roic is not None and roic < 0.08:
+            add(14, "low_roic", value=round(roic * 100, 1))
+
+        if debt_to_equity is not None and debt_to_equity >= 120:
+            add(16, "balance_sheet_stress", value=round(debt_to_equity, 1))
+
+        if current_ratio is not None and current_ratio < 1.0:
+            add(8, "weak_liquidity", value=round(current_ratio, 2))
+
+        if profit_margin is not None and profit_margin < 0.10:
+            add(10, "thin_margin", value=round(profit_margin * 100, 1))
+
+        if free_cash_flow is not None and free_cash_flow <= 0:
+            add(18, "negative_fcf")
+        elif free_cash_flow is None and str(valuation.get("status")) != "AVAILABLE":
+            add(6, "missing_cashflow")
+
+        if upside_pct is not None and upside_pct >= 0.25 and quality_score < 60:
+            add(
+                12,
+                "cheap_but_low_quality",
+                upside=round(upside_pct * 100, 1),
+                quality=quality_score,
+            )
+
+        growth_soft = (
+            (revenue_growth is not None and revenue_growth <= 0)
+            or (eps_growth is not None and eps_growth <= 0)
+        )
+        if pos_52w is not None and pos_52w <= 0.15 and growth_soft:
+            add(10, "falling_knife")
+
+        if (
+            debt_to_equity is not None
+            and debt_to_equity >= 80
+            and (
+                (revenue_growth is not None and revenue_growth < 0.05)
+                or (eps_growth is not None and eps_growth < 0.05)
+            )
+        ):
+            add(10, "leverage_without_growth")
+
+        risk_score = int(round(cls._clamp(risk_score, 0, 100)))
+
+        if risk_score >= 60:
+            level = "HIGH"
+        elif risk_score >= 35:
+            level = "MEDIUM"
+        else:
+            level = "LOW"
+
+        if not reasons:
+            reasons.append(
+                {
+                    "key": "watchlist.valueTrap.reasons.resilient",
+                    "params": {"quality": quality_score},
+                }
+            )
+
+        return {
+            "level": level,
+            "score": risk_score,
+            "reasons": reasons[:4],
+        }
+
+    @classmethod
+    def _compute_cycle_profile(
+        cls,
+        snapshot: dict[str, Any],
+        technicals: dict[str, Any],
+        valuation: dict[str, Any],
+        quality: dict[str, Any],
+    ) -> dict[str, Any]:
+        sector = str(snapshot.get("sector") or "").strip().lower()
+        industry = str(snapshot.get("industry") or "").strip().lower()
+        combined = f"{sector} {industry}".strip()
+
+        forward_pe = cls._to_float(snapshot.get("forward_pe"))
+        trailing_pe = cls._to_float(snapshot.get("trailing_pe"))
+        revenue_growth = cls._to_float(snapshot.get("revenue_growth"))
+        eps_growth = cls._to_float(snapshot.get("eps_growth"))
+        gross_margin = cls._to_float(snapshot.get("gross_margin"))
+        operating_margin = cls._to_float(snapshot.get("operating_margin"))
+        free_cash_flow = cls._to_float(snapshot.get("free_cash_flow"))
+        beta = cls._to_float(snapshot.get("beta"))
+        pos_52w = cls._to_float(technicals.get("fifty_two_week_position"))
+        quality_score = int(quality.get("score") or 50)
+
+        exposure_score = cls._CYCLICAL_SECTOR_WEIGHTS.get(sector, 0)
+
+        matched_group: dict[str, Any] | None = None
+        for group in cls._CYCLICAL_GROUPS:
+            if cls._contains_any_keyword(combined, group["keywords"]):
+                matched_group = group
+                exposure_score += int(group["weight"])
+                break
+
+        price_taker = cls._contains_any_keyword(combined, cls._PRICE_TAKER_KEYWORDS)
+        if price_taker:
+            exposure_score += 12
+
+        reference_pe = cls._avg(
+            [pe for pe in [forward_pe, trailing_pe] if pe is not None and pe > 0]
+        )
+        if reference_pe is not None and reference_pe <= 12:
+            exposure_score += 6
+
+        if gross_margin is not None and gross_margin <= 0.35:
+            exposure_score += 6
+        if operating_margin is not None and operating_margin <= 0.15:
+            exposure_score += 4
+        if beta is not None and beta >= 1.25:
+            exposure_score += 4
+
+        is_cyclical = exposure_score >= 24
+
+        if not is_cyclical:
+            return {
+                "is_cyclical": False,
+                "price_taker": False,
+                "earnings_regime": "STEADY",
+                "peak_earnings_risk": "LOW",
+                "score": 0,
+                "normalized_pe": reference_pe,
+                "summary": {
+                    "key": "watchlist.cycle.summary.steady",
+                    "params": {
+                        "pe": round(reference_pe, 1) if reference_pe is not None else None,
+                    },
+                },
+                "reasons": [
+                    {
+                        "key": "watchlist.cycle.reasons.non_cyclical",
+                        "params": {"quality": quality_score},
+                    }
+                ],
+            }
+
+        peak_score = 0
+        trough_score = 0
+
+        if reference_pe is not None:
+            if reference_pe <= 10:
+                peak_score += 18
+            elif reference_pe <= 14:
+                peak_score += 10
+            elif reference_pe >= 20:
+                trough_score += 10
+
+        if revenue_growth is not None:
+            if revenue_growth >= 0.10:
+                peak_score += 8
+            elif revenue_growth <= 0:
+                trough_score += 10
+
+        if eps_growth is not None:
+            if eps_growth >= 0.18:
+                peak_score += 14
+            elif eps_growth <= 0:
+                trough_score += 14
+
+        if gross_margin is not None:
+            if gross_margin >= 0.40:
+                peak_score += 10
+            elif gross_margin <= 0.22:
+                trough_score += 10
+
+        if operating_margin is not None:
+            if operating_margin >= 0.18:
+                peak_score += 8
+            elif operating_margin <= 0.08:
+                trough_score += 8
+
+        if pos_52w is not None:
+            if pos_52w >= 0.75:
+                peak_score += 8
+            elif pos_52w <= 0.25:
+                trough_score += 8
+
+        if free_cash_flow is not None and free_cash_flow <= 0:
+            trough_score += 6
+
+        if peak_score >= trough_score + 12 and peak_score >= 28:
+            earnings_regime = "PEAK"
+        elif trough_score >= peak_score + 12 and trough_score >= 24:
+            earnings_regime = "TROUGH"
+        else:
+            earnings_regime = "MID"
+
+        risk_score = 24
+        if price_taker:
+            risk_score += 18
+        if earnings_regime == "PEAK":
+            risk_score += 28
+        elif earnings_regime == "MID":
+            risk_score += 10
+        else:
+            risk_score -= 18
+
+        if reference_pe is not None:
+            if reference_pe <= 10:
+                risk_score += 16
+            elif reference_pe <= 14:
+                risk_score += 8
+
+        if pos_52w is not None and pos_52w >= 0.75:
+            risk_score += 8
+        if eps_growth is not None and eps_growth >= 0.18:
+            risk_score += 8
+        if gross_margin is not None and gross_margin >= 0.38:
+            risk_score += 6
+        if quality_score >= 80 and not price_taker:
+            risk_score -= 6
+
+        risk_score = int(round(cls._clamp(risk_score, 0, 100)))
+
+        if risk_score >= 60:
+            risk_level = "HIGH"
+        elif risk_score >= 35:
+            risk_level = "MEDIUM"
+        else:
+            risk_level = "LOW"
+
+        if reference_pe is None:
+            normalized_pe = None
+        else:
+            if earnings_regime == "PEAK":
+                adjustment = 1.75 if risk_score >= 70 else 1.55
+            elif earnings_regime == "TROUGH":
+                adjustment = 0.78
+            else:
+                adjustment = 1.12 if price_taker else 1.08
+            normalized_pe = cls._round(reference_pe * adjustment)
+
+        cycle_reasons: list[dict[str, Any]] = []
+        if matched_group is not None:
+            cycle_reasons.append(
+                {
+                    "key": f"watchlist.cycle.reasons.{matched_group['reason']}",
+                    "params": {},
+                }
+            )
+        if price_taker:
+            cycle_reasons.append(
+                {"key": "watchlist.cycle.reasons.price_taker", "params": {}}
+            )
+        if reference_pe is not None and reference_pe <= 12:
+            cycle_reasons.append(
+                {
+                    "key": "watchlist.cycle.reasons.headline_pe",
+                    "params": {"value": round(reference_pe, 1)},
+                }
+            )
+        if earnings_regime == "PEAK":
+            cycle_reasons.append(
+                {
+                    "key": "watchlist.cycle.reasons.peak_signals",
+                    "params": {},
+                }
+            )
+        elif earnings_regime == "TROUGH":
+            cycle_reasons.append(
+                {
+                    "key": "watchlist.cycle.reasons.trough_signals",
+                    "params": {},
+                }
+            )
+        if pos_52w is not None and pos_52w >= 0.75:
+            cycle_reasons.append(
+                {
+                    "key": "watchlist.cycle.reasons.near_high",
+                    "params": {},
+                }
+            )
+
+        summary_key = (
+            "steady"
+            if not is_cyclical
+            else "peak"
+            if earnings_regime == "PEAK"
+            else "trough"
+            if earnings_regime == "TROUGH"
+            else "mid"
+        )
+
+        return {
+            "is_cyclical": True,
+            "price_taker": price_taker,
+            "earnings_regime": earnings_regime,
+            "peak_earnings_risk": risk_level,
+            "score": risk_score,
+            "normalized_pe": normalized_pe,
+            "summary": {
+                "key": f"watchlist.cycle.summary.{summary_key}",
+                "params": {
+                    "pe": round(reference_pe, 1) if reference_pe is not None else None,
+                    "normalized_pe": normalized_pe,
+                },
+            },
+            "reasons": cycle_reasons[:4],
+        }
+
+    @classmethod
+    def _compute_timing_signal(
+        cls,
+        snapshot: dict[str, Any],
+        technicals: dict[str, Any],
+        signal: dict[str, Any],
+        valuation: dict[str, Any],
+        quality: dict[str, Any],
+        value_trap: dict[str, Any],
+        cycle_profile: dict[str, Any],
+    ) -> dict[str, Any]:
+        upside_pct = cls._to_float(valuation.get("upside_pct"))
+        rsi14 = cls._to_float(technicals.get("rsi14"))
+        pos_52w = cls._to_float(technicals.get("fifty_two_week_position"))
+        freshness_days = signal.get("freshness_days")
+        confidence = int(signal.get("confidence") or 0)
+        quality_score = int(quality.get("score") or 50)
+        risk_level = str(value_trap.get("level") or "LOW")
+        risk_score = int(value_trap.get("score") or 0)
+        cycle_risk_level = str(cycle_profile.get("peak_earnings_risk") or "LOW")
+        cycle_risk_score = int(cycle_profile.get("score") or 0)
+
+        timing_score = 50
+        positives: list[dict[str, Any]] = []
+        negatives: list[dict[str, Any]] = []
+
+        def add_positive(points: int, key: str, **params: Any) -> None:
+            nonlocal timing_score
+            timing_score += points
+            positives.append(
+                {
+                    "key": f"watchlist.timing.conditions.{key}",
+                    "params": params,
+                }
+            )
+
+        def add_negative(points: int, key: str, **params: Any) -> None:
+            nonlocal timing_score
+            timing_score -= points
+            negatives.append(
+                {
+                    "key": f"watchlist.timing.conditions.{key}",
+                    "params": params,
+                }
+            )
+
+        if upside_pct is not None:
+            if upside_pct >= 0.25:
+                add_positive(18, "valuation_window", value=round(upside_pct * 100, 1))
+            elif upside_pct >= 0.12:
+                add_positive(10, "valuation_support", value=round(upside_pct * 100, 1))
+            elif upside_pct < 0:
+                add_negative(16, "premium_price", value=round(abs(upside_pct) * 100, 1))
+        else:
+            add_negative(6, "limited_data")
+
+        if quality_score >= 75:
+            add_positive(12, "quality_compounder", value=quality_score)
+        elif quality_score < 55:
+            add_negative(12, "quality_unproven", value=quality_score)
+
+        if risk_level == "HIGH":
+            add_negative(30, "trap_high", value=risk_score)
+        elif risk_level == "MEDIUM":
+            add_negative(12, "trap_medium", value=risk_score)
+        else:
+            add_positive(6, "trap_low", value=risk_score)
+
+        if rsi14 is not None:
+            if rsi14 <= 45:
+                add_positive(8, "pullback_entry", value=round(rsi14, 1))
+            elif rsi14 >= 70:
+                add_negative(14, "overbought", value=round(rsi14, 1))
+
+        if pos_52w is not None:
+            if pos_52w <= 0.35:
+                add_positive(4, "off_high")
+            elif pos_52w >= 0.85:
+                add_negative(8, "near_high")
+
+        if freshness_days is not None:
+            if freshness_days <= 3:
+                add_positive(6, "fresh_data", value=freshness_days)
+            elif freshness_days >= 14:
+                add_negative(20, "stale_data", value=freshness_days)
+
+        if confidence >= 75:
+            add_positive(5, "confidence_high", value=confidence)
+        elif confidence < 60:
+            add_negative(8, "confidence_low", value=confidence)
+
+        if cycle_risk_level == "HIGH":
+            add_negative(18, "cycle_peak_high", value=cycle_risk_score)
+        elif cycle_risk_level == "MEDIUM":
+            add_negative(8, "cycle_peak_medium", value=cycle_risk_score)
+
+        timing_score = int(round(cls._clamp(timing_score, 0, 100)))
+        signal_action = str(signal.get("action") or "HOLD")
+
+        if signal_action == "SELL" or risk_level == "HIGH":
+            status = "AVOID"
+            summary_key = "avoid"
+        elif freshness_days is not None and freshness_days >= 14:
+            status = "STALE"
+            summary_key = "stale"
+        elif (
+            timing_score >= 72
+            and upside_pct is not None
+            and upside_pct >= 0.18
+            and quality_score >= 65
+            and (rsi14 is None or rsi14 < 70)
+            and (pos_52w is None or pos_52w < 0.88)
+        ):
+            status = "READY"
+            summary_key = "ready"
+        elif timing_score >= 60 and quality_score >= 65 and (
+            (rsi14 is not None and rsi14 >= 68)
+            or (pos_52w is not None and pos_52w >= 0.85)
+        ):
+            status = "WAIT_PULLBACK"
+            summary_key = "wait_pullback"
+        else:
+            status = "WAIT_CONFIRMATION"
+            summary_key = "wait_confirmation"
+
+        if status in {"AVOID", "STALE"}:
+            conditions = negatives + positives
+        elif status == "WAIT_PULLBACK":
+            conditions = positives[:2] + negatives[:2]
+        else:
+            conditions = positives + negatives
+
+        if not conditions:
+            conditions = [{"key": "watchlist.timing.conditions.limited_data", "params": {}}]
+
+        return {
+            "status": status,
+            "score": timing_score,
+            "freshness_days": freshness_days,
+            "summary": {
+                "key": f"watchlist.timing.summary.{summary_key}",
+                "params": {
+                    "score": timing_score,
+                    "quality": quality_score,
+                },
+            },
+            "conditions": conditions[:4],
+        }
+
+    @staticmethod
     def _round(value: float | None) -> float | None:
         if value is None:
             return None
@@ -927,6 +1542,18 @@ class WatchlistService:
         tech = technicals or {}
         valuation = cls._compute_dcf_valuation(snapshot)
         signal = cls._compute_signal(snapshot, tech, valuation)
+        quality = cls._compute_quality_profile(valuation)
+        value_trap = cls._compute_value_trap_risk(snapshot, tech, valuation, quality)
+        cycle_profile = cls._compute_cycle_profile(snapshot, tech, valuation, quality)
+        timing = cls._compute_timing_signal(
+            snapshot,
+            tech,
+            signal,
+            valuation,
+            quality,
+            value_trap,
+            cycle_profile,
+        )
         trade_plan = cls._compute_trade_plan(snapshot, signal, valuation)
 
         # Structure technical warnings
@@ -971,6 +1598,10 @@ class WatchlistService:
                 "fifty_two_week_position": cls._to_float(tech.get("fifty_two_week_position")),
                 "warnings": structured_warnings,
             },
+            "quality": quality,
+            "value_trap": value_trap,
+            "cycle_profile": cycle_profile,
+            "timing": timing,
             "valuation": valuation,
             "trade_plan": trade_plan,
         }
@@ -1041,28 +1672,16 @@ class WatchlistService:
         }
 
     @classmethod
-    def list_watchlist(cls) -> dict[str, Any]:
-        rows = cls._get_item_rows()
-        if not rows:
-            return {"total": 0, "items": []}
+    def _attach_peer_valuation_scores(
+        cls,
+        items: list[dict[str, Any]],
+        screener_map: dict[str, dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        if not items:
+            return items
 
-        symbols = [cls._normalize_symbol(row[1]) for row in rows]
-        screener_map = cls._get_screener_snapshot(symbols)
-        technical_map = cls._get_technical_snapshot(symbols)
-
-        items = [
-            cls._assemble_item(
-                row,
-                screener=screener_map.get(cls._normalize_symbol(row[1])),
-                technicals=technical_map.get(cls._normalize_symbol(row[1])),
-            )
-            for row in rows
-        ]
-
-        # Attach industry-aware valuation scores
-        # Use screener snapshots as peer dicts; supplement with watchlist sector peers
-        # to ensure meaningful peer group (pull all stocks in each represented sector)
-        sectors_needed = {(screener_map.get(s) or {}).get("sector") for s in symbols} - {None}
+        symbols = [cls._normalize_symbol(item.get("symbol", "")) for item in items]
+        sectors_needed = {(screener_map.get(symbol) or {}).get("sector") for symbol in symbols} - {None}
         peer_dicts: list[dict[str, Any]] = []
         if sectors_needed:
             conn = db.get_connection()
@@ -1087,18 +1706,38 @@ class WatchlistService:
                 "profit_margin", "price_to_book", "roe", "dividend_yield", "debt_to_equity",
                 "ev_to_ebitda", "price_to_fcf", "trailing_pe", "current_ratio",
             ]
-            peer_dicts = [dict(zip(cols, r)) for r in rows_peers]
+            peer_dicts = [dict(zip(cols, row)) for row in rows_peers]
 
         val_scores = compute_valuation_scores(peer_dicts) if peer_dicts else {}
 
         for item in items:
-            sym = item.get("symbol", "")
-            result = val_scores.get(sym)
+            result = val_scores.get(item.get("symbol", ""))
             if result:
                 item["valuation_score"] = result["score"]
                 item["valuation_label"] = result["label"]
                 item["valuation_low_confidence"] = result["low_confidence"]
 
+        return items
+
+    @classmethod
+    def list_watchlist(cls) -> dict[str, Any]:
+        rows = cls._get_item_rows()
+        if not rows:
+            return {"total": 0, "items": []}
+
+        symbols = [cls._normalize_symbol(row[1]) for row in rows]
+        screener_map = cls._get_screener_snapshot(symbols)
+        technical_map = cls._get_technical_snapshot(symbols)
+
+        items = [
+            cls._assemble_item(
+                row,
+                screener=screener_map.get(cls._normalize_symbol(row[1])),
+                technicals=technical_map.get(cls._normalize_symbol(row[1])),
+            )
+            for row in rows
+        ]
+        cls._attach_peer_valuation_scores(items, screener_map)
         return {"total": len(items), "items": items}
 
     @classmethod
@@ -1143,11 +1782,13 @@ class WatchlistService:
             if cls._normalize_symbol(row[1]) == normalized_symbol:
                 screener_map = cls._get_screener_snapshot([normalized_symbol])
                 technical_map = cls._get_technical_snapshot([normalized_symbol])
-                return cls._assemble_item(
+                item = cls._assemble_item(
                     row,
                     screener=screener_map.get(normalized_symbol),
                     technicals=technical_map.get(normalized_symbol),
                 )
+                cls._attach_peer_valuation_scores([item], screener_map)
+                return item
         return None
 
     @classmethod

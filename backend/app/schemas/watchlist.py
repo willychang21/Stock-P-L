@@ -44,6 +44,41 @@ class WatchlistTechnical(BaseModel):
     warnings: list[I18nMessage] = Field(default_factory=list)
 
 
+class WatchlistQualityProfile(BaseModel):
+    score: int
+    outlook: Literal["ELITE", "STRONG", "AVERAGE", "SPECULATIVE"]
+    profitability: int | None = None
+    growth: int | None = None
+    financial_strength: int | None = None
+    valuation_support: int | None = None
+    summary: I18nMessage
+
+
+class WatchlistValueTrapRisk(BaseModel):
+    level: Literal["LOW", "MEDIUM", "HIGH"]
+    score: int
+    reasons: list[I18nMessage] = Field(default_factory=list)
+
+
+class WatchlistCycleProfile(BaseModel):
+    is_cyclical: bool
+    price_taker: bool
+    earnings_regime: Literal["STEADY", "TROUGH", "MID", "PEAK"]
+    peak_earnings_risk: Literal["LOW", "MEDIUM", "HIGH"]
+    score: int
+    normalized_pe: float | None = None
+    summary: I18nMessage
+    reasons: list[I18nMessage] = Field(default_factory=list)
+
+
+class WatchlistTimingSignal(BaseModel):
+    status: Literal["READY", "WAIT_PULLBACK", "WAIT_CONFIRMATION", "STALE", "AVOID"]
+    score: int
+    freshness_days: int | None = None
+    summary: I18nMessage
+    conditions: list[I18nMessage] = Field(default_factory=list)
+
+
 class WatchlistValuationScenario(BaseModel):
     label: Literal["BEAR", "BASE", "BULL"]
     fcf_growth_5y: float
@@ -135,6 +170,10 @@ class WatchlistItem(BaseModel):
     note: str | None = None
     signal: WatchlistSignal
     technical: WatchlistTechnical
+    quality: WatchlistQualityProfile
+    value_trap: WatchlistValueTrapRisk
+    cycle_profile: WatchlistCycleProfile
+    timing: WatchlistTimingSignal
     valuation: WatchlistValuation
     trade_plan: WatchlistTradePlan
     # Runtime-computed — not stored in DB

@@ -683,34 +683,129 @@
     }
   },
   "watchlist": {
-    "title": "Watchlist Radar",
-    "subtitle": "Add tickers in seconds, then rank ideas by signal quality before acting.",
-    "refresh": "Refresh Signals",
+    "title": "Long-Horizon Watchlist",
+    "subtitle": "Run each idea through a buy-side workflow: quality first, then separate structural trap risk from cycle risk before deciding whether timing is finally good enough.",
+    "refresh": "Refresh Framework",
+    "searchLabel": "Add Symbol",
     "searchPlaceholder": "Search ticker or company name",
     "add": "Add to Watchlist",
     "adding": "Adding...",
-    "filterPlaceholder": "Filter existing watchlist",
+    "filterLabel": "Filter Watchlist",
+    "filterPlaceholder": "Search ticker, company, industry, or regime",
     "stats": {
       "symbols": "Symbols",
       "buyBias": "BUY Bias",
       "holdBias": "HOLD Bias",
       "sellRisk": "SELL Risk"
     },
-    "alert": "Signals combine valuation, growth, quality, and yfinance technical momentum. Use as a decision aid, not financial advice.",
+    "hero": {
+      "mode": "Long-Horizon Mode",
+      "coverage": "Showing {{shown}} / {{total}} names",
+      "avgQuality": "Avg Quality {{value}}",
+      "executionOverlay": "Show execution overlay",
+      "executionHint": "Short-term strategy is not fully defined yet; this overlay stays optional and should not drive the core long-term call."
+    },
+    "presets": {
+      "ALL": "All {{count}}",
+      "READY": "Ready Now {{count}}",
+      "COMPOUNDER": "Compounders {{count}}",
+      "CYCLE": "Cycle Check {{count}}",
+      "PULLBACK": "Wait Pullback {{count}}",
+      "RISK": "Risk Monitor {{count}}",
+      "STALE": "Refresh First {{count}}"
+    },
+    "sort": {
+      "label": "Sort By",
+      "options": {
+        "CONVICTION": "Conviction",
+        "TIMING": "Timing",
+        "UPSIDE": "Margin of Safety",
+        "QUALITY": "Quality",
+        "CYCLE": "Cycle Risk",
+        "RISK": "Combined Risk"
+      }
+    },
+    "resetView": "Reset View",
+    "loading": {
+      "insights": "Loading deep-dive insights...",
+      "valuation": "Loading valuation tools..."
+    },
+    "summary": {
+      "ready": {
+        "title": "Ready Now",
+        "helper": "Quality, valuation, and timing are all starting to line up."
+      },
+      "cycle": {
+        "title": "Peak Earnings",
+        "helper": "Low P/E may be reflecting cycle-high earnings rather than durable cheapness."
+      },
+      "pullback": {
+        "title": "Wait Pullback",
+        "helper": "The business is fine, but price is still asking too much."
+      },
+      "trap": {
+        "title": "Structural Trap",
+        "helper": "The balance sheet or earnings quality still looks too fragile for a clean long-term entry."
+      },
+      "stale": {
+        "title": "Refresh First",
+        "helper": "Do not commit capital before the data or coverage improves."
+      }
+    },
+    "alert": "This page is optimized for long-term investing: structural trap risk and cycle risk are scored separately, so a low P/E does not automatically read as a buying opportunity.",
     "empty": {
       "title": "Watchlist is empty",
-      "subtitle": "Search a ticker and add it to start monitoring live buy/sell signals."
+      "subtitle": "Start with high-conviction names, then let the data rank quality, risk, and entry readiness.",
+      "filteredTitle": "No names match the current view",
+      "filteredSubtitle": "Adjust the preset, sorting, or keyword filter to reopen the long-horizon funnel."
     },
     "card": {
       "nameUnavailable": "Name unavailable",
-      "mktCap": "Mkt Cap: {{value}}",
+      "mktCap": "Mkt Cap {{value}}",
       "fwdPe": "Fwd P/E",
       "roic": "ROIC",
       "revGrowth": "Rev Growth",
       "epsGrowth": "EPS Growth",
+      "remove": "Remove from watchlist",
+      "removeAria": "Remove {{symbol}} from watchlist",
+      "keySignals": "Key Signals",
+      "moreContext": "+ {{count}} more context...",
+      "coverage": "Coverage {{percent}}%",
+      "confidence": "Confidence {{percent}}%",
+      "freshness": "Data {{value}}d old",
+      "freshnessUnknown": "Data freshness unknown",
+      "deepDive": "Deep Dive",
+      "noWarnings": "No obvious heat warnings right now.",
+      "metrics": {
+        "price": "Price",
+        "margin": "Margin of Safety",
+        "fairValueRange": "Fair Value Range",
+        "conviction": "Conviction",
+        "headlinePe": "Headline P/E",
+        "cycleAdjustedPe": "Cycle-adjusted P/E",
+        "quality": "Quality",
+        "timing": "Timing",
+        "riskScore": "Structural Risk {{value}}"
+      },
+      "sections": {
+        "quality": "Quality & Compounding Engine",
+        "primaryDrivers": "Primary drivers right now",
+        "structuralTrap": "Structural Trap Risk",
+        "technicalHeat": "Technical Heat",
+        "cycleCheck": "Cycle Check",
+        "timing": "Entry Timing",
+        "valuation": "Valuation Summary",
+        "execution": "Execution Overlay"
+      },
+      "quality": {
+        "profitability": "Profitability",
+        "growth": "Growth Durability",
+        "financialStrength": "Financial Strength",
+        "valuationSupport": "Valuation Support"
+      },
       "valuation": {
         "title": "Valuation Estimate",
-        "model": "Model",
+        "model": "Valuation Lab",
         "modelTooltip": "Optimize DCF Valuation",
         "fairValue": "Fair Value",
         "marginOfSafety": "Margin of Safety",
@@ -721,7 +816,8 @@
         "title": "Suggested Trade Plan",
         "entryZone": "Entry Zone",
         "stopLoss": "Stop Loss",
-        "target": "Target (TP1)"
+        "target": "Target (TP1)",
+        "rr": "R / R"
       },
       "signals": {
         "BUY": "BUY",
@@ -732,64 +828,169 @@
         "LONG": "LONG",
         "WAIT": "WAIT",
         "AVOID": "AVOID"
+      }
+    },
+    "signals": {
+      "reasons": {
+        "pe_attractive": "Forward P/E {{value}} stays in a tradable range.",
+        "pe_stretched": "Forward P/E {{value}} looks stretched.",
+        "revenue_growth_good": "Revenue growth {{value}}% supports continuity.",
+        "revenue_growth_negative": "Revenue growth turned negative.",
+        "eps_growth_good": "EPS growth {{value}}% confirms earnings momentum.",
+        "eps_growth_negative": "EPS growth is negative.",
+        "roic_strong": "ROIC {{value}}% signals strong capital efficiency.",
+        "roic_weak": "ROIC is weak versus the quality threshold.",
+        "pfcf_attractive": "P/FCF {{value}} is attractive.",
+        "pfcf_expensive": "P/FCF {{value}} is expensive.",
+        "rsi_oversold": "RSI {{value}} is near oversold.",
+        "rsi_overbought": "RSI {{value}} shows overbought risk.",
+        "low_52w_range": "Price sits near the lower 52-week range.",
+        "high_52w_range": "Price is near the 52-week high; risk/reward is tighter.",
+        "valuation_upside": "Valuation upside of {{value}}% gives support.",
+        "valuation_premium": "Valuation premium of {{value}}% limits margin of safety.",
+        "extreme_premium": "Extreme premium zone; avoid aggressive adding.",
+        "mixed_data": "Signal stays neutral because the data is mixed."
+      }
+    },
+    "technicals": {
+      "warnings": {
+        "overbought": "Overbought (RSI: {{rsi}})",
+        "oversold": "Oversold (RSI: {{rsi}})",
+        "high_52w": "Near 52-Week High",
+        "low_52w": "Near 52-Week Low",
+        "generic": "{{msg}}"
+      }
+    },
+    "quality": {
+      "outlook": {
+        "ELITE": "Elite Compounder",
+        "STRONG": "Strong Compounder",
+        "AVERAGE": "Needs Selectivity",
+        "SPECULATIVE": "Speculative"
       },
-      "signals": {
-        "reasons": {
-          "pe_attractive": "Forward P/E {{value}} stays in tradable value range.",
-          "pe_stretched": "Forward P/E {{value}} looks stretched.",
-          "revenue_growth_good": "Revenue growth {{value}}% supports trend continuation.",
-          "revenue_growth_negative": "Revenue growth turned negative.",
-          "eps_growth_good": "EPS growth {{value}}% confirms earnings momentum.",
-          "eps_growth_negative": "EPS growth is negative.",
-          "roic_strong": "ROIC {{value}}% indicates strong capital efficiency.",
-          "roic_weak": "ROIC is weak versus quality threshold.",
-          "pfcf_attractive": "P/FCF {{value}} is attractive.",
-          "pfcf_expensive": "P/FCF {{value}} is expensive.",
-          "rsi_oversold": "RSI {{value}} is near oversold zone.",
-          "rsi_overbought": "RSI {{value}} shows overbought risk.",
-          "low_52w_range": "Price sits near lower 52-week range.",
-          "high_52w_range": "Price is near 52-week high; risk/reward is tighter.",
-          "valuation_upside": "GF-value upside {{value}}% indicates valuation support.",
-          "valuation_premium": "GF-value premium {{value}}% suggests limited margin of safety.",
-          "extreme_premium": "Extreme premium zone; avoid aggressive adding.",
-          "mixed_data": "Signal is neutral because data is mixed."
-        }
+      "summary": {
+        "elite": "Quality score {{score}}. Profitability, growth durability, and balance sheet support are all strong enough for a core-name shortlist.",
+        "strong": "Quality score {{score}}. The business is solid, but price and execution matter more here than in elite names.",
+        "average": "Quality score {{score}}. There are good elements, but not enough breadth to justify buying it just because it screens cheap.",
+        "speculative": "Quality score {{score}}. This still belongs on the watch list, not in a high-confidence allocation."
+      }
+    },
+    "valueTrap": {
+      "levels": {
+        "LOW": "Low Structural Risk",
+        "MEDIUM": "Medium Structural Risk",
+        "HIGH": "High Structural Risk"
       },
-      "technicals": {
-        "warnings": {
-          "overbought": "Overbought (RSI: {{rsi}})",
-          "oversold": "Oversold (RSI: {{rsi}})",
-          "high_52w": "Near 52-Week High",
-          "low_52w": "Near 52-Week Low",
-          "generic": "{{msg}}"
-        }
+      "reasons": {
+        "resilient": "No obvious value-trap signature so far; quality score {{quality}} still provides support.",
+        "revenue_negative": "Revenue is already negative, so cheapness may simply reflect weakening demand.",
+        "revenue_stalling": "Revenue growth is only {{value}}%, which may be a structural slowdown rather than a temporary pause.",
+        "eps_negative": "EPS has turned negative, which weakens earnings quality materially.",
+        "eps_stalling": "EPS growth is only {{value}}%, so the discount may be front-running estimate cuts.",
+        "low_roic": "ROIC is only {{value}}%, pointing to weak capital efficiency.",
+        "balance_sheet_stress": "Debt / Equity at {{value}} adds pressure if the cycle turns.",
+        "weak_liquidity": "Current ratio of {{value}} leaves limited near-term liquidity cushion.",
+        "thin_margin": "Margins are only {{value}}%, leaving little protection against execution misses.",
+        "negative_fcf": "Free cash flow is negative, so the discount may simply price cash burn.",
+        "missing_cashflow": "Cash flow visibility is thin, so surface-level cheapness is not enough.",
+        "cheap_but_low_quality": "There may be {{upside}}% upside, but quality is only {{quality}}; that is a classic cheap-but-fragile setup.",
+        "falling_knife": "The stock is already near the 52-week low while fundamentals are still deteriorating.",
+        "leverage_without_growth": "Leverage is elevated without clear growth support."
+      }
+    },
+    "cycle": {
+      "badges": {
+        "cyclical": "CYCLICAL",
+        "steady": "STEADY EARNER",
+        "priceTaker": "PRICE TAKER"
       },
-      "valuation": {
-        "summary": {
-          "discount": "GF-style blend indicates discount to intrinsic value (g={{g}}%, r={{r}}%, tg={{tg}}%, years={{years}}, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y FCF CAGR is ~{{implied_g}}%.",
-          "premium": "GF-style blend indicates premium (g={{g}}%, r={{r}}%, tg={{tg}}%, years={{years}}, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y FCF CAGR is ~{{implied_g}}%.",
-          "extreme_premium": "GF-style blend indicates extreme premium (g={{g}}%, r={{r}}%, tg={{tg}}%, years={{years}}, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y FCF CAGR is ~{{implied_g}}%.",
-          "fair": "GF-style blend indicates fair range (g={{g}}%, r={{r}}%, tg={{tg}}%, years={{years}}, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y FCF CAGR is ~{{implied_g}}%.",
-          "unavailable_data": "Valuation unavailable: need positive price, market cap, and free cash flow.",
-          "unavailable_shares": "Valuation unavailable: shares outstanding could not be inferred.",
-          "unavailable_metrics": "Valuation unavailable: need positive EPS or FCF per share.",
-          "invalid_math": "Valuation unavailable: assumptions produced invalid math."
-        }
+      "regimes": {
+        "STEADY": "Steady Earnings",
+        "TROUGH": "Trough",
+        "MID": "Mid-cycle",
+        "PEAK": "Peak-ish"
       },
-      "trade_plan": {
-        "summary": {
-          "bullish": "Bias is bullish. Scale in near support and keep strict risk limits.",
-          "mixed": "Signal is mixed. Wait for confirmation before full position sizing.",
-          "avoid": "Avoid new longs until trend and fundamentals improve.",
-          "no_price": "No valid price data; do not execute a trade plan."
-        }
+      "risk": {
+        "LOW": "Low Cycle Risk",
+        "MEDIUM": "Cycle Risk",
+        "HIGH": "Peak Earnings"
       },
-      "keySignals": "KEY SIGNALS",
-      "moreContext": "+ {{count}} more context...",
-      "coverage": "Coverage {{percent}}%",
-      "confidence": "Signal Confidence {{percent}}%",
-      "deepDive": "Deep Dive",
-      "remove": "Remove from watchlist"
+      "summary": {
+        "steady": "This does not screen like a classic price-taker cycle, so the headline P/E is more interpretable at face value.",
+        "peak": "This still behaves like a cycle, and the earnings setup looks hot. Treat the low P/E as potentially peak-cycle, not automatically cheap.",
+        "trough": "This still looks cyclical, but current earnings appear depressed. A weak headline multiple can understate mid-cycle earning power.",
+        "mid": "This still behaves like a cycle, but current earnings look closer to a mid-cycle read than to an extreme peak or trough."
+      },
+      "reasons": {
+        "non_cyclical": "The business does not screen like a classic price taker; quality score {{quality}} supports a steadier earnings profile.",
+        "memory": "Industry setup looks like memory / storage, where supply swings can distort headline P/E.",
+        "materials": "Industry setup looks commodity-like, so earnings can overshoot and then mean-revert.",
+        "transport": "Freight and transport earnings usually move with utilization and pricing cycles.",
+        "commodity": "The industry still looks supply-driven, not purely pricing-power-driven.",
+        "energy": "Energy-style industries often look cheapest near the earnings peak.",
+        "price_taker": "This looks like a price-taker business, so tight supply can make current earnings look better than mid-cycle reality.",
+        "headline_pe": "Headline P/E is only {{value}}x, so it deserves a cycle-adjusted read instead of a surface-level cheapness call.",
+        "peak_signals": "Strong recent growth and margins point to earnings running hotter than a normal cycle state.",
+        "trough_signals": "Margins and growth still look depressed, which can make the current multiple understate recovery value.",
+        "near_high": "The stock is still trading near its highs, which often happens when cyclical earnings are strong."
+      }
+    },
+    "timing": {
+      "statuses": {
+        "READY": "READY",
+        "WAIT_PULLBACK": "WAIT PULLBACK",
+        "WAIT_CONFIRMATION": "WAIT CONFIRMATION",
+        "STALE": "REFRESH FIRST",
+        "AVOID": "AVOID"
+      },
+      "summary": {
+        "ready": "Timing score {{score}}. Valuation, quality, and price positioning are close enough to start scaling in.",
+        "wait_pullback": "Timing score {{score}}. The business is still worth following, but price is running hot relative to the current setup.",
+        "wait_confirmation": "Timing score {{score}}. The name can stay on the list, but one or two key confirmation points are still missing.",
+        "stale": "Timing score {{score}}. The data is getting old, so refresh the file before allocating capital.",
+        "avoid": "Timing score {{score}}. This is not just a price issue; the overall risk profile is still unattractive."
+      },
+      "conditions": {
+        "valuation_window": "Valuation offers about {{value}}% upside, so the payoff starts to make sense.",
+        "valuation_support": "There is still {{value}}% valuation support, though it is not especially cheap yet.",
+        "premium_price": "The stock trades about {{value}}% above fair value, so chasing here is hard to justify.",
+        "limited_data": "Available data is limited, so the setup deserves a conservative read.",
+        "quality_compounder": "Quality score of {{value}} means this is the kind of business worth waiting for.",
+        "quality_unproven": "Quality score of {{value}} is not enough to assume the company can compound through a cycle.",
+        "trap_high": "Trap risk is {{value}}, so cheap does not automatically mean safe.",
+        "trap_medium": "Trap risk is {{value}}, so more operating proof is still needed.",
+        "trap_low": "Trap risk is {{value}}, so fragility looks manageable for now.",
+        "pullback_entry": "RSI at {{value}} says the stock has already pulled back a bit.",
+        "overbought": "RSI at {{value}} says the stock is hot and vulnerable to a weak entry.",
+        "off_high": "The stock is not sitting near its highs, which helps long-term entry math.",
+        "near_high": "Price is too close to the 52-week high; patience is still warranted.",
+        "fresh_data": "Data was refreshed {{value}} day(s) ago, which improves trust in the read.",
+        "stale_data": "Data is already {{value}} day(s) old, so refresh before deciding.",
+        "confidence_high": "Model confidence is {{value}}%, so the current view deserves more weight.",
+        "confidence_low": "Model confidence is {{value}}%, so keep it in research mode for now.",
+        "cycle_peak_high": "Peak-earnings risk is {{value}}, so a low P/E is not enough to justify entry yet.",
+        "cycle_peak_medium": "Cycle risk is {{value}}, so wait for a better price or cleaner operating proof."
+      }
+    },
+    "valuation": {
+      "summary": {
+        "discount": "GF-style blend implies a discount to intrinsic value (g={{g}}%, r={{r}}%, tg={{tg}}%, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y growth is about {{implied_g}}%.",
+        "premium": "GF-style blend implies a premium (g={{g}}%, r={{r}}%, tg={{tg}}%, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y growth is about {{implied_g}}%.",
+        "extreme_premium": "GF-style blend implies an extreme premium (g={{g}}%, r={{r}}%, tg={{tg}}%, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y growth is about {{implied_g}}%.",
+        "fair": "GF-style blend implies a fair range (g={{g}}%, r={{r}}%, tg={{tg}}%, w_dcf={{w_dcf}}, w_rel={{w_rel}}); market-implied 10Y growth is about {{implied_g}}%.",
+        "unavailable_data": "Valuation unavailable: need positive price, market cap, and free cash flow.",
+        "unavailable_shares": "Valuation unavailable: shares outstanding could not be inferred.",
+        "unavailable_metrics": "Valuation unavailable: need positive EPS or FCF per share.",
+        "invalid_math": "Valuation unavailable: assumptions produced invalid math."
+      }
+    },
+    "trade_plan": {
+      "summary": {
+        "bullish": "Bias is bullish. Scale in near support and keep strict risk limits.",
+        "mixed": "Signal is mixed. Wait for confirmation before sizing a full position.",
+        "avoid": "Avoid new longs until trend and fundamentals improve.",
+        "no_price": "No valid price data; do not execute a trade plan."
+      }
     }
   },
   "import": {
